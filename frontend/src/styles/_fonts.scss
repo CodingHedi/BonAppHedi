@@ -1,0 +1,21 @@
+// Self-hosted fonts.
+//
+// Deliberately NOT the Google Fonts CDN: it discloses every visitor's IP to
+// Google, which is a real problem for a French site and would drag a consent
+// banner along with it. Self-hosting is also faster (no extra DNS + TLS
+// handshake to fonts.gstatic.com on first paint).
+//
+// The prototype's original @import is recorded in Docs/design-tokens.md as the
+// provenance of which faces and weights were chosen.
+
+// Explicit `as` namespaces: Sass derives one from the filename otherwise, and
+// "600" is not a valid identifier.
+
+// Headings — variable, optical size 12..96, weights 600 & 700 in use.
+@use '@fontsource-variable/bricolage-grotesque/index.css' as heading-font;
+
+// Body — variable, weights 400/500/600 in use.
+@use '@fontsource-variable/work-sans/index.css' as body-font;
+
+// Logo wordmark only, weight 600.
+@use '@fontsource/oswald/600.css' as logo-font;

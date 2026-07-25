@@ -1,0 +1,108 @@
+{
+  "site": {
+    "title": "Bon App' Hédi",
+    "tagline": "Un carnet de recettes tenu à la main.",
+    "skipToContent": "Aller au contenu"
+  },
+  "nav": {
+    "search": "Rechercher",
+    "account": "Compte",
+    "theme": "Changer de thème",
+    "themeToLight": "Passer en thème clair",
+    "themeToDark": "Passer en thème sombre",
+    "language": "Changer de langue",
+    "switchTo": "Passer en {{language}}",
+    "home": "Accueil"
+  },
+  "footer": {
+    "copyright": "© {{year}}"
+  },
+  "list": {
+    "heading": "Toutes les recettes",
+    "count": "{count, plural, =0 {aucune recette} one {# recette} other {# recettes}}",
+    "searchPlaceholder": "Chercher une recette, un ingrédient…",
+    "filterByAuthor": "Trier par auteur",
+    "filterByTag": "Trier par tags",
+    "filterByDate": "Trier par date",
+    "sortNewest": "Plus récent",
+    "sortOldest": "Plus ancien",
+    "empty": "Aucune recette ne correspond à votre recherche.",
+    "emptyAction": "Réinitialiser les filtres"
+  },
+  "hero": {
+    "cta": "Lire la recette",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "goToSlide": "Aller à la diapositive {{number}}"
+  },
+  "recipe": {
+    "breadcrumb": "Toutes les recettes",
+    "description": "Description",
+    "steps": "Étapes",
+    "ingredients": "Ingrédients",
+    "servings": "Portions",
+    "servingsHint": "Les quantités s'ajustent automatiquement.",
+    "increaseServings": "Augmenter le nombre de portions",
+    "decreaseServings": "Diminuer le nombre de portions",
+    "prepTime": "Préparation",
+    "cookTime": "Cuisson",
+    "difficulty": "Difficulté",
+    "difficultyLevel": "Difficulté : {{level}}",
+    "difficultyEasy": "facile",
+    "difficultyMedium": "moyen",
+    "difficultyHard": "difficile",
+    "playVideo": "Lire la vidéo",
+    "jumpToTime": "Aller à {{time}} dans la vidéo",
+    "byAuthor": "Par {{author}}",
+    "ratingSummary": "{{average}} / 5",
+    "reviews": "{count, plural, =0 {aucun avis} one {# avis} other {# avis}}",
+    "notFound": "Cette recette est introuvable.",
+    "notFoundAction": "Revenir aux recettes"
+  },
+  "rating": {
+    "label": "Noter cette recette",
+    "star": "{count, plural, one {# étoile} other {# étoiles}}",
+    "thanks": "Merci pour votre note !"
+  },
+  "reactions": {
+    "react": "Réagir",
+    "count": "{count, plural, =0 {0 réaction} one {# réaction} other {# réactions}}"
+  },
+  "comments": {
+    "heading": "{count, plural, =0 {0 commentaire} one {# commentaire} other {# commentaires}}",
+    "write": "Écrire",
+    "preview": "Aperçu",
+    "placeholder": "Partagez vos impressions…",
+    "signInPrompt": "S'identifier pour pouvoir commenter",
+    "signInWith": "S'identifier avec {{provider}}",
+    "unavailable": "Connexion indisponible pour le moment.",
+    "submit": "Publier",
+    "delete": "Supprimer",
+    "pending": "En attente de modération",
+    "empty": "Aucun commentaire pour l'instant. Lancez-vous !"
+  },
+  "units": {
+    "g": "g",
+    "kg": "kg",
+    "ml": "ml",
+    "cl": "cl",
+    "l": "l",
+    "pc": "pc",
+    "tbsp": "c. à s.",
+    "tsp": "c. à c.",
+    "pinch": "pincée"
+  },
+  "time": {
+    "justNow": "à l'instant",
+    "minutes": "{{value}} min",
+    "hours": "{{hours}} h {{minutes}}",
+    "hoursOnly": "{{hours}} h"
+  },
+  "error": {
+    "generic": "Une erreur est survenue. Réessayez dans un instant.",
+    "retry": "Réessayer",
+    "pageNotFound": "Page introuvable",
+    "pageNotFoundBody": "La page que vous cherchez n'existe pas ou a été déplacée.",
+    "backHome": "Retour à l'accueil"
+  }
+}

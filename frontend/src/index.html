@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <title>Bon App' Hédi</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Un carnet de recettes tenu à la main." />
+    <meta name="theme-color" content="#efe6d6" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+
+    <!--
+      Blocking, and deliberately placed before the stylesheet.
+
+      Without this the page paints in light mode and then snaps to dark once
+      Angular boots, which is the most noticeable polish bug a themed site can
+      ship. Reading localStorage here costs well under a millisecond.
+
+      It also sets <html lang> from the URL prefix so assistive tech and search
+      engines get the right language before any framework loads.
+
+      The storage key is inherited from the design prototype so an existing
+      preference survives.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('bah-organic-theme');
+          var dark =
+            stored === 'dark' ||
+            ((!stored || stored === 'system') &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
+          root.setAttribute('data-theme', dark ? 'dark' : 'light');
+
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', dark ? '#241f1a' : '#efe6d6');
+
+          var seg = location.pathname.split('/')[1];
+          root.setAttribute('lang', seg === 'en' ? 'en' : 'fr');
+        } catch (e) {
+          /* private mode or storage disabled: fall through to the defaults above */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <bah-root></bah-root>
+  </body>
+</html>

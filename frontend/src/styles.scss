@@ -1,0 +1,11 @@
+// Global stylesheet. Order matters: tokens must exist before anything reads
+// them, and primitives must come after the reset that neutralises button and
+// input defaults.
+
+@use 'styles/fonts';
+@use 'styles/tokens';
+@use 'styles/reset';
+@use 'styles/typography';
+@use 'styles/primitives';
+@use 'styles/layout';
+@use 'styles/a11y';

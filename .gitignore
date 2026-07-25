@@ -24,6 +24,9 @@ backend/src/main/resources/application-local.yml
 .env
 .env.local
 
+# local visual-check helper
+frontend/shot.mjs
+
 # --- tooling ---
 .idea/
 *.iml

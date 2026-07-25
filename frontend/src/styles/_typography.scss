@@ -1,0 +1,32 @@
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0;
+}
+
+// Verbatim from the prototype's <helmet> block.
+a {
+  color: var(--color-accent);
+
+  &:hover {
+    color: var(--color-accent-600);
+  }
+}
+
+b,
+strong {
+  font-weight: 700;
+}
+
+// Text selection picks up the accent rather than the browser default blue,
+// which clashes badly with the umber palette.
+::selection {
+  background: var(--color-accent-200);
+  color: var(--color-accent-900);
+}

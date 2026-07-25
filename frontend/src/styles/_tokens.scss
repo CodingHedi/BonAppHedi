@@ -1,0 +1,95 @@
+// =============================================================================
+// Design tokens — "Umber"
+//
+// Verbatim from Docs/Design/*.html except where marked RECONSTRUCTED: the
+// prototype's design-system stylesheet was never supplied, so radii and shadows
+// are inferred from the screenshots and from how the values are used.
+//
+// See Docs/design-tokens.md for the reasoning behind each group.
+// =============================================================================
+
+:root {
+  // --- Typography ------------------------------------------------------------
+  --font-heading: 'Bricolage Grotesque Variable', system-ui, sans-serif;
+  --font-body: 'Work Sans Variable', system-ui, sans-serif;
+  --font-logo: 'Oswald', var(--font-heading);
+
+  // --- Surfaces (the only colour tokens that change with the theme) ----------
+  --color-bg: #efe6d6;
+  --color-surface: #e0d3ba;
+  --color-text: #241f1a;
+  --color-divider: rgba(36, 31, 26, 0.16);
+
+  // --- Accent: rust / umber (primary) ---------------------------------------
+  // Identical in both themes. That is what gives light and dark one identity.
+  --color-accent: #a15a35;
+  --color-accent-100: #f7e8de;
+  --color-accent-200: #edcbb0;
+  --color-accent-300: #dba377;
+  --color-accent-400: #c37f4f;
+  --color-accent-500: #a15a35;
+  --color-accent-600: #7e4527;
+  --color-accent-700: #5f331d;
+  --color-accent-800: #422314;
+  --color-accent-900: #2b170d;
+
+  // --- Accent 2: spruce / teal (secondary) ----------------------------------
+  --color-accent-2: #4f7d74;
+  --color-accent-2-100: #e3efec;
+  --color-accent-2-200: #c3ddd6;
+  --color-accent-2-300: #96c1b5;
+  --color-accent-2-400: #6ea395;
+  --color-accent-2-500: #4f7d74;
+  --color-accent-2-600: #3c625b;
+  --color-accent-2-700: #2c4844;
+  --color-accent-2-800: #1e332f;
+  --color-accent-2-900: #14231f;
+
+  // --- Colours that sit on top of photography --------------------------------
+  // Fixed light values regardless of site theme: a photo is a photo in the dark.
+  --on-photo: #f9f4ed;
+  --on-photo-muted: #e6dcc9;
+  --scrim-strong: rgba(23, 19, 15, 0.85);
+  --scrim-soft: rgba(23, 19, 15, 0.4);
+  --glass-bg: rgba(23, 19, 15, 0.55);
+  --glass-border: rgba(249, 244, 237, 0.25);
+  --glass-border-strong: rgba(249, 244, 237, 0.4);
+  --dot-inactive: rgba(249, 244, 237, 0.4);
+
+  // --- Radius (RECONSTRUCTED) ------------------------------------------------
+  // The prototype wrote `calc(var(--radius-lg) * 1.15)` on card image corners,
+  // which is how --radius-lg was recovered. Measured ~20-24px in the
+  // screenshots. Everything interactive is a full pill; there is no small
+  // radius anywhere in this design.
+  --radius-lg: 22px;
+  --radius-card: calc(var(--radius-lg) * 1.15);
+  --radius-pill: 999px;
+
+  // --- Shadows (RECONSTRUCTED) -----------------------------------------------
+  // Ink-tinted, not neutral grey. These DO change with the theme — see below.
+  --shadow-sm: 0 2px 8px rgba(36, 31, 26, 0.07);
+  --shadow-md: 0 8px 24px rgba(36, 31, 26, 0.12);
+  --shadow-lg: 0 18px 48px rgba(36, 31, 26, 0.2);
+
+  // --- Layout ----------------------------------------------------------------
+  --container-max: 1180px;
+  --container-pad: 32px;
+  --header-height: 76px;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --color-bg: #241f1a;
+  --color-surface: #332c24;
+  --color-text: #efe6d6;
+  --color-divider: rgba(239, 230, 214, 0.14);
+
+  // An umber shadow is invisible against #241f1a, so these are re-tinted.
+  // The accent ramps deliberately are not.
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}

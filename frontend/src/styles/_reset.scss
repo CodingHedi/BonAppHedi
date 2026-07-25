@@ -1,0 +1,50 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  // The theme attribute is set by a blocking script in index.html before this
+  // stylesheet loads, so there is never a flash of the wrong theme.
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0; // verbatim from the prototype
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+img,
+picture,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+// Lists used as layout (steps, ingredients, nav) opt out of markers explicitly
+// at the component level; this only removes the browser's default indent
+// surprise for those cases.
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+}

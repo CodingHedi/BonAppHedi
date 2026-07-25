@@ -1,0 +1,16 @@
+// The prototypes contain ZERO media queries — the layout reflows entirely
+// through `auto-fit` grids and `flex-wrap`. Reproduce that first; reach for
+// these only where content genuinely crowds (the hero caption, the 42px detail
+// h1), never as the primary layout mechanism.
+
+@mixin md {
+  @media (max-width: 900px) {
+    @content;
+  }
+}
+
+@mixin sm {
+  @media (max-width: 640px) {
+    @content;
+  }
+}

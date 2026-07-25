@@ -1,0 +1,108 @@
+{
+  "site": {
+    "title": "Bon App' Hédi",
+    "tagline": "A recipe notebook, kept by hand.",
+    "skipToContent": "Skip to content"
+  },
+  "nav": {
+    "search": "Search",
+    "account": "Account",
+    "theme": "Change theme",
+    "themeToLight": "Switch to light theme",
+    "themeToDark": "Switch to dark theme",
+    "language": "Change language",
+    "switchTo": "Switch to {{language}}",
+    "home": "Home"
+  },
+  "footer": {
+    "copyright": "© {{year}}"
+  },
+  "list": {
+    "heading": "All recipes",
+    "count": "{count, plural, =0 {no recipes} one {# recipe} other {# recipes}}",
+    "searchPlaceholder": "Search for a recipe or an ingredient…",
+    "filterByAuthor": "Sort by author",
+    "filterByTag": "Sort by tag",
+    "filterByDate": "Sort by date",
+    "sortNewest": "Newest first",
+    "sortOldest": "Oldest first",
+    "empty": "No recipe matches your search.",
+    "emptyAction": "Clear filters"
+  },
+  "hero": {
+    "cta": "Read the recipe",
+    "previous": "Previous",
+    "next": "Next",
+    "goToSlide": "Go to slide {{number}}"
+  },
+  "recipe": {
+    "breadcrumb": "All recipes",
+    "description": "Description",
+    "steps": "Steps",
+    "ingredients": "Ingredients",
+    "servings": "Servings",
+    "servingsHint": "Quantities adjust automatically.",
+    "increaseServings": "Increase servings",
+    "decreaseServings": "Decrease servings",
+    "prepTime": "Prep",
+    "cookTime": "Cook",
+    "difficulty": "Difficulty",
+    "difficultyLevel": "Difficulty: {{level}}",
+    "difficultyEasy": "easy",
+    "difficultyMedium": "medium",
+    "difficultyHard": "hard",
+    "playVideo": "Play video",
+    "jumpToTime": "Jump to {{time}} in the video",
+    "byAuthor": "By {{author}}",
+    "ratingSummary": "{{average}} / 5",
+    "reviews": "{count, plural, =0 {no reviews} one {# review} other {# reviews}}",
+    "notFound": "This recipe could not be found.",
+    "notFoundAction": "Back to recipes"
+  },
+  "rating": {
+    "label": "Rate this recipe",
+    "star": "{count, plural, one {# star} other {# stars}}",
+    "thanks": "Thanks for rating!"
+  },
+  "reactions": {
+    "react": "React",
+    "count": "{count, plural, =0 {0 reactions} one {# reaction} other {# reactions}}"
+  },
+  "comments": {
+    "heading": "{count, plural, =0 {0 comments} one {# comment} other {# comments}}",
+    "write": "Write",
+    "preview": "Preview",
+    "placeholder": "Share your thoughts…",
+    "signInPrompt": "Sign in to leave a comment",
+    "signInWith": "Sign in with {{provider}}",
+    "unavailable": "Sign-in is unavailable right now.",
+    "submit": "Post",
+    "delete": "Delete",
+    "pending": "Awaiting moderation",
+    "empty": "No comments yet. Be the first!"
+  },
+  "units": {
+    "g": "g",
+    "kg": "kg",
+    "ml": "ml",
+    "cl": "cl",
+    "l": "l",
+    "pc": "pcs",
+    "tbsp": "tbsp",
+    "tsp": "tsp",
+    "pinch": "pinch"
+  },
+  "time": {
+    "justNow": "just now",
+    "minutes": "{{value}} min",
+    "hours": "{{hours}} hr {{minutes}}",
+    "hoursOnly": "{{hours}} hr"
+  },
+  "error": {
+    "generic": "Something went wrong. Try again in a moment.",
+    "retry": "Try again",
+    "pageNotFound": "Page not found",
+    "pageNotFoundBody": "The page you are looking for does not exist or has moved.",
+    "backHome": "Back to home"
+  }
+}
