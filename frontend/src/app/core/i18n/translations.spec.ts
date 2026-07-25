@@ -13,9 +13,11 @@ import { LOCALES } from './locale';
  * adding it to LOCALES, with no change here.
  */
 
-type Json = { [key: string]: string | Json };
+interface Json {
+  [key: string]: string | Json;
+}
 
-const SOURCES: ReadonlyArray<readonly [string, Json]> = LOCALES.map(
+const SOURCES: readonly (readonly [string, Json])[] = LOCALES.map(
   (locale) =>
     [
       locale,

@@ -54,13 +54,29 @@ npm start
 Until the backend exists (milestone 2), the frontend runs entirely on mock
 services — `npm start` alone is enough.
 
+### Before you ship
+
+One command. Run it before any release, dependency bump or framework upgrade:
+
+```powershell
+cd frontend
+npm run verify          # lint → typecheck → unit → build → e2e
+npm run verify:prod     # same, but e2e against a production build
+```
+
+See **[Docs/TESTING.md](Docs/TESTING.md)** for what each layer covers and — more
+importantly — what to add when the app grows.
+
 ### Other commands
 
 ```powershell
 cd frontend
-npm test                              # unit
-npm run test:e2e                      # playwright
+npm test                              # unit (vitest)
+npm run test:smoke                    # "is the app alive" route sweep
+npm run test:e2e                      # full playwright suite
+npm run test:e2e:ui                   # playwright, interactive
 npm run lint
+npm run format
 npm run build -- --configuration production
 
 cd backend
