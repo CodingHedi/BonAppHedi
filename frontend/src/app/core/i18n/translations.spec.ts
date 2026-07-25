@@ -1,19 +1,29 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import en from '../../../../public/i18n/en.json';
-import fr from '../../../../public/i18n/fr.json';
+import { LOCALES } from './locale';
 
 /**
  * Guards the failure mode bilingual sites actually ship: a key added to one
  * file and forgotten in the other, so a visitor sees the raw dotted key on the
  * page. Cheap to check, invisible until someone reports it.
+ *
+ * Reads the files from disk rather than importing them, so this asserts against
+ * what actually gets served out of public/ — and so a new locale is covered by
+ * adding it to LOCALES, with no change here.
  */
 
 type Json = { [key: string]: string | Json };
 
-const SOURCES: ReadonlyArray<readonly [string, Json]> = [
-  ['fr', fr as Json],
-  ['en', en as Json],
-];
+const SOURCES: ReadonlyArray<readonly [string, Json]> = LOCALES.map(
+  (locale) =>
+    [
+      locale,
+      JSON.parse(
+        readFileSync(join(process.cwd(), 'public', 'i18n', `${locale}.json`), 'utf8'),
+      ) as Json,
+    ] as const,
+);
 
 function flatten(value: Json, prefix = ''): Map<string, string> {
   const out = new Map<string, string>();

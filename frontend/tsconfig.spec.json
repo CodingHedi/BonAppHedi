@@ -4,12 +4,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/spec",
-    "types": [
-      "vitest/globals"
-    ]
+    /* Explicit because outDir is set: without it TypeScript infers the output
+       layout from whichever directory the spec files happen to share, so adding
+       or removing a test could silently change it. */
+    "rootDir": "src",
+    /* Tests read files from disk (see translations.spec.ts), which the browser
+       bundle never does. */
+    "types": ["vitest/globals", "node"]
   },
-  "include": [
-    "src/**/*.d.ts",
-    "src/**/*.spec.ts"
-  ]
+  "include": ["src/**/*.d.ts", "src/**/*.spec.ts"]
 }
