@@ -20,6 +20,8 @@ import { DEFAULT_LOCALE, LOCALES, LOCALE_IDS } from './core/i18n/locale';
 import { LocaleService } from './core/i18n/locale.service';
 import { HttpTranslocoLoader } from './core/i18n/transloco-loader';
 import { ThemeService } from './core/theme/theme.service';
+import { RECIPE_API } from './core/api/recipe-api';
+import { MockRecipeApi } from './mock/mock-recipe-api';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -60,6 +62,11 @@ export const appConfig: ApplicationConfig = {
       provide: LOCALE_ID,
       useFactory: () => LOCALE_IDS[inject(LocaleService).locale()],
     },
+
+    // The milestone-1 → milestone-2 seam. Components inject RECIPE_API and
+    // never learn which implementation they got. M2 adds HttpRecipeApi here as
+    // the `useMocks === false` branch; nothing in the component tree changes.
+    { provide: RECIPE_API, useClass: MockRecipeApi },
 
     provideAppInitializer(() => {
       inject(ThemeService).init();

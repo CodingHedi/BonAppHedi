@@ -1,0 +1,76 @@
+import { describe, expect, it } from 'vitest';
+import en from '../../../../public/i18n/en.json';
+import fr from '../../../../public/i18n/fr.json';
+
+/**
+ * Guards the failure mode bilingual sites actually ship: a key added to one
+ * file and forgotten in the other, so a visitor sees the raw dotted key on the
+ * page. Cheap to check, invisible until someone reports it.
+ */
+
+type Json = { [key: string]: string | Json };
+
+const SOURCES: ReadonlyArray<readonly [string, Json]> = [
+  ['fr', fr as Json],
+  ['en', en as Json],
+];
+
+function flatten(value: Json, prefix = ''): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const [key, child] of Object.entries(value)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (typeof child === 'string') out.set(path, child);
+    else for (const [k, v] of flatten(child, path)) out.set(k, v);
+  }
+  return out;
+}
+
+const tables = new Map(SOURCES.map(([locale, json]) => [locale, flatten(json)] as const));
+
+describe('translation files', () => {
+  it('define exactly the same keys in every locale', () => {
+    const [reference, ...others] = [...tables.entries()];
+    const expected = [...reference[1].keys()].sort();
+
+    for (const [locale, table] of others) {
+      const actual = [...table.keys()].sort();
+      const missing = expected.filter((key) => !table.has(key));
+      const extra = actual.filter((key) => !reference[1].has(key));
+
+      expect(missing, `missing from ${locale}.json`).toEqual([]);
+      expect(extra, `absent from ${reference[0]}.json but present in ${locale}.json`).toEqual([]);
+    }
+  });
+
+  it('has no empty strings', () => {
+    for (const [locale, table] of tables) {
+      for (const [key, value] of table) {
+        expect(value.trim(), `${locale}.json → ${key}`).not.toBe('');
+      }
+    }
+  });
+
+  it('uses matching interpolation placeholders across locales', () => {
+    // "Switch to {{language}}" translated as "Passer en {{langue}}" renders a
+    // literal placeholder to the user. The names must line up.
+    const placeholders = (value: string) =>
+      [...value.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map((m) => m[1]).sort();
+
+    const [reference, ...others] = [...tables.entries()];
+    for (const [locale, table] of others) {
+      for (const [key, value] of table) {
+        const expected = placeholders(reference[1].get(key) ?? '');
+        expect(placeholders(value), `${locale}.json → ${key}`).toEqual(expected);
+      }
+    }
+  });
+
+  it('keeps the French zero-is-singular rule that English does not share', () => {
+    // French pluralizes 0 as singular ("0 réaction"); English does not
+    // ("0 reactions"). Hand-rolled pluralizers get this wrong, which is why
+    // these strings are ICU and why the asymmetry is asserted rather than
+    // assumed.
+    expect(tables.get('fr')!.get('reactions.count')).toContain('=0 {0 réaction}');
+    expect(tables.get('en')!.get('reactions.count')).toContain('=0 {0 reactions}');
+  });
+});
