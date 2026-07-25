@@ -1,7 +1,7 @@
 name: CI
 
 # Same chain as `npm run verify` locally, so a green local run means a green CI
-# run. See Docs/TESTING.md.
+# run. See TESTING.md at the repo root.
 on:
   push:
     branches: [main]

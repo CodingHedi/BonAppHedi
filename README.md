@@ -54,27 +54,10 @@ npm start
 Until the backend exists (milestone 2), the frontend runs entirely on mock
 services — `npm start` alone is enough.
 
-### Before you ship
-
-One command. Run it before any release, dependency bump or framework upgrade:
-
-```powershell
-cd frontend
-npm run verify          # lint → typecheck → unit → build → e2e
-npm run verify:prod     # same, but e2e against a production build
-```
-
-See **[Docs/TESTING.md](Docs/TESTING.md)** for what each layer covers and — more
-importantly — what to add when the app grows.
-
 ### Other commands
 
 ```powershell
 cd frontend
-npm test                              # unit (vitest)
-npm run test:smoke                    # "is the app alive" route sweep
-npm run test:e2e                      # full playwright suite
-npm run test:e2e:ui                   # playwright, interactive
 npm run lint
 npm run format
 npm run build -- --configuration production
@@ -83,6 +66,74 @@ cd backend
 .\mvnw.cmd clean verify               # compile + all tests
 .\mvnw.cmd -Pweb clean package        # fat jar including the Angular build
 ```
+
+---
+
+## Testing
+
+**Before any release, dependency bump or framework upgrade:**
+
+```powershell
+cd frontend
+npm run verify          # lint → typecheck → unit → build → e2e
+npm run verify:prod     # same, but e2e against a production build
+```
+
+Full reference, and what to add as the app grows: **[TESTING.md](TESTING.md)**.
+
+### How it works
+
+`verify` chains five stages, ordered cheapest-first so it fails fast:
+
+| Stage | Time | Catches |
+|---|---|---|
+| `lint` | ~10s | Convention drift, and Angular template accessibility problems |
+| `typecheck` | ~10s | Type errors under **both** tsconfigs — `ng build` only covers the app one |
+| `test` | ~1s | Pure logic: relative time in both languages, accent folding, translation-key parity |
+| `build` | ~2s | Production compilation and the bundle budgets |
+| `test:e2e` | ~4s | Real browser behaviour across 33 tests |
+
+`verify:prod` swaps the dev server for an optimised, hash-named, budget-enforced
+build. Use it before an actual deploy — failures that only show up there are
+precisely the ones that would otherwise show up in production.
+
+### The part worth knowing about
+
+Every end-to-end spec imports its `test` from `frontend/e2e/fixtures.ts` rather
+than from Playwright directly. That fixture fails a test if the browser logged
+an error, threw, or failed a request — **even when every assertion passed**.
+
+That is deliberate, and it is the highest-value thing in the suite, because it
+catches the breakages nobody thinks to write an assertion for:
+
+- a translation file 404s, so the page renders raw `nav.search` keys
+- a lazy chunk path breaks, so a route silently renders nothing
+- an Angular injection error fires inside a component that still paints
+- a font or asset path rots after a build-config change
+
+Each of those produces a fully green suite and a visibly broken site without it.
+
+Alongside that, `e2e/smoke.spec.ts` sweeps every route and asserts three things
+whose failure is otherwise invisible: no raw translation keys reach the page,
+the self-hosted fonts actually applied (a broken import still renders, just in a
+system fallback), and the design tokens are live (an unimported `_tokens.scss`
+still looks like a page, only the wrong one).
+
+Run just that sweep when you only want to know the app is alive:
+
+```powershell
+npm run test:smoke
+```
+
+### While developing
+
+```powershell
+npm run test:watch      # unit tests, re-running on change
+npm run test:e2e:ui     # Playwright's interactive runner
+```
+
+CI runs the identical chain on every push and pull request, so a green local
+`verify` means a green CI run.
 
 ---
 
