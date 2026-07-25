@@ -70,6 +70,16 @@ gives light and dark the same identity.
 |---|---|---|---|---|---|---|---|---|
 | `#e3efec` | `#c3ddd6` | `#96c1b5` | `#6ea395` | `#4f7d74` | `#3c625b` | `#2c4844` | `#1e332f` | `#14231f` |
 
+### `--color-accent-text` — one deliberate exception
+
+The ramp is theme-independent, and stays that way. But accent used as *text on a
+surface* cannot be a single fixed step: `accent-700` is near-black, which is
+correct on `#e0d3ba` and unreadable on `#332c24` (about 1.4:1).
+
+So one semantic token resolves per theme — `accent-700` in light, `accent-300`
+in dark (~6.5:1) — while every literal ramp step keeps its value. Used by
+ingredient amounts, quick-fact values and step numbers.
+
 ### Where the ramp steps are actually used
 
 Not decoration — these assignments come from the prototype and matter:

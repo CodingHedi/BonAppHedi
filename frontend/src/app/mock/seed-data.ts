@@ -130,9 +130,16 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     cookMinutes: 45,
     difficulty: 1,
     baseServings: 2,
-    // Placeholder id until a real video exists. Rick-roll-free: this is the
-    // Blender Foundation's open-licensed short.
-    youtubeVideoId: null,
+    /**
+     * PLACEHOLDER — replace when a real babka video is filmed.
+     *
+     * This is the Blender Foundation's "Big Buck Bunny", chosen deliberately
+     * because it is openly licensed and unmistakably not a cookery video, so
+     * nobody can mistake it for finished content. It exists so the video
+     * facade and the step-timestamp jumps are exercisable end to end; the step
+     * offsets below fall within its runtime.
+     */
+    youtubeVideoId: 'YE7VzlLtp-4',
     featuredRank: 1,
     ratingSum: 4,
     ratingCount: 1,

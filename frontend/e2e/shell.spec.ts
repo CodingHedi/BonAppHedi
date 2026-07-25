@@ -20,11 +20,13 @@ test.describe('app shell', () => {
   });
 
   test('localized route segments resolve in both languages', async ({ page }) => {
+    // Both the segment (recettes/recipes) and the slug are translated, so these
+    // are genuinely different URLs reaching the same recipe.
     await page.goto('/fr/recettes/babka-au-chocolat');
-    await expect(page.locator('h1')).toContainText('babka-au-chocolat');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Babka au chocolat');
 
     await page.goto('/en/recipes/chocolate-babka');
-    await expect(page.locator('h1')).toContainText('chocolate-babka');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Chocolate babka');
   });
 
   test('theme persists across a reload with no flash of the wrong theme', async ({ page }) => {

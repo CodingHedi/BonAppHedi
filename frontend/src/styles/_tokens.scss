@@ -45,6 +45,15 @@
   --color-accent-2-800: #1e332f;
   --color-accent-2-900: #14231f;
 
+  // Accent used as TEXT on a surface — ingredient amounts, quick-fact values,
+  // step numbers.
+  //
+  // The ramp itself is theme-independent by design, but a single fixed step
+  // cannot serve as text in both themes: accent-700 is near-black, which is
+  // right on the light surface and unreadable on #332c24. This token picks the
+  // readable end per theme while leaving the ramp untouched.
+  --color-accent-text: var(--color-accent-700);
+
   // --- Colours that sit on top of photography --------------------------------
   // Fixed light values regardless of site theme: a photo is a photo in the dark.
   --on-photo: #f9f4ed;
@@ -84,6 +93,9 @@
   --color-surface: #332c24;
   --color-text: #efe6d6;
   --color-divider: rgba(239, 230, 214, 0.14);
+
+  // ~6.5:1 against the dark surface, versus ~1.4:1 for accent-700.
+  --color-accent-text: var(--color-accent-300);
 
   // An umber shadow is invisible against #241f1a, so these are re-tinted.
   // The accent ramps deliberately are not.

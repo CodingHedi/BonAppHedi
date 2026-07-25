@@ -55,6 +55,15 @@ These are copied nowhere:
 5. Carousel autoplay paused on hover only. It must also pause on `focusin`, and
    must not run at all under `prefers-reduced-motion: reduce`.
 
+### Changed: difficulty dots follow the data, not the drawing
+
+The prototype draws two of three dots filled and labels it "facile". Once the
+strip is data-driven that stops being a fixed picture: difficulty is stored 1–3,
+and the dot count is the value. So "facile" (1) fills one dot, not two.
+
+The prototype was showing one example, not defining the scale — and a scale
+where "easy" means two thirds is not one anybody can read.
+
 ### Added: a fourth header control
 
 The header gains a language switcher alongside search, account and theme. It

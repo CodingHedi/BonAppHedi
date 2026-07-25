@@ -27,8 +27,10 @@ const ROUTES: readonly RouteCheck[] = [
   { path: '/', landsOn: /\/(fr|en)$/, expects: /Toutes les recettes|All recipes/ },
   { path: '/fr', expects: 'Toutes les recettes' },
   { path: '/en', expects: 'All recipes' },
-  { path: '/fr/recettes/babka-au-chocolat', expects: /babka/i },
-  { path: '/en/recipes/chocolate-babka', expects: /babka/i },
+  { path: '/fr/recettes/babka-au-chocolat', expects: 'Babka au chocolat' },
+  { path: '/en/recipes/chocolate-babka', expects: 'Chocolate babka' },
+  // A recipe with no video, so the media component's other branch is swept too.
+  { path: '/fr/recettes/cheesecake-basque', expects: 'Cheesecake basque' },
   // Matched loosely in both languages: these pages are placeholders until M3,
   // and pinning the exact copy now would just mean a false failure the day
   // they are written.
