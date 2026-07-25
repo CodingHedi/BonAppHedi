@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/organic-329161b4-229a-4b2b-b174-73a0e35c3376/styles.css">
+  <script src="_ds/organic-329161b4-229a-4b2b-b174-73a0e35c3376/_ds_bundle.js"></script>
+  <script src="./image-slot.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Work+Sans:wght@400;500;600&family=Oswald:wght@600&display=swap');
+    body{ margin:0; }
+    a{ color: var(--color-accent); }
+    a:hover{ color: var(--color-accent-600); }
+  </style>
+</helmet>
+
+<div style="{{ rootStyle }}">
+<div style="min-height:100vh;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);transition:background-color .25s ease,color .25s ease">
+
+  <header style="position:sticky;top:0;z-index:50;background:color-mix(in srgb, var(--color-bg) 90%, transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--color-divider)">
+    <nav class="nav" style="max-width:1180px;margin:0 auto;padding:18px 32px">
+      <a class="nav-brand" href="index.html" style="text-decoration:none;display:flex;align-items:center">
+        <svg viewBox="0 0 90 50" width="90" height="50" role="img" aria-label="BonApp' Hedi">
+          <text x="0" y="16" style="font-family:'Oswald',var(--font-heading);font-weight:600;fill:var(--color-text);text-transform:uppercase;letter-spacing:.02em" font-size="18">BonApp'</text>
+          <text x="0" y="47" style="font-family:'Oswald',var(--font-heading);font-weight:600;fill:var(--color-accent);text-transform:uppercase;letter-spacing:.02em" font-size="34">Hedi</text>
+        </svg>
+      </a>
+      <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
+        <button class="btn btn-icon btn-secondary" aria-label="Rechercher">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+        </button>
+        <button class="btn btn-icon btn-secondary" aria-label="Compte">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"></path></svg>
+        </button>
+        <button class="btn btn-icon btn-secondary" aria-label="Changer de thème" onClick="{{ toggleTheme }}">
+          <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"></path></svg>
+          </sc-if>
+          <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"></path></svg>
+          </sc-if>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main style="max-width:1180px;margin:0 auto;padding:0 32px 60px">
+
+    <section style="padding:40px 0 8px" onMouseEnter="{{ pauseAutoplay }}" onMouseLeave="{{ resumeAutoplay }}">
+      <div style="position:relative;border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-lg)">
+        <div style="display:flex;transform:{{ trackTransform }};transition:transform .5s cubic-bezier(.65,0,.35,1)">
+          <sc-for list="{{ heroSlides }}" as="s" hint-placeholder-count="3">
+            <article style="min-width:100%;position:relative;height:440px" class="washed">
+              <image-slot id="hero-{{ s.id }}" style="width:100%;height:100%;color:var(--color-text)" shape="rect" placeholder="{{ s.title }}"></image-slot>
+              <div style="position:absolute;inset:0;background:linear-gradient(0deg, rgba(23,19,15,0.85) 0%, rgba(23,19,15,0.4) 40%, transparent 72%);pointer-events:none"></div>
+              <div style="position:absolute;left:56px;right:56px;bottom:36px;max-width:520px;color:#f9f4ed">
+                <span style="font-family:var(--font-body);font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-300);display:block;margin-bottom:10px">{{ s.kicker }}</span>
+                <h1 style="font-size:40px;margin:0 0 12px;line-height:1.05;color:#f9f4ed">{{ s.title }}</h1>
+                <p style="color:#e6dcc9;font-size:15px;margin:0 0 22px;max-width:480px">{{ s.desc }}</p>
+                <a class="btn btn-primary" href="recipe.html">Lire la recette</a>
+              </div>
+            </article>
+          </sc-for>
+        </div>
+
+        <button class="btn btn-icon" style="position:absolute;top:50%;left:18px;transform:translateY(-50%);z-index:3;background:rgba(23,19,15,0.55);border:1px solid rgba(249,244,237,0.25);color:#f9f4ed;backdrop-filter:blur(6px)" style-hover="background:color-mix(in srgb, var(--color-accent) 55%, rgba(23,19,15,0.55))" aria-label="Précédent" onClick="{{ prevSlide }}">‹</button>
+        <button class="btn btn-icon" style="position:absolute;top:50%;right:18px;transform:translateY(-50%);z-index:3;background:rgba(23,19,15,0.55);border:1px solid rgba(249,244,237,0.25);color:#f9f4ed;backdrop-filter:blur(6px)" style-hover="background:color-mix(in srgb, var(--color-accent) 55%, rgba(23,19,15,0.55))" aria-label="Suivant" onClick="{{ nextSlide }}">›</button>
+
+        <div style="position:absolute;right:36px;bottom:34px;display:flex;gap:8px;z-index:3">
+          <sc-for list="{{ heroDots }}" as="d" hint-placeholder-count="3">
+            <button aria-label="{{ d.label }}" onClick="{{ d.go }}" style="{{ d.style }}"></button>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin:56px 0 6px;display:grid;gap:12px">
+      <div style="position:relative">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);opacity:0.55"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+        <input type="text" class="input" placeholder="Chercher une recette, un ingrédient…" aria-label="Rechercher" style="padding-left:46px;min-height:48px;font-size:15px">
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+        <select class="input" aria-label="Trier par auteur"><option>Trier par auteur</option><option>Hédi</option></select>
+        <select class="input" aria-label="Trier par tags"><option>Trier par tags</option><option>gluten</option><option>dessert</option><option>chocolat</option></select>
+        <select class="input" aria-label="Trier par date"><option>Trier par date</option><option>Plus récent</option><option>Plus ancien</option></select>
+      </div>
+    </section>
+
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:50px 0 22px">
+      <h2 style="font-size:26px;margin:0">Toutes les recettes</h2>
+      <span style="font-size:12.5px;opacity:0.55">6 recettes</span>
+    </div>
+
+    <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding-bottom:20px">
+      <sc-for list="{{ recipes }}" as="r" hint-placeholder-count="6">
+        <a href="recipe.html" class="card elev-sm" style="padding:0;text-decoration:none;color:var(--color-text);transition:transform .18s ease" style-hover="transform:translateY(-4px)">
+          <div style="position:relative;height:190px;border-radius:calc(var(--radius-lg) * 1.15) calc(var(--radius-lg) * 1.15) 0 0;overflow:hidden" class="washed">
+            <image-slot id="card-{{ r.id }}" style="width:100%;height:100%;color:var(--color-text)" shape="rect" placeholder="{{ r.title }}"></image-slot>
+            <div style="position:absolute;top:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:80%">
+              <sc-for list="{{ r.tags }}" as="t" hint-placeholder-count="1">
+                <span class="tag" style="{{ t.style }}">{{ t.label }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 20px 20px;display:flex;flex-direction:column;gap:10px;flex:1">
+            <h3 style="font-size:19px;margin:0">{{ r.title }}</h3>
+            <p style="opacity:0.75;font-size:13.8px;line-height:1.55;margin:0;flex:1">{{ r.desc }}</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;margin-top:4px;border-top:1px solid var(--color-divider)">
+              <div style="display:flex;align-items:center;gap:9px">
+                <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:none" class="washed"><image-slot id="author-{{ r.id }}" style="width:100%;height:100%;color:var(--color-text)" shape="circle" placeholder="H"></image-slot></div>
+                <div style="display:flex;flex-direction:column">
+                  <b style="font-size:13px;font-weight:700">Hédi</b>
+                  <time style="font-size:11px;opacity:0.55">{{ r.time }}</time>
+                </div>
+              </div>
+            </div>
+          </div>
+        </a>
+      </sc-for>
+    </section>
+
+  </main>
+
+  <footer style="border-top:1px solid var(--color-divider);padding:34px 0 50px">
+    <div style="max-width:1180px;margin:0 auto;padding:0 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:13px;opacity:0.6">
+      <span>Bon App' Hédi — un carnet de recettes tenu à la main.</span>
+      <span>© 2026</span>
+    </div>
+  </footer>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="&quot;&quot;">
+class Component extends DCLogic {
+  state = { theme: 'light', slide: 0 };
+
+  componentDidMount(){
+    try{
+      const saved = localStorage.getItem('bah-organic-theme');
+      if(saved === 'dark') this.setState({ theme: 'dark' });
+    }catch(e){}
+    this._auto = setInterval(() => this.go(this.state.slide + 1), 6000);
+  }
+  componentWillUnmount(){ clearInterval(this._auto); }
+
+  pauseAutoplay = () => clearInterval(this._auto);
+  resumeAutoplay = () => { clearInterval(this._auto); this._auto = setInterval(() => this.go(this.state.slide + 1), 6000); };
+
+  go = (i) => {
+    const n = this.heroSlidesData().length;
+    this.setState({ slide: ((i % n) + n) % n });
+  };
+  prevSlide = () => this.go(this.state.slide - 1);
+  nextSlide = () => this.go(this.state.slide + 1);
+
+  toggleTheme = () => {
+    const next = this.state.theme === 'dark' ? 'light' : 'dark';
+    this.setState({ theme: next });
+    try{ localStorage.setItem('bah-organic-theme', next); }catch(e){}
+  };
+
+  heroSlidesData(){
+    return [
+      { id: 'babka', kicker: 'Recette du moment', title: 'Babka au chocolat', desc: "Une brioche tressée à la mie marbrée, généreusement garnie de chocolat fondant. Le genre de recette qui parfume toute la maison." },
+      { id: 'chakchouka', kicker: 'Petit-déjeuner copieux', title: 'Chakchouka', desc: "Œufs pochés dans une sauce tomate épicée, un classique d'Afrique du Nord à partager au centre de la table." },
+      { id: 'pain', kicker: 'Boulangerie maison', title: 'Pain au levain', desc: "Croûte craquante, mie alvéolée : la base de tout bon garde-manger, prête en une nuit de patience." }
+    ];
+  }
+
+  recipesData(){
+    const accentTag = { style: 'background:var(--color-accent-100);color:var(--color-accent-800)', label: '' };
+    const tag2Tag = { style: 'background:var(--color-accent-2-100);color:var(--color-accent-2-800)', label: '' };
+    const mk = (label, alt) => ({ label, style: alt ? tag2Tag.style : accentTag.style });
+    return [
+      { id: 'pain', title: 'Pain', desc: "Le pain est un aliment de base composé de farine, d'eau et de levure ou de levain, puis cuit au four.", tags: [mk('gluten', true)], time: 'il y a 1 mois' },
+      { id: 'chakchouka2', title: 'Chakchouka', desc: "Un plat originaire d'Afrique du Nord et du Moyen-Orient. Simple, savoureux, et parfait à partager.", tags: [], time: 'il y a 25 jours' },
+      { id: 'babka2', title: 'Babka au chocolat', desc: "Une brioche tressée au marbrage caractéristique et à la garniture chocolatée généreuse.", tags: [mk('chocolat'), mk('dessert', true)], time: 'il y a 4 jours' },
+      { id: 'cheesecake', title: 'Cheesecake basque', desc: "Un cheesecake volontairement brûlé en surface pour un cœur coulant et un goût de caramel.", tags: [mk('dessert', true)], time: 'il y a 12 jours' },
+      { id: 'tajine', title: 'Tajine de bœuf', desc: "Un mijoté fondant aux épices douces, aux abricots secs et aux amandes torréfiées.", tags: [mk('mijoté')], time: 'il y a 18 jours' },
+      { id: 'jus', title: 'Jus grenade & orange', desc: "Un jus frais pressé minute, vibrant et acidulé, à servir bien frais au petit-déjeuner.", tags: [], time: 'il y a 20 jours' }
+    ];
+  }
+
+  renderVals(){
+    const isDark = this.state.theme === 'dark';
+    const heroSlides = this.heroSlidesData();
+    const slide = this.state.slide;
+    const dotStyle = (active) => `width:${active ? 20 : 7}px;height:7px;border-radius:${active ? 4 : 999}px;border:none;background:${active ? 'var(--color-accent)' : 'rgba(249,244,237,0.4)'};padding:0`;
+    const umber = {
+      light: { '--color-bg': '#efe6d6', '--color-surface': '#e0d3ba', '--color-text': '#241f1a', '--color-divider': 'rgba(36,31,26,0.16)',
+        '--color-accent': '#a15a35', '--color-accent-100': '#f7e8de', '--color-accent-200': '#edcbb0', '--color-accent-300': '#dba377', '--color-accent-400': '#c37f4f', '--color-accent-500': '#a15a35', '--color-accent-600': '#7e4527', '--color-accent-700': '#5f331d', '--color-accent-800': '#422314', '--color-accent-900': '#2b170d',
+        '--color-accent-2': '#4f7d74', '--color-accent-2-100': '#e3efec', '--color-accent-2-200': '#c3ddd6', '--color-accent-2-300': '#96c1b5', '--color-accent-2-400': '#6ea395', '--color-accent-2-500': '#4f7d74', '--color-accent-2-600': '#3c625b', '--color-accent-2-700': '#2c4844', '--color-accent-2-800': '#1e332f', '--color-accent-2-900': '#14231f' },
+      dark: { '--color-bg': '#241f1a', '--color-surface': '#332c24', '--color-text': '#efe6d6', '--color-divider': 'rgba(239,230,214,0.14)' }
+    };
+    const fonts = { '--font-heading': "'Bricolage Grotesque', system-ui, sans-serif", '--font-body': "'Work Sans', system-ui, sans-serif" };
+    const paletteBase = { ...fonts, ...umber.light };
+    return {
+      rootStyle: isDark ? { ...paletteBase, ...umber.dark } : paletteBase,
+      isDark, isLight: !isDark,
+      toggleTheme: this.toggleTheme,
+      heroSlides,
+      trackTransform: `translateX(-${slide * 100}%)`,
+      prevSlide: this.prevSlide, nextSlide: this.nextSlide,
+      pauseAutoplay: this.pauseAutoplay, resumeAutoplay: this.resumeAutoplay,
+      heroDots: heroSlides.map((s, i) => ({ label: 'Aller à la diapositive ' + (i + 1), go: () => this.go(i), style: dotStyle(i === slide) })),
+      recipes: this.recipesData()
+    };
+  }
+}
+</script>
+</body>
+</html>

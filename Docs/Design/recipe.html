@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/organic-329161b4-229a-4b2b-b174-73a0e35c3376/styles.css">
+  <script src="_ds/organic-329161b4-229a-4b2b-b174-73a0e35c3376/_ds_bundle.js"></script>
+  <script src="./image-slot.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Work+Sans:wght@400;500;600&family=Oswald:wght@600&display=swap');
+    body{ margin:0; }
+    a{ color: var(--color-accent); }
+    a:hover{ color: var(--color-accent-600); }
+  </style>
+</helmet>
+
+<div style="{{ rootStyle }}">
+<div style="min-height:100vh;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);transition:background-color .25s ease,color .25s ease">
+
+  <header style="position:sticky;top:0;z-index:50;background:color-mix(in srgb, var(--color-bg) 90%, transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--color-divider)">
+    <nav class="nav" style="max-width:1180px;margin:0 auto;padding:18px 32px">
+      <a class="nav-brand" href="index.html" style="text-decoration:none;display:flex;align-items:center">
+        <svg viewBox="0 0 90 50" width="90" height="50" role="img" aria-label="BonApp' Hedi">
+          <text x="0" y="16" style="font-family:'Oswald',var(--font-heading);font-weight:600;fill:var(--color-text);text-transform:uppercase;letter-spacing:.02em" font-size="18">BonApp'</text>
+          <text x="0" y="47" style="font-family:'Oswald',var(--font-heading);font-weight:600;fill:var(--color-accent);text-transform:uppercase;letter-spacing:.02em" font-size="34">Hedi</text>
+        </svg>
+      </a>
+      <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
+        <button class="btn btn-icon btn-secondary" aria-label="Rechercher">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+        </button>
+        <button class="btn btn-icon btn-secondary" aria-label="Compte">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"></path></svg>
+        </button>
+        <button class="btn btn-icon btn-secondary" aria-label="Changer de thème" onClick="{{ toggleTheme }}">
+          <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"></path></svg>
+          </sc-if>
+          <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"></path></svg>
+          </sc-if>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main style="max-width:1180px;margin:0 auto;padding:0 32px 60px">
+
+    <section style="padding:36px 0 0">
+      <div style="font-size:12px;opacity:0.55;margin-bottom:18px;display:flex;gap:8px;align-items:center">
+        <a href="index.html">Toutes les recettes</a><span>／</span><span>Babka au chocolat</span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;margin-bottom:10px">
+        <h1 style="font-size:42px;margin:0;line-height:1.05">Babka au chocolat</h1>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="tag" style="background:var(--color-accent-100);color:var(--color-accent-800)">chocolat</span>
+          <span class="tag" style="background:var(--color-accent-2-100);color:var(--color-accent-2-800)">dessert</span>
+          <span class="tag" style="background:var(--color-accent-2-100);color:var(--color-accent-2-800)">gluten</span>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:14px;margin:14px 0 32px;opacity:0.7;font-size:14px;flex-wrap:wrap">
+        <div style="display:flex;gap:2px" aria-hidden="true">
+          <sc-for list="{{ stars }}" as="st" hint-placeholder-count="5">
+            <svg width="16" height="16" viewBox="0 0 24 24" stroke-width="1.5" fill="{{ st.fill }}" stroke="{{ st.stroke }}"><polygon points="12,2 15,9 22,9.5 17,14.5 18.5,22 12,18 5.5,22 7,14.5 2,9.5 9,9"></polygon></svg>
+          </sc-for>
+        </div>
+        <span>4.0 / 5 · 1 avis</span><span>·</span>
+        <span>Par <b style="color:var(--color-text)">Hédi</b></span><span>·</span><span>il y a 4 jours</span>
+      </div>
+    </section>
+
+    <div style="display:flex;gap:48px;flex-wrap:wrap;align-items:stretch;margin-top:20px">
+      <div style="flex:2 1 480px;border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-md);position:relative;min-height:340px" class="washed">
+        <image-slot id="detail-hero" style="width:100%;height:100%;color:var(--color-text)" shape="rect" placeholder="Babka au chocolat, vue rapprochée"></image-slot>
+        <div style="position:absolute;inset:0;display:grid;place-items:center;pointer-events:none">
+          <span style="width:64px;height:64px;border-radius:50%;background:rgba(23,19,15,0.55);border:1px solid rgba(249,244,237,0.4);backdrop-filter:blur(4px);display:grid;place-items:center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#f9f4ed"><path d="M8 5v14l11-7z"></path></svg>
+          </span>
+        </div>
+      </div>
+
+      <aside class="card elev-sm" style="flex:1 1 300px;padding:26px 24px 22px;display:flex;flex-direction:column">
+        <h2 style="font-size:22px;margin:0 0 18px">Description</h2>
+        <p style="opacity:0.75;font-size:14.5px;line-height:1.7;margin:0;flex:1">La babka est une brioche tressée d'origine polonaise, reconnaissable à sa mie marbrée et à sa garniture généreuse de chocolat. On la tranche encore tiède, pour que le chocolat file un peu — c'est le meilleur moment.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:22px;padding-top:18px;border-top:1px solid var(--color-divider)">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:16px;color:var(--color-accent-700);font-weight:700">15 min</span><span style="font-size:11.5px;opacity:0.6">Préparation</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px;border-left:1px solid var(--color-divider);padding-left:14px"><span style="font-size:16px;color:var(--color-accent-700);font-weight:700">45 min</span><span style="font-size:11.5px;opacity:0.6">Cuisson</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px;border-left:1px solid var(--color-divider);padding-left:14px">
+            <span style="display:inline-flex;align-items:center;gap:5px" aria-label="Difficulté : facile">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent)"></span><span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent)"></span><span style="width:8px;height:8px;border-radius:50%;background:var(--color-divider)"></span>
+            </span>
+            <span style="font-size:11.5px;opacity:0.6">Difficulté</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div style="display:flex;gap:48px;flex-wrap:wrap;align-items:flex-start;margin-top:44px">
+      <div style="flex:2 1 480px">
+        <h2 style="font-size:22px;margin:0 0 18px">Étapes</h2>
+        <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
+          <sc-for list="{{ steps }}" as="step" hint-placeholder-count="5">
+            <li style="display:flex;align-items:flex-start;gap:12px;padding:18px 0;border-bottom:1px dashed var(--color-divider)">
+              <span style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--color-accent-300);display:grid;place-items:center;font-size:15px;font-weight:700;color:var(--color-accent-700);flex:none">{{ step.num }}</span>
+              <span style="font-size:12px;opacity:0.6;background:var(--color-surface);border:1px solid var(--color-divider);padding:4px 10px;border-radius:999px;white-space:nowrap;flex:none;margin-top:2px">{{ step.timer }}</span>
+              <p style="flex:1;min-width:0;font-size:15px;line-height:1.6;margin:0">{{ step.text }} <button style="display:inline;background:none;border:none;padding:0;margin:0 0 0 2px;font-size:13px;color:var(--color-accent);cursor:pointer">({{ step.mark }})</button></p>
+            </li>
+          </sc-for>
+        </ol>
+      </div>
+
+      <aside class="card elev-sm" style="flex:1 1 300px;padding:26px 24px 22px;position:sticky;top:96px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:13.5px;opacity:0.75">Portions</span>
+          <div style="display:flex;align-items:center;border:1px solid var(--color-divider);border-radius:999px;overflow:hidden">
+            <button style="width:32px;height:32px;background:var(--color-bg);border:none;color:var(--color-text);font-size:16px;cursor:pointer" onClick="{{ decServings }}" aria-label="Réduire les portions">−</button>
+            <output style="width:32px;text-align:center;font-size:14px;font-weight:700">{{ servings }}</output>
+            <button style="width:32px;height:32px;background:var(--color-bg);border:none;color:var(--color-text);font-size:16px;cursor:pointer" onClick="{{ incServings }}" aria-label="Augmenter les portions">+</button>
+          </div>
+        </div>
+        <p style="font-size:11.5px;opacity:0.55;margin:4px 0 18px">Les quantités s'ajustent automatiquement.</p>
+
+        <ul style="list-style:none;margin:0;padding:0">
+          <sc-for list="{{ ingredients }}" as="ing" hint-placeholder-count="7">
+            <li style="display:flex;align-items:baseline;gap:6px;padding:9px 0;font-size:14px">
+              <span style="white-space:nowrap">{{ ing.name }}</span>
+              <span style="flex:1;border-bottom:1px dotted var(--color-divider);transform:translateY(-4px)"></span>
+              <span style="color:var(--color-accent-700);font-size:13.5px;font-weight:700;white-space:nowrap">{{ ing.display }}</span>
+            </li>
+          </sc-for>
+        </ul>
+
+        <button class="btn btn-primary btn-block" style="justify-content:center">Ajouter à ma liste de courses</button>
+      </aside>
+    </div>
+
+    <section style="margin-top:70px;padding-top:34px;border-top:1px solid var(--color-divider)">
+      <div style="display:flex;justify-content:center;align-items:center;gap:12px;opacity:0.6;font-size:13.5px;margin-bottom:60px">
+        <button class="btn btn-icon btn-secondary" aria-label="Réagir">🙂</button>
+        <span>0 réaction</span>
+      </div>
+
+      <div>
+        <h2 style="font-size:20px;margin:0 0 20px">0 commentaire</h2>
+        <div class="card elev-sm" style="padding:0;overflow:hidden">
+          <div style="display:flex;border-bottom:1px solid var(--color-divider);font-size:13px">
+            <span style="padding:12px 18px;color:var(--color-accent);border-bottom:2px solid var(--color-accent)">Écrire</span>
+            <span style="padding:12px 18px;opacity:0.55">Aperçu</span>
+          </div>
+          <div style="padding:20px;opacity:0.55;font-size:14px;min-height:90px">S'identifier pour pouvoir commenter</div>
+          <div style="display:flex;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--color-divider)">
+            <button class="btn btn-secondary">S'identifier avec GitHub</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer style="border-top:1px solid var(--color-divider);padding:34px 0 50px">
+    <div style="max-width:1180px;margin:0 auto;padding:0 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:13px;opacity:0.6">
+      <span>Bon App' Hédi — un carnet de recettes tenu à la main.</span>
+      <span>© 2026</span>
+    </div>
+  </footer>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme: 'light', servings: 2 };
+
+  componentDidMount(){
+    try{
+      const saved = localStorage.getItem('bah-organic-theme');
+      if(saved === 'dark') this.setState({ theme: 'dark' });
+    }catch(e){}
+  }
+
+  toggleTheme = () => {
+    const next = this.state.theme === 'dark' ? 'light' : 'dark';
+    this.setState({ theme: next });
+    try{ localStorage.setItem('bah-organic-theme', next); }catch(e){}
+  };
+
+  incServings = () => { if(this.state.servings < 12) this.setState(s => ({ servings: s.servings + 1 })); };
+  decServings = () => { if(this.state.servings > 1) this.setState(s => ({ servings: s.servings - 1 })); };
+
+  ingredientsBase(){
+    return [
+      { name: 'Farine', base: 250, unit: 'g' },
+      { name: 'Chocolat noir', base: 100, unit: 'g' },
+      { name: 'Beurre', base: 60, unit: 'g' },
+      { name: 'Levure fraîche', base: 7, unit: 'g' },
+      { name: 'Œufs', base: 2, unit: 'pc' },
+      { name: 'Sucre', base: 40, unit: 'g' },
+      { name: 'Lait tiède', base: 80, unit: 'ml' }
+    ];
+  }
+
+  stepsData(){
+    return [
+      { num: 1, timer: '15 min', mark: '00:10', text: "Mélanger la farine, le lait tiède, le sucre et la levure. Pétrir jusqu'à obtenir une pâte souple." },
+      { num: 2, timer: '1 h 30', mark: '00:52', text: "Laisser pousser la pâte dans un endroit tiède jusqu'à ce qu'elle double de volume." },
+      { num: 3, timer: '10 min', mark: '02:14', text: "Étaler la pâte, la tartiner de ganache au chocolat, puis rouler et trancher en deux dans la longueur." },
+      { num: 4, timer: '8 min', mark: '04:37', text: "Tresser les deux bandes en gardant la coupe visible, puis déposer dans un moule à cake." },
+      { num: 5, timer: '45 min', mark: '06:03', text: "Enfourner à 180°C jusqu'à ce que la babka soit bien dorée, puis napper de sirop encore chaude." }
+    ];
+  }
+
+  renderVals(){
+    const isDark = this.state.theme === 'dark';
+    const servings = this.state.servings;
+    const base = 2;
+    const ingredients = this.ingredientsBase().map(ing => {
+      const val = (ing.base / base) * servings;
+      const display = ing.unit === 'pc' ? Math.round(val) : (Number.isInteger(val) ? val : val.toFixed(1));
+      return { name: ing.name, display: display + ' ' + ing.unit };
+    });
+    const stars = [1,1,1,1,0].map(on => ({ fill: on ? 'var(--color-accent)' : 'none', stroke: on ? 'var(--color-accent)' : 'currentColor' }));
+    const paletteBase = {
+      '--font-heading': "'Bricolage Grotesque', system-ui, sans-serif",
+      '--font-body': "'Work Sans', system-ui, sans-serif",
+      '--color-bg': '#efe6d6', '--color-surface': '#e0d3ba', '--color-text': '#241f1a', '--color-divider': 'rgba(36,31,26,0.16)',
+      '--color-accent': '#a15a35',
+      '--color-accent-100': '#f7e8de', '--color-accent-200': '#edcbb0', '--color-accent-300': '#dba377', '--color-accent-400': '#c37f4f', '--color-accent-500': '#a15a35', '--color-accent-600': '#7e4527', '--color-accent-700': '#5f331d', '--color-accent-800': '#422314', '--color-accent-900': '#2b170d',
+      '--color-accent-2': '#4f7d74',
+      '--color-accent-2-100': '#e3efec', '--color-accent-2-200': '#c3ddd6', '--color-accent-2-300': '#96c1b5', '--color-accent-2-400': '#6ea395', '--color-accent-2-500': '#4f7d74', '--color-accent-2-600': '#3c625b', '--color-accent-2-700': '#2c4844', '--color-accent-2-800': '#1e332f', '--color-accent-2-900': '#14231f'
+    };
+    return {
+      rootStyle: isDark ? { ...paletteBase, '--color-bg': '#241f1a', '--color-surface': '#332c24', '--color-text': '#efe6d6', '--color-divider': 'rgba(239,230,214,0.14)' } : paletteBase,
+      isDark, isLight: !isDark,
+      toggleTheme: this.toggleTheme,
+      servings, incServings: this.incServings, decServings: this.decServings,
+      ingredients,
+      steps: this.stepsData(),
+      stars
+    };
+  }
+}
+</script>
+</body>
+</html>
