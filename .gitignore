@@ -1,0 +1,35 @@
+# --- node / angular ---
+node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/
+frontend/e2e/**/*-snapshots/*-actual.png
+npm-debug.log*
+yarn-error.log*
+
+# --- maven / java ---
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# --- local data & secrets: NEVER commit these ---
+data/
+*.db
+*.db-wal
+*.db-shm
+backend/uploads/
+backend/src/main/resources/application-local.yml
+.env
+.env.local
+
+# --- tooling ---
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+.DS_Store
+Thumbs.db

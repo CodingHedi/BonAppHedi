@@ -1,0 +1,24 @@
+# Normalise to LF in the repo. This matters: the project is developed on Windows
+# and deployed to Ubuntu, and a CRLF `mvnw` fails to execute on Linux.
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# The Maven wrapper is executed by /bin/sh on the server
+mvnw text eol=lf
+*.sh text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.mp4 binary
+*.jar binary
