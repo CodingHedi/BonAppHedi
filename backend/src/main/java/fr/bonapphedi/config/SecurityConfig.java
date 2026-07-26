@@ -2,6 +2,7 @@ package fr.bonapphedi.config;
 
 import fr.bonapphedi.auth.AppUserOAuth2UserService;
 import fr.bonapphedi.auth.AppUserOidcUserService;
+import fr.bonapphedi.auth.ReturnPath;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
@@ -53,6 +55,10 @@ public class SecurityConfig {
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
 
+                // Ahead of the filter that answers 302 to the provider, or it
+                // would never get the chance to read the page being left.
+                .addFilterBefore(new ReturnPathFilter(), OAuth2AuthorizationRequestRedirectFilter.class)
+
                 .exceptionHandling(ex -> ex
                         // Without this, one registered provider makes Spring's
                         // default entry point redirect to Google. A fetch() sees
@@ -85,10 +91,25 @@ public class SecurityConfig {
                     .userInfoEndpoint(userInfo -> userInfo
                             .userService(oauth2UserService)
                             .oidcUserService(oidcUserService))
-                    // Back to the site root rather than to a saved request. The
-                    // visitor started this from a button, not from being
-                    // refused, so there is nothing they were trying to reach.
-                    .defaultSuccessUrl("/", true)
+                    // Back to whatever page they were reading when they clicked
+                    // sign in, which ReturnPathFilter stashed in the session on
+                    // the way out. This used to send everyone to the site root
+                    // on the reasoning that a visitor who started from a button
+                    // had nothing they were trying to reach - which was simply
+                    // wrong: they were reading a recipe and wanted to comment on
+                    // it, and being dropped on the home page reads as the sign-in
+                    // having failed.
+                    .successHandler((request, response, authentication) -> {
+                        Object stored = request.getSession().getAttribute(ReturnPath.SESSION_KEY);
+                        request.getSession().removeAttribute(ReturnPath.SESSION_KEY);
+
+                        // Sanitized again on the way out. It was checked before
+                        // being stored, and this costs nothing, and the day
+                        // somebody writes to that attribute from somewhere else
+                        // is the day it matters.
+                        response.sendRedirect(
+                                ReturnPath.sanitize(stored instanceof String path ? path : null));
+                    })
                     // The default is /login?error, which does not exist here and
                     // would end a failed sign-in on the 404 page.
                     .failureUrl("/?signin=failed"));

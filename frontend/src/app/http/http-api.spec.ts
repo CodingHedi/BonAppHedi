@@ -167,7 +167,13 @@ describe('HttpAuthApi', () => {
         {
           provide: DOCUMENT,
           useValue: {
-            defaultView: { location: { assign: (url: string) => navigations.push(url) } },
+            defaultView: {
+              location: {
+                pathname: '/fr/recettes/babka-au-chocolat',
+                search: '',
+                assign: (url: string) => navigations.push(url),
+              },
+            },
           },
         },
       ],
@@ -215,7 +221,11 @@ describe('HttpAuthApi', () => {
     });
     await Promise.resolve();
 
-    expect(navigations).toEqual(['/oauth2/authorization/google']);
+    // Carries the page being left, so the server can send them back to it. Its
+    // absence is what used to drop everyone on the home page after signing in.
+    expect(navigations).toEqual([
+      '/oauth2/authorization/google?returnTo=%2Ffr%2Frecettes%2Fbabka-au-chocolat',
+    ]);
     http.expectNone(() => true);
 
     // Never settles on purpose: the document is being torn down, and anything
