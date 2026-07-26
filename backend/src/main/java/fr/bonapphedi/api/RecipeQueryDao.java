@@ -87,7 +87,7 @@ public class RecipeQueryDao {
                 .toList();
     }
 
-    public Optional<Dto.RecipeDetail> bySlug(String slug, String locale) {
+    public Optional<Dto.RecipeDetail> bySlug(String slug, String locale, Viewer viewer) {
         String sql = SUMMARY_COLUMNS + PUBLIC_WHERE + """
                 AND rt.slug = :slug
                 """;
@@ -176,11 +176,32 @@ public class RecipeQueryDao {
         int reactionCount = jdbc.sql("SELECT count(*) FROM reaction WHERE recipe_id = :id")
                 .param("id", id).query(Integer.class).single();
 
-        // Counts what a visitor can actually see, so it agrees with the thread
-        // below it. A pending comment is not public reading.
-        int commentCount = jdbc.sql(
-                        "SELECT count(*) FROM comment WHERE recipe_id = :id AND status = 'PUBLISHED'")
-                .param("id", id).query(Integer.class).single();
+        // Counts what this visitor can actually see, so it agrees with the thread
+        // below it. A pending comment is not public reading, but it is visible to
+        // whoever wrote it - so the count is personal too, and two people can
+        // correctly see different numbers on the same page.
+        int commentCount = jdbc.sql("""
+                        SELECT count(*) FROM comment
+                        WHERE recipe_id = :id
+                          AND (status = 'PUBLISHED'
+                               OR (status = 'PENDING' AND user_id IS NOT NULL AND user_id = :user))
+                        """)
+                .param("id", id).param("user", viewer.userId()).query(Integer.class).single();
+
+        // Both null for anybody who has never written: the cookie is issued on the
+        // first rating or reaction and never on a page view, so an unidentified
+        // reader is the normal case and not a degraded one.
+        Integer yourRating = viewer.visitorId() == null
+                ? null
+                : jdbc.sql("SELECT stars FROM rating WHERE recipe_id = :id AND visitor_id = :visitor")
+                        .param("id", id).param("visitor", viewer.visitorId())
+                        .query(Integer.class).optional().orElse(null);
+
+        boolean reacted = viewer.visitorId() != null
+                && jdbc.sql("SELECT count(*) FROM reaction WHERE recipe_id = :id AND visitor_id = :visitor")
+                                .param("id", id).param("visitor", viewer.visitorId())
+                                .query(Integer.class).single()
+                        > 0;
 
         List<Dto.Tag> tags = tagsFor(List.of(id), locale).getOrDefault(id, List.of());
 
@@ -194,10 +215,8 @@ public class RecipeQueryDao {
                 (Integer) extra[0],
                 (String) extra[1],
                 ingredients, steps,
-                // yourRating is null until sessions exist; an anonymous visitor
-                // has rated nothing that can be attributed back to them.
-                new Dto.RatingSummary(row.ratingAvg(), row.ratingCount(), null),
-                new Dto.Reactions(reactionCount, false),
+                new Dto.RatingSummary(row.ratingAvg(), row.ratingCount(), yourRating),
+                new Dto.Reactions(reactionCount, reacted),
                 commentCount,
                 alternates));
     }

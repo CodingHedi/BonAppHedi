@@ -1,0 +1,42 @@
+# Copy to application-local.yml and fill in. That file is gitignored; this one
+# is the template, so it must never hold a real value.
+#
+#   cp backend/src/main/resources/application-local.yml.example `
+#      backend/src/main/resources/application-local.yml
+#
+# application.yml imports it optionally, so the app runs perfectly well without
+# it - you simply get no sign-in buttons and no admin.
+
+bah:
+  oauth:
+    # Blank means the provider is skipped and no button appears for it. Zero
+    # providers configured is a supported state, not a broken one (ADR 0003).
+    #
+    # For local Google OAuth, register the redirect URI
+    #   http://localhost:4200/login/oauth2/code/google
+    # on port 4200 and not 8080: the dev proxy preserves the browser's origin,
+    # so that is the address Google is actually sent back to.
+    google:
+      client-id: ""
+      client-secret: ""
+    # Facebook additionally needs app review before it will release `email` to
+    # anyone who is not an admin of the app, which is why Google ships first.
+    facebook:
+      client-id: ""
+      client-secret: ""
+
+  admin:
+    # Comma-separated. Checked on every login, so removing an address here
+    # demotes that account the next time it signs in rather than at some later
+    # point of your choosing.
+    emails: ""
+
+  security:
+    # Any long random string. It salts the HMAC that lets the server notice one
+    # person clearing cookies to rate a recipe repeatedly; the address itself is
+    # never stored, and this is what makes the stored hash useless to anybody
+    # who ends up with a copy of the database.
+    #
+    # Changing it resets every existing fingerprint, which costs nothing but the
+    # abuse history. Leaving it blank is the same as having no salt at all.
+    fingerprint-salt: ""

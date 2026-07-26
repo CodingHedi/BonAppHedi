@@ -1,7 +1,11 @@
 package fr.bonapphedi.api;
 
+import fr.bonapphedi.auth.AppUserPrincipal;
+import fr.bonapphedi.social.VisitorIdentity;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,9 +30,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class RecipeController {
 
     private final RecipeQueryDao dao;
+    private final VisitorIdentity visitors;
 
-    public RecipeController(RecipeQueryDao dao) {
+    public RecipeController(RecipeQueryDao dao, VisitorIdentity visitors) {
         this.dao = dao;
+        this.visitors = visitors;
     }
 
     @GetMapping("/recipes")
@@ -56,11 +62,25 @@ public class RecipeController {
         return dao.featured(validLocale(locale));
     }
 
+    /**
+     * The one read that differs per person. Everything on it is public except
+     * three fields - your own rating, whether you reacted, and whether one of the
+     * comments awaiting moderation is yours - which is why the visitor cookie is
+     * only <em>read</em> here and never issued: identifying a reader has to be
+     * something they started by writing something.
+     */
     @GetMapping("/recipes/{slug}")
     public Dto.RecipeDetail bySlug(
-            @PathVariable String slug, @RequestParam(defaultValue = "fr") String locale) {
+            @PathVariable String slug,
+            @RequestParam(defaultValue = "fr") String locale,
+            @AuthenticationPrincipal AppUserPrincipal principal,
+            HttpServletRequest request) {
 
-        return dao.bySlug(slug, validLocale(locale))
+        Viewer viewer = new Viewer(
+                visitors.existing(request).orElse(null),
+                principal == null ? null : principal.user().id());
+
+        return dao.bySlug(slug, validLocale(locale), viewer)
                 // A draft, an unknown slug, and a slug belonging to the other
                 // language are all the same answer: there is no such page here.
                 // Distinguishing them would confirm that a draft exists.

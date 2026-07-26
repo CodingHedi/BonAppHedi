@@ -2,6 +2,12 @@ spring:
   application:
     name: bonapphedi
 
+  # Secrets live here, not in this file. Optional on purpose: the app has to run
+  # from a fresh checkout with no credentials at all, and the only difference is
+  # that no sign-in button appears. See application-local.yml.example.
+  config:
+    import: optional:classpath:application-local.yml
+
   datasource:
     # foreign_keys=on is load-bearing, not decoration. SQLite disables foreign
     # keys per connection by default, and without this every ON DELETE CASCADE
@@ -50,6 +56,12 @@ bah:
     # Comma-separated. Checked on every login, so removing an address here
     # demotes that account the next time it signs in.
     emails: ${BAH_ADMIN_EMAILS:}
+
+  security:
+    # Salts the HMAC that identifies a visitor's network address without storing
+    # it. Blank is the same as no salt: the fingerprint still works as a
+    # de-duplicator but stops being useless to whoever gets the database.
+    fingerprint-salt: ${BAH_FINGERPRINT_SALT:}
 
 server:
   port: 8080
