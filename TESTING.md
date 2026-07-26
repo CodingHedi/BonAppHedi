@@ -104,31 +104,54 @@ Recorded because each one cost time once:
 
 ---
 
-## Backend (from milestone 2)
-
-Not yet present. When it lands:
+## Backend
 
 ```powershell
 cd backend
-.\mvnw.cmd clean verify        # Maven is NOT installed; always the wrapper
+.\mvnw.cmd test          # 135 tests
 ```
 
-Planned coverage, per `Docs/adr/` and the implementation plan:
+Each test class points `spring.datasource.url` at its own file under `target/`,
+so the classes do not share state — but those files **persist between runs**,
+which is why the classes that write also reset in `@BeforeEach`. A test that
+forgets to is a test that can pass on last run's leftovers.
 
-- MockMvc contract tests per endpoint **per locale**, asserting the exact JSON
-  shape the M1 mocks produced — that is the acceptance test for the mock→API
-  swap
-- a Flyway migration test running V1→Vn against a fresh temporary database
-- rating dedupe: same cookie twice → one row; both locales → one row; three
-  cookies sharing a fingerprint → 429
-- the 0/1/2-provider matrix for config-driven OAuth
-- sanitizer tests feeding `<script>`, `<img onerror>`, `javascript:` hrefs and
-  `<iframe>` through both policies
-- a security matrix (anonymous / `ROLE_USER` / `ROLE_ADMIN` × each endpoint)
+### What the plan asked for, and what actually exists
 
-At that point `scripts/verify.ps1` runs both halves, and **the milestone-1 e2e
-suite must pass unmodified against the real backend** — that is the acceptance
-test for the swap.
+Kept honest deliberately: a list of intentions reads the same whether or not it
+was carried out.
+
+| Planned | Now |
+|---|---|
+| MockMvc contract tests per endpoint, per locale | **Yes** — `RecipeApiTest`, `SocialApiTest`, `AdminApiTest`, `AuthApiTest` assert JSON keys, not just status codes |
+| Rating dedupe: same cookie twice, both locales, fingerprint limit | **Yes** — all three, in `SocialApiTest` |
+| Sanitizer tests for `<script>`, `<img onerror>`, `javascript:` hrefs | **Yes** — `MarkdownRendererTest`, plus a comment fed through the write path |
+| Security matrix, anonymous / `ROLE_USER` / `ROLE_ADMIN` | **Partly** — every `/api/admin/**` path across all three roles, but not each social endpoint |
+| The 0/1/2-provider matrix for config-driven OAuth | **Partly** — 0 (`AuthDisabledTest`) and 1 (`AuthApiTest`). Two configured at once is untested |
+| A Flyway migration test running V1→Vn on a fresh database | **No** — `BackendApplicationTests` asserts the resulting tables exist, which is not the same as asserting the migrations run in order from empty |
+| `scripts/verify.ps1` running both halves | **No** — it does not exist. `frontend/npm run verify` and `backend/.\mvnw.cmd test` are run separately |
+
+The three gaps are in [Docs/backlog.md](Docs/backlog.md) rather than left here as
+implied promises.
+
+### Things caught by tests that were written first
+
+Both of these passed a green-only run and were only found by reading an actual
+failure — which is why `CLAUDE.md` insists on red first:
+
+- an ingredient mapper read `base_quantity`, then `name`, then asked `wasNull()`.
+  JDBC reports on the column read **last**, so "salt and pepper, to taste" came
+  back quantified.
+- the markdown renderer escaped raw HTML instead of sanitizing it. Safe, but
+  `<b>bold</b>` rendered bold in the preview and appeared as literal text once
+  stored.
+
+And two found only by running the real thing, which no unit test would have
+reached: a blank `fingerprint-salt` made every rating a 500 on a default
+install, and `-Fresh` had never deleted the database it claimed to.
+
+**The milestone-1 e2e suite must pass unmodified against the real backend** —
+that is the acceptance test for the swap, scoped by the amendment in ADR 0001.
 
 **Measured 2026-07-27: 64 of 96 pass, and none of the 32 failures is a contract
 mismatch.** ADR 0001 carries the amendment that scopes the guarantee to the

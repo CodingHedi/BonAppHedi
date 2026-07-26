@@ -29,3 +29,42 @@ arguably not a deviation at all.
 
 Should keep: the existing route, the translated copy, and the smoke-suite
 assertion on it.
+
+---
+
+## Three gaps in the backend test plan
+
+Named here because they were listed in `TESTING.md` as planned coverage and
+quietly never written. A plan that is not carried out reads exactly like one
+that was, which is the whole reason for moving them.
+
+**A migration test running V1→Vn on an empty database.** What exists asserts the
+resulting tables are there, which is a different claim: it would still pass if a
+migration were reordered, or if V3 only worked because V2 had already created
+something. Cheap to write — point Flyway at a temporary file and migrate — and
+it is the only thing that would catch a migration that works on a database which
+already exists but not on a new one. That failure mode is invisible in
+development and total on a first deploy.
+
+**Two providers configured at once.** Zero is tested (`AuthDisabledTest`) and one
+is (`AuthApiTest`); two never has been, so nothing asserts the sign-in row
+renders both, or that the second registration is built correctly. Blocked in
+practice on Facebook needing Meta app review before it releases an email
+address, but the *configuration* half could be tested today with a second
+fake registration.
+
+**A security matrix across the social endpoints.** `/api/admin/**` is covered for
+anonymous, `ROLE_USER` and `ROLE_ADMIN`. The social write endpoints are covered
+where it matters — comments need a session, deletion is owner-only — but not
+systematically, so a new endpoint added without a rule would not fail anything.
+
+---
+
+## scripts/verify.ps1
+
+`TESTING.md` referred to it for months; it has never existed. The two halves are
+verified separately, which works and is what everyone actually types.
+
+Worth it only if CI or a deploy step needs one command. If that day does not
+come, delete this entry rather than writing the script to make an old sentence
+true.
