@@ -14,7 +14,7 @@
  */
 
 import type { Locale } from '../core/i18n/locale';
-import type { Difficulty, TagVariant } from '../core/api/models';
+import type { CommentStatus, Difficulty, TagVariant } from '../core/api/models';
 
 /**
  * Publication dates are computed backwards from this instant rather than being
@@ -648,5 +648,55 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
         bodyMarkdown: 'Drink it within ten minutes: after that it loses all its bite.',
       },
     },
+  },
+];
+
+// --- Comments ----------------------------------------------------------------
+
+/**
+ * Deliberately NOT translated, unlike everything else in this file.
+ *
+ * A comment is written once, by a visitor, in whatever language they chose, and
+ * it stays that way on both the French and the English page — nobody translates
+ * a stranger's remark about a babka. So these are keyed to the recipe and carry
+ * no locale, which is also how the `comments` table is shaped.
+ *
+ * One is left PENDING so the moderation state is visible in the UI rather than
+ * only in the type.
+ */
+export interface SeedComment {
+  readonly recipeKey: string;
+  readonly displayName: string;
+  readonly bodyMarkdown: string;
+  readonly daysAgo: number;
+  readonly status?: CommentStatus;
+}
+
+export const SEED_COMMENTS: readonly SeedComment[] = [
+  {
+    recipeKey: 'babka',
+    displayName: 'Camille',
+    bodyMarkdown:
+      'Faite hier soir, elle a tenu jusqu’au petit-déjeuner — de justesse. Le **double tour** de tressage vaut vraiment le coup.',
+    daysAgo: 2,
+  },
+  {
+    recipeKey: 'babka',
+    displayName: 'Tom',
+    bodyMarkdown: 'Used 70% dark chocolate and cut the sugar to 30g. Still plenty sweet.',
+    daysAgo: 1,
+  },
+  {
+    recipeKey: 'shakshuka',
+    displayName: 'Yasmine',
+    bodyMarkdown: 'J’ajoute une pincée de cumin avec les poivrons, ça change tout.',
+    daysAgo: 3,
+  },
+  {
+    recipeKey: 'shakshuka',
+    displayName: 'Anonyme',
+    bodyMarkdown: 'premier !!!',
+    daysAgo: 0,
+    status: 'PENDING',
   },
 ];

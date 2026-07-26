@@ -64,6 +64,29 @@ and the dot count is the value. So "facile" (1) fills one dot, not two.
 The prototype was showing one example, not defining the scale — and a scale
 where "easy" means two thirds is not one anybody can read.
 
+### Changed: the header account button appears only once signed in
+
+The prototype draws a permanent user icon in the header. It is now rendered only
+when there is a session, and it signs out.
+
+Signed out it had nowhere to go. There is no account page, and opening a
+provider menu from the header would ask for identity with no reason attached to
+it. Sign-in is offered where it is actually needed — in the comment card, under
+the sentence explaining why — so a visitor is never asked who they are before
+anything depends on the answer.
+
+### Added: a share bar on the recipe detail page
+
+Not in the prototypes at all. Every target is a plain `<a href>` to a documented
+share URL, plus the native Web Share sheet where the browser provides one, plus
+copy-to-clipboard.
+
+No vendor SDK is loaded, and that is the whole design: `sdk.js` and `widgets.js`
+run on page view, set cookies and disclose the visitor's IP to a network that was
+never asked to read a recipe. That is precisely what the YouTube facade above it
+exists to prevent, and a share button is a far weaker reason to give it up than a
+video is.
+
 ### Added: a fourth header control
 
 The header gains a language switcher alongside search, account and theme. It

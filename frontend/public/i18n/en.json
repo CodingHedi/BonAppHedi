@@ -81,6 +81,17 @@
     "pending": "Awaiting moderation",
     "empty": "No comments yet. Be the first!"
   },
+  "share": {
+    "label": "Share",
+    "action": "Share this recipe",
+    "on": "Share on {{network}}",
+    "copyLink": "Copy link",
+    "copied": "Link copied"
+  },
+  "account": {
+    "signedInAs": "Signed in as {{name}}",
+    "signOut": "Sign out"
+  },
   "units": {
     "g": "g",
     "kg": "kg",

@@ -5,6 +5,7 @@ import { IconComponent } from '../../core/icons/icon';
 import { LocaleService } from '../../core/i18n/locale.service';
 import { LOCALE_LABELS, stripLocale } from '../../core/i18n/locale';
 import { ThemeService } from '../../core/theme/theme.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { BrandLogoComponent } from '../brand-logo/brand-logo';
 
 @Component({
@@ -23,9 +24,23 @@ import { BrandLogoComponent } from '../brand-logo/brand-logo';
             <bah-icon name="search" />
           </button>
 
-          <button type="button" class="btn btn-icon btn-secondary" [attr.aria-label]="'nav.account' | transloco">
-            <bah-icon name="user" />
-          </button>
+          <!--
+            Only present once there is an account, and then it signs out.
+            The prototype drew this permanently, but signed out it would be a
+            control with nowhere to go: sign-in is asked for next to the comment
+            box, where the reason for it is visible. Recorded in ADR 0006.
+          -->
+          @if (auth.user(); as user) {
+            <button
+              type="button"
+              class="btn btn-icon btn-secondary"
+              [attr.aria-label]="'account.signOut' | transloco"
+              [attr.title]="'account.signedInAs' | transloco: { name: user.displayName }"
+              (click)="signOut()"
+            >
+              <bah-icon name="logout" />
+            </button>
+          }
 
           <!--
             Text, not a flag. Flags denote countries, and French is not spoken
@@ -93,6 +108,7 @@ export class SiteHeaderComponent {
   private readonly locale = inject(LocaleService);
   private readonly transloco = inject(TranslocoService);
   protected readonly theme = inject(ThemeService);
+  protected readonly auth = inject(AuthService);
 
   protected readonly other = this.locale.other;
   protected readonly otherLabel = computed(() => LOCALE_LABELS[this.other()]);
@@ -111,6 +127,10 @@ export class SiteHeaderComponent {
    * `alternates` field and overrides this. Falling back to the section root is
    * the correct behaviour when no counterpart is known — better than a 404.
    */
+  protected signOut(): void {
+    void this.auth.signOut();
+  }
+
   protected switchLanguage(): void {
     const target = this.other();
     const rest = stripLocale(this.router.url.split('?')[0].split('#')[0]);

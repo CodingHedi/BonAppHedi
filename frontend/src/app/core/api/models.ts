@@ -126,6 +126,62 @@ export interface RecipeDetail extends RecipeSummary {
   readonly alternates: readonly LocaleAlternate[];
 }
 
+// --- Identity ----------------------------------------------------------------
+
+/**
+ * Which OAuth providers exist is configuration, not code (ADR 0003). The server
+ * only returns the ones it holds credentials for, so adding Facebook later is a
+ * config change and a restart — the UI renders whatever arrives and has no
+ * provider list of its own.
+ */
+export type ProviderId = 'google' | 'facebook';
+
+export interface AuthProvider {
+  readonly id: ProviderId;
+  /** A brand name: never translated. */
+  readonly label: string;
+}
+
+export interface AuthUser {
+  readonly id: string;
+  readonly displayName: string;
+  readonly avatarUrl: string | null;
+  /** Drives access to the admin area. Asserted server-side too — this is UI only. */
+  readonly isAdmin: boolean;
+}
+
+// --- Social ------------------------------------------------------------------
+
+/**
+ * PENDING exists because comments are moderated. The author still sees their own
+ * pending comment — silently swallowing it reads as a broken form and gets the
+ * same thing posted three more times.
+ */
+export type CommentStatus = 'PUBLISHED' | 'PENDING' | 'REJECTED';
+
+/** Deliberately not `Author`: a commenter has no slug, no bio and no page. */
+export interface CommentAuthor {
+  readonly displayName: string;
+  readonly avatarUrl: string | null;
+}
+
+export interface Comment {
+  readonly id: number;
+  readonly author: CommentAuthor;
+  readonly bodyMarkdown: string;
+  /** Server-rendered and sanitized in M2. Empty in M1, where the client renders. */
+  readonly bodyHtml: string;
+  readonly createdAt: string;
+  readonly status: CommentStatus;
+  /** Whether the signed-in visitor wrote it, so the UI can offer to delete it. */
+  readonly mine: boolean;
+}
+
+export interface ReactionState {
+  readonly count: number;
+  readonly reacted: boolean;
+}
+
 export interface RecipeQuery {
   readonly locale: Locale;
   readonly query?: string;

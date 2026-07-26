@@ -83,6 +83,15 @@ import type { ImageRef } from '../../../core/api/models';
       /* Reserved so swapping the placeholder for a real photo, or for the
          player, shifts nothing on the page. */
       aspect-ratio: 16 / 9;
+      /*
+       * Load-bearing on phones. Without an explicit width the box has no
+       * definite inline size, so the aspect ratio runs the other way and
+       * transfers min-height into a *minimum width* of 340 ÷ 9 × 16 = 604px —
+       * wider than any phone, which scrolled the whole document sideways.
+       * Pinning the width makes the ratio derive the height, and min-height
+       * then only ever makes the box taller.
+       */
+      width: 100%;
     }
 
     /*
