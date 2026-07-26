@@ -57,7 +57,12 @@ export class HttpAuthApi implements AuthApi {
     // having failed when in fact it worked. The server refuses anything that is
     // not a path on this site, so a rewritten link cannot turn its own sign-in
     // into a redirect somewhere else.
-    const here = view ? `${view.location.pathname}${view.location.search}` : '/';
+    //
+    // An explicit ?returnTo= wins over the current path, which is what makes the
+    // dedicated sign-in page work: signing in from there should return you to
+    // wherever you were when you clicked the footer link, not to the sign-in
+    // page you have just finished with.
+    const here = view ? this.returnTarget(view) : '/';
 
     view?.location.assign(
       `/oauth2/authorization/${encodeURIComponent(provider)}?returnTo=${encodeURIComponent(here)}`,
@@ -73,5 +78,12 @@ export class HttpAuthApi implements AuthApi {
    */
   async signOut(): Promise<void> {
     await firstValueFrom(this.http.post<void>('/api/auth/logout', null));
+  }
+
+  private returnTarget(view: Window): string {
+    const explicit = new URLSearchParams(view.location.search).get('returnTo');
+    if (explicit) return explicit;
+
+    return `${view.location.pathname}${view.location.search}`;
   }
 }
