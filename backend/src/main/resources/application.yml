@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: bonapphedi
+
+  datasource:
+    # foreign_keys=on is load-bearing, not decoration. SQLite disables foreign
+    # keys per connection by default, and without this every ON DELETE CASCADE
+    # in the schema is silently inert (ADR 0002).
+    url: jdbc:sqlite:file:${BAH_DB:./data/bonapphedi.db}?foreign_keys=on&busy_timeout=5000
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      # SQLite takes one writer at a time. A large pool buys nothing and turns
+      # lock contention into a thundering herd.
+      maximum-pool-size: 4
+      pool-name: bah-sqlite
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # SQLite has no ALTER COLUMN, so migrations are additive from V1 onward and
+    # a baseline is never rewritten.
+    baseline-on-migrate: true
+
+  jackson:
+    default-property-inclusion: always
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+
+logging:
+  level:
+    org.springframework.jdbc.core: info
