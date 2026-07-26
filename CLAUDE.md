@@ -66,19 +66,30 @@ npm run verify          # lint → typecheck → unit → build → e2e
 Green `verify` is the bar for merging into `main`. `npm run verify:prod` runs
 the same chain against a production build and is the bar before a deploy.
 
-**Both run against the mocks, and that is deliberate.** Since M2,
-`environment.ts` has `useMocks: false` — what deploys talks to the real API —
-while `environment.development.ts` keeps the mocks, and `verify:prod` builds
-`production,e2e` so it gets production optimisation with the mock environment.
-Neither suite then needs a JVM or a Google to sign in to, which is exactly why
-ADR 0001 keeps the mocks in the repo after the swap.
+**Both run against the mocks, and nothing you do to the dev loop can change
+that.** Three environment files, one job each:
 
-What that does **not** cover is backend integration. That is the scoped
-acceptance run in ADR 0001: flip `environment.development.ts` to
-`useMocks: false`, start both halves with `.\scripts\dev.ps1 -Fresh`, then
-`npx playwright test`. 64 of 96 pass; the rest need a session or a configured
-provider. Flip it back afterwards — committing that file with `useMocks: false`
-turns `verify` red.
+| File | Used by | Yours to flip? |
+|---|---|---|
+| `environment.ts` | `ng build` — what deploys | No. `useMocks: false` since M2 |
+| `environment.development.ts` | `npm start`, `dev.ps1` | **Yes**, whenever you want the dev loop on the real API |
+| `environment.e2e.ts` | both test suites | No. Pinned to the mocks |
+
+The e2e suite also serves on **port 4300**, not 4200. Between the pinned
+environment and the separate port, a dev loop pointed at the real backend can be
+running throughout a `verify` and change nothing about it.
+
+That was not always true, and the failure was nasty: the suite used to reuse
+whatever sat on 4200, so a flipped file quietly made `verify` run every spec
+against a live database. 33 failed on real comments and ratings, and read
+exactly like regressions in the change under test.
+
+What the suites do **not** cover is backend integration. That is the scoped
+acceptance run in ADR 0001: flip `environment.development.ts`, start both halves
+with `.\scripts\dev.ps1 -Fresh`, then `npx playwright test`. 64 of 96 pass; the
+rest need a session or a configured provider. Leaving that file flipped is now
+harmless — it no longer turns `verify` red — but it is still a working file
+rather than something to commit.
 
 ---
 
