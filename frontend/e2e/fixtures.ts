@@ -27,6 +27,25 @@ const IGNORED = [
 
 const isIgnored = (message: string) => IGNORED.some((pattern) => pattern.test(message));
 
+/**
+ * A 404 from the API is an answer, not a failure.
+ *
+ * The server returns one for an unknown slug, for a draft, and for a slug
+ * belonging to the other language — deliberately the same 404 for all three, so
+ * that asking cannot confirm an unpublished recipe exists. Two specs navigate to
+ * exactly such a URL and assert the site offers a way back; against the mocks no
+ * request happened at all, so this never came up.
+ *
+ * Chromium logs every non-2xx resource load as a console error, so without this
+ * those two specs fail on the API doing precisely what they are checking it does.
+ *
+ * Narrow on purpose, and the narrowness is the point. Only 404, and only from
+ * `/api/`. A 404 on a translation file or a lazy chunk is the first example in
+ * the list above of what this fixture exists to catch, and still fails the test.
+ */
+const isExpectedApiNotFound = (text: string, url: string) =>
+  /status of 404/.test(text) && /\/api\//.test(url);
+
 export const test = base.extend<{ failOnBrowserProblems: void }>({
   failOnBrowserProblems: [
     async ({ page }, use) => {
@@ -35,7 +54,11 @@ export const test = base.extend<{ failOnBrowserProblems: void }>({
       page.on('console', (message) => {
         if (message.type() !== 'error') return;
         const text = message.text();
-        if (!isIgnored(text)) problems.push(`console.error: ${text}`);
+        if (isIgnored(text)) return;
+        // location().url is the resource that failed, which the message text
+        // itself does not carry.
+        if (isExpectedApiNotFound(text, message.location()?.url ?? '')) return;
+        problems.push(`console.error: ${text}`);
       });
 
       page.on('pageerror', (error) => {
