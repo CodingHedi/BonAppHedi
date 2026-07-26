@@ -59,8 +59,9 @@ bah:
 
   security:
     # Salts the HMAC that identifies a visitor's network address without storing
-    # it. Blank is the same as no salt: the fingerprint still works as a
-    # de-duplicator but stops being useless to whoever gets the database.
+    # it. Blank means a random salt is generated at startup and a warning is
+    # logged: dedupe still works, but only until the next restart, since every
+    # stored fingerprint becomes unmatchable when the salt changes.
     fingerprint-salt: ${BAH_FINGERPRINT_SALT:}
 
 server:

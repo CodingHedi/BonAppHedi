@@ -38,5 +38,7 @@ bah:
     # who ends up with a copy of the database.
     #
     # Changing it resets every existing fingerprint, which costs nothing but the
-    # abuse history. Leaving it blank is the same as having no salt at all.
+    # abuse history. Leaving it blank generates a random one at every startup,
+    # which means exactly that reset on every restart - fine on a laptop, wrong
+    # anywhere that stays up.
     fingerprint-salt: ""
