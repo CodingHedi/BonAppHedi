@@ -1,23 +1,38 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Set PW_TARGET=prod to run the suite against a production build instead of the
- * dev server.
+ * Set PW_TARGET=prod to run the suite against a production build instead of an
+ * unoptimised one.
  *
  * Worth doing before a deploy: the production configuration optimises, hashes
  * and tree-shakes, and enforces the bundle budgets. Failures that only appear
  * there are exactly the ones that would otherwise appear in production.
- *
- * It builds `production,e2e` rather than `production`, and the difference is one
- * file: the `e2e` configuration keeps the mock services. Since milestone 2 the
- * real `environment.ts` points at the live API, and a suite that expected a
- * running JVM — and a Google to sign in to — would stop being runnable at all.
- * What this target exists to catch is build-configuration regressions, and it
- * still catches every one of them; what it deliberately does not cover is
- * backend integration, which is ADR 0001's scoped acceptance run instead.
  */
 const againstProd = process.env['PW_TARGET'] === 'prod';
 
+/**
+ * Deliberately not 4200, and this is the whole point rather than a detail.
+ *
+ * The dev loop lives on 4200 and may be pointed at the real backend, which is a
+ * thing you do on purpose. With the suite also on 4200 it would reuse that
+ * server, so `npm run verify` would silently run every e2e spec against a live
+ * database — 33 of them failed that way once, on real comments and ratings, and
+ * read exactly like regressions in the change under test.
+ *
+ * On its own port the suite cannot reuse the dev server, cannot be affected by
+ * whether one is running, and cannot collide with it. Both can run at once.
+ */
+const PORT = 4300;
+
+/**
+ * Both targets build the `e2e` configuration, which pins `environment.e2e.ts`
+ * and therefore the mocks. `environment.development.ts` is yours to flip; this
+ * makes that flip unable to change what the suite runs against.
+ *
+ * What the suite does not cover, by construction, is the real backend. That is
+ * ADR 0001's scoped acceptance run, which is a deliberate act with its own
+ * instructions in TESTING.md — never something `verify` should do by accident.
+ */
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -28,17 +43,17 @@ export default defineConfig({
   testMatch: /.*\.spec\.ts/,
   reporter: process.env['CI'] ? [['github'], ['html', { open: 'never' }]] : [['list']],
   use: {
-    baseURL: 'http://localhost:4200',
+    baseURL: `http://localhost:${PORT}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: againstProd ? 'npm start -- --configuration e2e' : 'npm start',
-    url: 'http://localhost:4200',
-    // Never reuse a stale server in CI, and never against prod — a dev server
-    // left running would silently invalidate the whole point of the prod run.
-    reuseExistingServer: !process.env['CI'] && !againstProd,
+    command: `npm start -- --configuration ${againstProd ? 'e2e-prod' : 'e2e'} --port ${PORT}`,
+    url: `http://localhost:${PORT}`,
+    // Safe to reuse now: nothing but this suite ever serves on this port, so a
+    // server found here was started by it and is built the same way.
+    reuseExistingServer: !process.env['CI'],
     timeout: 180_000,
   },
 });

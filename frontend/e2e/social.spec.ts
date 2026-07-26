@@ -240,7 +240,10 @@ test.describe('sharing', () => {
     const links = page.locator('bah-share-bar a');
     await expect(links).toHaveCount(4);
 
-    const encoded = encodeURIComponent(`${new URL(BABKA, 'http://localhost:4200')}`);
+    // Taken from the page rather than rebuilt from a hardcoded origin: the
+    // share links carry whatever address this page actually has, and pinning
+    // the port here made the spec fail the moment the suite moved off 4200.
+    const encoded = encodeURIComponent(page.url());
     for (const href of await links.evaluateAll((all) =>
       all.map((a) => (a as HTMLAnchorElement).href),
     )) {
