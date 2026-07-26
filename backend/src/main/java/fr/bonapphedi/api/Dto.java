@@ -1,6 +1,7 @@
 package fr.bonapphedi.api;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * The wire shape, mirroring {@code frontend/src/app/core/api/models.ts} field
@@ -123,4 +124,69 @@ public final class Dto {
     public record AuthUser(String id, String displayName, String avatarUrl, boolean isAdmin) {}
 
     public record Page<T>(List<T> items, int page, int size, int total) {}
+
+    // --- admin ----------------------------------------------------------------
+    //
+    // The drafts below are the one part of the contract that carries every
+    // language at once. Everything the public site reads is already resolved to a
+    // single locale because a reader wants one; an author is writing both and
+    // needs to see them together. Hence the `t` maps, keyed by locale.
+    //
+    // What they deliberately leave out matters as much: no publication date, no
+    // featured rank, no hero copy, no rating totals. Those are things a recipe
+    // accumulates rather than things anyone types, and a draft that carried them
+    // would let a save overwrite them with staler copies of themselves.
+
+    public record TranslationDraft(String slug, String title, String excerpt, String bodyMarkdown) {}
+
+    public record IngredientText(String name, String note) {}
+
+    public record IngredientDraft(
+            Double baseQuantity, String unit, boolean scalable, Map<String, IngredientText> t) {}
+
+    public record StepText(String body) {}
+
+    public record StepDraft(
+            Integer durationMinutes, Integer videoOffsetSeconds, Map<String, StepText> t) {}
+
+    public record RecipeDraft(
+            String key,
+            String status,
+            List<String> tagKeys,
+            Integer prepMinutes,
+            Integer cookMinutes,
+            int difficulty,
+            int baseServings,
+            String youtubeVideoId,
+            List<IngredientDraft> ingredients,
+            List<StepDraft> steps,
+            Map<String, TranslationDraft> t) {}
+
+    /** A row in the admin's recipe table. Drafts included - that is the point. */
+    public record AdminRecipeRow(
+            String key,
+            String title,
+            String status,
+            String publishedAt,
+            /** Languages this recipe actually has a title in, so gaps are visible. */
+            List<String> translated,
+            int ratingCount,
+            int commentCount) {}
+
+    /** A comment awaiting a decision, carrying enough context to judge it. */
+    public record ModerationItem(Comment comment, String recipeKey, String recipeTitle) {}
+
+    public record CommentTotals(int total, int pending) {}
+
+    public record RatingTotals(int count, double average) {}
+
+    public record AdminTopRecipe(
+            String key, String title, double ratingAverage, int ratingCount, int commentCount) {}
+
+    public record AdminStats(
+            Map<String, Integer> recipes,
+            CommentTotals comments,
+            RatingTotals ratings,
+            int reactions,
+            List<AdminTopRecipe> top) {}
 }

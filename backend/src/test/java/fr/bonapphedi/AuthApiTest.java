@@ -155,11 +155,11 @@ class AuthApiTest {
 
     @Test
     void letsAnAdminPastTheGuard() throws Exception {
-        // 404, not 403: nothing is mounted under /api/admin yet, so this asserts
-        // the request got through authorization and found no handler. A test
-        // expecting isNotFound() here would pass with the rule missing entirely,
-        // which is why the two cases above are asserted alongside it.
+        // This asserted 404 while nothing was mounted under /api/admin, which
+        // proved the request reached routing and found no handler. Now that the
+        // admin area exists it can say the stronger thing directly, and the two
+        // cases above are what stop it passing with the rule missing entirely.
         mvc.perform(get("/api/admin/recipes").with(oauth2Login().oauth2User(signedIn(true))))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
     }
 }
