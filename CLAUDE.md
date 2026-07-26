@@ -89,7 +89,7 @@ what it needs on first run:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 78 tests
+.\mvnw.cmd test          # 123 tests
 .\mvnw.cmd spring-boot:run
 ```
 
@@ -117,6 +117,17 @@ have shipped:
 
 Beware also that a test asserting `isNotFound()` passes against an application
 with no controller at all. Red has to fail for the reason you think it does.
+
+The same trap has a second form worth knowing, because two tests here fell into
+it: a test can exercise real logic and still assert nothing about the wiring
+that logic depends on. `AppUserRegistryTest` passed its own allowlist to the
+constructor in every case, so it proved the matching and would have passed
+through any rename of `bah.admin.emails`. And every MockMvc suite stands a
+principal up with `oauth2Login()`, so the principal is built fresh per request
+and never serialized — a non-serializable field on `AppUser` would fail no test
+and then throw on the first real login, after the OAuth round trip succeeded.
+Both now have a test that fails when the wiring breaks, and both were confirmed
+to fail by breaking it on purpose once.
 
 Three things exist because SQLite and Spring Data JDBC do not get on, and all
 three fail loudly if removed — see `config/`:
