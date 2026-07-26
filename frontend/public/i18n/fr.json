@@ -174,6 +174,7 @@
     "retry": "Réessayer",
     "pageNotFound": "Page introuvable",
     "pageNotFoundBody": "La page que vous cherchez n'existe pas ou a été déplacée.",
-    "backHome": "Retour à l'accueil"
+    "backHome": "Retour à l'accueil",
+    "trySearch": "Vous cherchiez une recette en particulier ? La recherche se trouve en haut de la page."
   }
 }
