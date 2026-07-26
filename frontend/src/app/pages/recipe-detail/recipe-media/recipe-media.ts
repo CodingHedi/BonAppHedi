@@ -128,7 +128,17 @@ import type { ImageRef } from '../../../core/api/models';
       height: 100%;
     }
 
+    /*
+     * The player drops its iframe into a bare wrapper div that it owns and we
+     * cannot style through an input. That wrapper has no height, so a plain
+     * height:100% here resolves against auto and collapses the video to the
+     * 150px iframe default — a letterboxed strip inside a 16/9 box. Filling
+     * .media absolutely skips the wrapper entirely; .media is already the
+     * positioned ancestor for the play button.
+     */
     :host ::ng-deep youtube-player iframe {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       border: 0;

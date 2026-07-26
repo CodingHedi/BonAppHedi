@@ -127,6 +127,24 @@ test.describe('recipe detail', () => {
       expect(construct?.options?.videoId).toBe('YE7VzlLtp-4');
     });
 
+    test('the player fills the media box instead of a letterboxed strip', async ({ page }) => {
+      // The player injects its iframe into a wrapper div it owns, which has no
+      // height of its own. A plain height:100% on the iframe therefore resolves
+      // against auto and collapses it to the 150px iframe default — the video
+      // played as a strip across the middle of an otherwise empty 16/9 box.
+      await stubYouTubeApi(page);
+      await page.goto(BABKA);
+      await page.getByRole('button', { name: 'Lire la vidéo' }).click();
+
+      const frame = page.locator('bah-recipe-media iframe');
+      await expect(frame).toBeVisible();
+
+      const media = await page.locator('bah-recipe-media .media').boundingBox();
+      const played = await frame.boundingBox();
+      expect(played?.width).toBeCloseTo(media!.width, 0);
+      expect(played?.height).toBeCloseTo(media!.height, 0);
+    });
+
     test('a step timestamp loads the player positioned at that moment', async ({ page }) => {
       await stubYouTubeApi(page);
       await page.goto(BABKA);
