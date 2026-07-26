@@ -15,9 +15,10 @@ import type {
   Tag,
   Ingredient,
 } from '../core/api/models';
-import { SEED_AUTHOR, SEED_RECIPES, SEED_TAGS, type SeedRecipe } from './seed-data';
+import { SEED_AUTHOR, SEED_TAGS, type SeedRecipe } from './seed-data';
 import { matchesQuery } from '../shared/text';
 import { SocialStore } from './social-store';
+import { RecipeStore } from './recipe-store';
 
 /**
  * Simulated network latency.
@@ -38,14 +39,18 @@ export class MockRecipeApi implements RecipeApi {
    */
   private readonly social = inject(SocialStore);
 
+  /**
+   * Recipes come from the store rather than straight from the seed, so an edit
+   * made in the admin area is what the public site serves next.
+   */
+  private readonly recipes = inject(RecipeStore);
+
   async list(query: RecipeQuery): Promise<Page<RecipeSummary>> {
     await latency();
 
     const { locale, sort = 'recent' } = query;
 
-    let items = SEED_RECIPES.filter((recipe) => this.publishedIn(recipe, locale)).map((recipe) =>
-      this.toSummary(recipe, locale),
-    );
+    let items = this.recipes.published(locale).map((recipe) => this.toSummary(recipe, locale));
 
     if (query.tag) {
       items = items.filter((item) => item.tags.some((tag) => tag.slug === query.tag));
@@ -68,9 +73,9 @@ export class MockRecipeApi implements RecipeApi {
   async featured(locale: Locale): Promise<readonly HeroSlide[]> {
     await latency();
 
-    return SEED_RECIPES.filter(
-      (recipe) => recipe.featuredRank !== undefined && this.publishedIn(recipe, locale),
-    )
+    return this.recipes
+      .published(locale)
+      .filter((recipe) => recipe.featuredRank !== undefined)
       .sort((a, b) => (a.featuredRank ?? 0) - (b.featuredRank ?? 0))
       .map((recipe) => {
         const t = recipe.t[locale];
@@ -87,7 +92,10 @@ export class MockRecipeApi implements RecipeApi {
   async bySlug(slug: string, locale: Locale): Promise<RecipeDetail | null> {
     await latency();
 
-    const recipe = SEED_RECIPES.find((candidate) => candidate.t[locale].slug === slug);
+    // Published only: a draft's URL must 404 for the public exactly as an
+    // unknown slug does, or "unpublished" would mean nothing more than
+    // "unlisted".
+    const recipe = this.recipes.publishedBySlug(slug, locale);
     if (!recipe) return null;
 
     const t = recipe.t[locale];
@@ -136,8 +144,7 @@ export class MockRecipeApi implements RecipeApi {
     await latency();
 
     const counts = new Map<string, number>();
-    for (const recipe of SEED_RECIPES) {
-      if (!this.publishedIn(recipe, locale)) continue;
+    for (const recipe of this.recipes.published(locale)) {
       for (const key of recipe.tagKeys) counts.set(key, (counts.get(key) ?? 0) + 1);
     }
 
@@ -155,15 +162,6 @@ export class MockRecipeApi implements RecipeApi {
   }
 
   // --- internals -------------------------------------------------------------
-
-  /**
-   * A recipe is only listed in a language it has actually been translated into.
-   * Otherwise the English site quietly fills up with French cards, which reads
-   * as a bug rather than as a partial translation.
-   */
-  private publishedIn(recipe: SeedRecipe, locale: Locale): boolean {
-    return Boolean(recipe.t[locale]?.title);
-  }
 
   private toSummary(recipe: SeedRecipe, locale: Locale): RecipeSummary {
     const t = recipe.t[locale];
