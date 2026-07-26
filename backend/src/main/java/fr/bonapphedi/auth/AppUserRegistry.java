@@ -27,7 +27,7 @@ public class AppUserRegistry {
     private final JdbcClient jdbc;
     private final Set<String> adminEmails;
 
-    public AppUserRegistry(JdbcClient jdbc, @Value("${bah.admin-emails:}") Set<String> adminEmails) {
+    public AppUserRegistry(JdbcClient jdbc, @Value("${bah.admin.emails:}") Set<String> adminEmails) {
         this.jdbc = jdbc;
         // Normalised once, here, so the comparison below cannot forget to.
         this.adminEmails = adminEmails.stream()

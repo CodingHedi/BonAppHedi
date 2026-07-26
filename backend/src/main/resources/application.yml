@@ -46,9 +46,10 @@ bah:
     facebook:
       client-id: ${BAH_FACEBOOK_CLIENT_ID:}
       client-secret: ${BAH_FACEBOOK_CLIENT_SECRET:}
-  # Comma-separated. Checked on every login, so removing an address here demotes
-  # that account the next time it signs in.
-  admin-emails: ${BAH_ADMIN_EMAILS:}
+  admin:
+    # Comma-separated. Checked on every login, so removing an address here
+    # demotes that account the next time it signs in.
+    emails: ${BAH_ADMIN_EMAILS:}
 
 server:
   port: 8080

@@ -37,7 +37,7 @@ import org.springframework.test.web.servlet.MockMvc;
             // built from whatever has credentials, and one of two proves it.
             "bah.oauth.google.client-id=test-client-id",
             "bah.oauth.google.client-secret=test-client-secret",
-            "bah.admin-emails=hedi@example.com"
+            "bah.admin.emails=hedi@example.com"
         })
 class AuthApiTest {
 

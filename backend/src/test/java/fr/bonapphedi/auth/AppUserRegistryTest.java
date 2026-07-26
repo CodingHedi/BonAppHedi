@@ -21,11 +21,24 @@ import org.springframework.test.context.TestPropertySource;
  * self (ADR 0003).
  */
 @SpringBootTest
-@TestPropertySource(properties = "spring.datasource.url=jdbc:sqlite:file:./target/test-users.db?foreign_keys=on")
+@TestPropertySource(
+        properties = {
+            "spring.datasource.url=jdbc:sqlite:file:./target/test-users.db?foreign_keys=on",
+            "bah.admin.emails=configured@example.com"
+        })
 class AppUserRegistryTest {
 
     @Autowired
     private JdbcClient jdbc;
+
+    /**
+     * The bean as Spring built it, rather than one constructed here. Every other
+     * test in this class passes its own allowlist in, which proves the logic and
+     * proves nothing at all about the property it is normally read from - rename
+     * that key and admin silently stops working with a green suite behind it.
+     */
+    @Autowired
+    private AppUserRegistry configured;
 
     /** The seed carries no users, but the file is reused across runs. */
     @BeforeEach
@@ -111,6 +124,17 @@ class AppUserRegistryTest {
         AppUser user = registryFor("").login(new ProviderProfile("facebook", "998877", "Camille", null, null));
 
         assertThat(user.admin()).isFalse();
+    }
+
+    @Test
+    void readsTheAllowlistFromTheConfiguredProperty() {
+        // The one test that fails if bah.admin.emails is renamed or misspelled.
+        // README documents the key, so the code and the documentation disagreeing
+        // has to be a failure rather than a discovery made months later.
+        AppUser user = configured.login(
+                new ProviderProfile("google", "445566", "Configured", "configured@example.com", null));
+
+        assertThat(user.admin()).isTrue();
     }
 
     @Test
