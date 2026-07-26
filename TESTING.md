@@ -108,8 +108,14 @@ Recorded because each one cost time once:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 135 tests
+.\mvnw.cmd test          # 141 tests
 ```
+
+**Renaming or deleting a migration needs `clean`.** Maven copies resources into
+`target/classes` and never removes ones that have disappeared from `src`, so a
+migration you have just renamed is still on the classpath and still runs. It
+cost a confused minute here; without `.\mvnw.cmd clean test` you are testing the
+migrations you used to have.
 
 Each test class points `spring.datasource.url` at its own file under `target/`,
 so the classes do not share state — but those files **persist between runs**,
@@ -128,7 +134,7 @@ was carried out.
 | Sanitizer tests for `<script>`, `<img onerror>`, `javascript:` hrefs | **Yes** — `MarkdownRendererTest`, plus a comment fed through the write path |
 | Security matrix, anonymous / `ROLE_USER` / `ROLE_ADMIN` | **Partly** — every `/api/admin/**` path across all three roles, but not each social endpoint |
 | The 0/1/2-provider matrix for config-driven OAuth | **Partly** — 0 (`AuthDisabledTest`) and 1 (`AuthApiTest`). Two configured at once is untested |
-| A Flyway migration test running V1→Vn on a fresh database | **No** — `BackendApplicationTests` asserts the resulting tables exist, which is not the same as asserting the migrations run in order from empty |
+| A Flyway migration test running V1→Vn on a fresh database | **Yes** — `MigrationsFromEmptyTest`, against a `@TempDir` file that has never existed |
 | `scripts/verify.ps1` running both halves | **No** — it does not exist. `frontend/npm run verify` and `backend/.\mvnw.cmd test` are run separately |
 
 The three gaps are in [Docs/backlog.md](Docs/backlog.md) rather than left here as

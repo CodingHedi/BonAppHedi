@@ -32,19 +32,14 @@ assertion on it.
 
 ---
 
-## Three gaps in the backend test plan
+## Two gaps in the backend test plan
 
 Named here because they were listed in `TESTING.md` as planned coverage and
 quietly never written. A plan that is not carried out reads exactly like one
 that was, which is the whole reason for moving them.
 
-**A migration test running V1→Vn on an empty database.** What exists asserts the
-resulting tables are there, which is a different claim: it would still pass if a
-migration were reordered, or if V3 only worked because V2 had already created
-something. Cheap to write — point Flyway at a temporary file and migrate — and
-it is the only thing that would catch a migration that works on a database which
-already exists but not on a new one. That failure mode is invisible in
-development and total on a first deploy.
+*(The third, a migration test from an empty database, was written —
+`MigrationsFromEmptyTest`.)*
 
 **Two providers configured at once.** Zero is tested (`AuthDisabledTest`) and one
 is (`AuthApiTest`); two never has been, so nothing asserts the sign-in row
