@@ -90,7 +90,13 @@
   },
   "account": {
     "signedInAs": "Connecté en tant que {{name}}",
-    "signOut": "Se déconnecter"
+    "signOut": "Se déconnecter",
+    "signIn": "S'identifier"
+  },
+  "signIn": {
+    "title": "S'identifier",
+    "lead": "Identifiez-vous pour laisser un commentaire. Aucun compte n'est nécessaire pour lire ou noter une recette.",
+    "home": "Retour à l'accueil"
   },
   "admin": {
     "title": "Administration",

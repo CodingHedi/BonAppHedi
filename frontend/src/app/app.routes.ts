@@ -80,6 +80,17 @@ function routesFor(locale: Locale): Route {
         ],
       },
       {
+        /*
+         * A sign-in page of its own, because until it existed the only way into
+         * an account was the provider row inside a recipe's comment box — so
+         * reaching the admin area meant opening a recipe and scrolling to its
+         * comments. It also gives the footer somewhere to link to without
+         * putting a second provider row on every page.
+         */
+        path: seg.signIn,
+        loadComponent: () => import('./pages/sign-in/sign-in-page').then((m) => m.SignInPage),
+      },
+      {
         path: seg.legal,
         loadComponent: () => import('./pages/legal/legal-page').then((m) => m.LegalPage),
       },

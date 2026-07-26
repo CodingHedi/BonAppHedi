@@ -233,6 +233,24 @@ describe('HttpAuthApi', () => {
     // calls init() after signIn(), and it must not reach it here.
     expect(settled).toBe(false);
   });
+
+  it('prefers an explicit returnTo over the page it is on', async () => {
+    // What makes the dedicated sign-in page work: signing in from there has to
+    // return you where you were when you clicked, not to the page you are
+    // standing on and have just finished with.
+    const view = TestBed.inject(DOCUMENT).defaultView as unknown as {
+      location: { pathname: string; search: string };
+    };
+    view.location.pathname = '/fr/connexion';
+    view.location.search = '?returnTo=%2Ffr%2Frecettes%2Fbabka-au-chocolat';
+
+    void api.signIn('google');
+    await Promise.resolve();
+
+    expect(navigations).toEqual([
+      '/oauth2/authorization/google?returnTo=%2Ffr%2Frecettes%2Fbabka-au-chocolat',
+    ]);
+  });
 });
 
 describe('HttpAdminApi', () => {
