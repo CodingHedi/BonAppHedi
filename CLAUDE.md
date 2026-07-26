@@ -89,7 +89,7 @@ what it needs on first run:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 51 tests
+.\mvnw.cmd test          # 78 tests
 .\mvnw.cmd spring-boot:run
 ```
 
@@ -127,6 +127,25 @@ three fail loudly if removed — see `config/`:
   neither direction.
 - `foreign_keys=on` in the JDBC URL — off by default *per connection*, and
   without it every `ON DELETE CASCADE` in the schema is silently inert.
+
+A fourth joined them with auth: Spring Session ships schema scripts for nine
+databases and SQLite is not among them, so `V3__session.sql` creates
+`SPRING_SESSION` by hand and `initialize-schema: never` stops the built-in
+initializer looking for a file that does not exist. It fails in a way worth
+recognising — the context starts perfectly and *every* request then dies on "no
+such table: SPRING_SESSION", including anonymous ones, because saving a request
+before a redirect creates a session too.
+
+Two more pieces of auth are load-bearing and look optional:
+
+- `CsrfCookieFilter` calls `getToken()` and nothing else. Spring Security 6
+  defers generating the token until something reads it, and on an API nothing
+  ever does, so without the filter `XSRF-TOKEN` is never written and the SPA can
+  never make its first POST.
+- `SpaCsrfTokenRequestHandler` reads a token from a *header* raw but from a form
+  parameter XOR-decoded. Pairing `CookieCsrfTokenRepository` with the default
+  handler instead gives a masked cookie compared against an unmasked header, and
+  every write 403s.
 
 The seed in `V2__seed.sql` is a transcription of `mock/seed-data.ts`, not a
 reinterpretation of it (ADR 0001). The e2e suite asserts exact content, so a row
