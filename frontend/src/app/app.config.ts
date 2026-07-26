@@ -27,6 +27,8 @@ import { AuthService } from './core/auth/auth.service';
 import { MockRecipeApi } from './mock/mock-recipe-api';
 import { MockSocialApi } from './mock/mock-social-api';
 import { MockAuthApi } from './mock/mock-auth-api';
+import { ADMIN_API } from './core/api/admin-api';
+import { MockAdminApi } from './mock/mock-admin-api';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -74,6 +76,7 @@ export const appConfig: ApplicationConfig = {
     { provide: RECIPE_API, useClass: MockRecipeApi },
     { provide: SOCIAL_API, useClass: MockSocialApi },
     { provide: AUTH_API, useExisting: MockAuthApi },
+    { provide: ADMIN_API, useClass: MockAdminApi },
 
     provideAppInitializer(() => {
       inject(ThemeService).init();

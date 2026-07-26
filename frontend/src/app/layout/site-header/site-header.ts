@@ -30,6 +30,17 @@ import { BrandLogoComponent } from '../brand-logo/brand-logo';
             control with nowhere to go: sign-in is asked for next to the comment
             box, where the reason for it is visible. Recorded in ADR 0006.
           -->
+          <!-- Only an admin has anywhere to go, so only an admin gets a door. -->
+          @if (auth.isAdmin()) {
+            <a
+              class="btn btn-icon btn-secondary"
+              [routerLink]="adminLink()"
+              [attr.aria-label]="'admin.open' | transloco"
+            >
+              <bah-icon name="edit" />
+            </a>
+          }
+
           @if (auth.user(); as user) {
             <button
               type="button"
@@ -113,6 +124,7 @@ export class SiteHeaderComponent {
   protected readonly other = this.locale.other;
   protected readonly otherLabel = computed(() => LOCALE_LABELS[this.other()]);
   protected readonly homeLink = computed(() => this.locale.link());
+  protected readonly adminLink = computed(() => this.locale.link([this.locale.segment('admin')]));
 
   protected readonly themeLabel = computed(() =>
     this.theme.isDark() ? 'nav.themeToLight' : 'nav.themeToDark',

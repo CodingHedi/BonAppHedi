@@ -123,18 +123,3 @@ describe('SocialStore comments', () => {
   });
 });
 
-describe('SocialStore slug resolution', () => {
-  it('maps both locales’ slugs onto the same recipe', () => {
-    const store = new SocialStore();
-
-    expect(store.keyForSlug('babka-au-chocolat', 'fr')).toBe(BABKA);
-    expect(store.keyForSlug('chocolate-babka', 'en')).toBe(BABKA);
-  });
-
-  it('does not resolve a slug from the wrong locale', () => {
-    // Otherwise /en/recipes/babka-au-chocolat would quietly work and the two
-    // language trees would stop being distinct.
-    const store = new SocialStore();
-    expect(store.keyForSlug('babka-au-chocolat', 'en')).toBeNull();
-  });
-});

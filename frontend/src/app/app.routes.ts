@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import type { Route, Routes } from '@angular/router';
 import { LOCALES, SEGMENTS, type Locale } from './core/i18n/locale';
 import { LocaleService } from './core/i18n/locale.service';
+import { adminGuard } from './core/auth/admin.guard';
 
 /**
  * Routes are generated per locale rather than written once with a `:locale`
@@ -33,6 +34,50 @@ function routesFor(locale: Locale): Route {
         path: `${seg.recipes}/:slug`,
         loadComponent: () =>
           import('./pages/recipe-detail/recipe-detail-page').then((m) => m.RecipeDetailPage),
+      },
+      {
+        /*
+         * The admin's own sub-paths are NOT localized, unlike every public
+         * route above. They are behind a sign-in, never linked and never
+         * crawled, so translating them buys nothing and would mean adding a
+         * RouteKey per screen. Only the section label the author reads is
+         * translated.
+         */
+        path: seg.admin,
+        canActivate: [adminGuard],
+        loadComponent: () => import('./pages/admin/admin-page').then((m) => m.AdminPage),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'recipes' },
+          {
+            path: 'recipes',
+            loadComponent: () =>
+              import('./pages/admin/recipe-table/recipe-table').then((m) => m.RecipeTableComponent),
+          },
+          {
+            path: 'recipes/new',
+            loadComponent: () =>
+              import('./pages/admin/recipe-editor/recipe-editor').then(
+                (m) => m.RecipeEditorComponent,
+              ),
+          },
+          {
+            path: 'recipes/:key',
+            loadComponent: () =>
+              import('./pages/admin/recipe-editor/recipe-editor').then(
+                (m) => m.RecipeEditorComponent,
+              ),
+          },
+          {
+            path: 'comments',
+            loadComponent: () =>
+              import('./pages/admin/moderation/moderation').then((m) => m.ModerationComponent),
+          },
+          {
+            path: 'stats',
+            loadComponent: () =>
+              import('./pages/admin/analytics/analytics').then((m) => m.AnalyticsComponent),
+          },
+        ],
       },
       {
         path: seg.legal,

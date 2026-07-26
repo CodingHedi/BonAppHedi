@@ -4,6 +4,7 @@ import type { SocialApi } from '../core/api/social-api';
 import type { Comment, RatingSummary, ReactionState } from '../core/api/models';
 import { MockAuthApi } from './mock-auth-api';
 import { SocialStore } from './social-store';
+import { RecipeStore } from './recipe-store';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const latency = () => sleep(120 + Math.random() * 200);
@@ -19,6 +20,7 @@ const latency = () => sleep(120 + Math.random() * 200);
 @Injectable()
 export class MockSocialApi implements SocialApi {
   private readonly store = inject(SocialStore);
+  private readonly recipes = inject(RecipeStore);
   private readonly auth = inject(MockAuthApi);
 
   async rate(slug: string, stars: number, locale: Locale): Promise<RatingSummary> {
@@ -69,7 +71,7 @@ export class MockSocialApi implements SocialApi {
   }
 
   private require(slug: string, locale: Locale): string {
-    const key = this.store.keyForSlug(slug, locale);
+    const key = this.recipes.keyForSlug(slug, locale);
     if (!key) throw new Error(`no recipe with slug "${slug}" in ${locale}`);
     return key;
   }

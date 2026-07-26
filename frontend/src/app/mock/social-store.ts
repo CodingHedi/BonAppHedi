@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import type { Locale } from '../core/i18n/locale';
 import type { Comment, CommentStatus } from '../core/api/models';
 import { SEED_COMMENTS, SEED_NOW, SEED_RECIPES } from './seed-data';
 
@@ -19,7 +18,9 @@ import { SEED_COMMENTS, SEED_NOW, SEED_RECIPES } from './seed-data';
  *
  * Everything is keyed by the language-neutral recipe key rather than by slug,
  * because rating `/fr/recettes/babka-au-chocolat` and rating
- * `/en/recipes/chocolate-babka` are the same act on the same recipe.
+ * `/en/recipes/chocolate-babka` are the same act on the same recipe. Turning a
+ * slug into that key is RecipeStore's job, not this one's — a slug belongs to
+ * the recipe, and it can be changed by the editor while these counts stay put.
  */
 
 interface RatingState {
@@ -71,11 +72,6 @@ export class SocialStore {
       status: seed.status ?? 'PUBLISHED',
       mine: false,
     }));
-  }
-
-  /** Null when no recipe has that slug in that language, which is a 404. */
-  keyForSlug(slug: string, locale: Locale): string | null {
-    return SEED_RECIPES.find((recipe) => recipe.t[locale].slug === slug)?.key ?? null;
   }
 
   ratingFor(key: string): { average: number; count: number; yourRating: number | null } {
@@ -162,6 +158,60 @@ export class SocialStore {
 
   deleteComment(id: number): void {
     this.comments = this.comments.filter((row) => row.id !== id);
+  }
+
+  // --- admin ------------------------------------------------------------------
+
+  /**
+   * Everything awaiting a decision, across every recipe, oldest first.
+   *
+   * Oldest first on purpose, unlike the public thread: a queue is worked
+   * through, and the comment that has been waiting longest is the one whose
+   * author is still wondering whether it posted.
+   */
+  awaitingModeration(): readonly { comment: Comment; recipeKey: string }[] {
+    return this.comments
+      .filter((row) => row.status === 'PENDING')
+      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+      .map((row) => ({ comment: this.toComment(row), recipeKey: row.recipeKey }));
+  }
+
+  setCommentStatus(id: number, status: CommentStatus): void {
+    this.comments = this.comments.map((row) => (row.id === id ? { ...row, status } : row));
+  }
+
+  /** Site-wide totals for the admin dashboard. */
+  totals(): {
+    comments: number;
+    pending: number;
+    ratingCount: number;
+    ratingAverage: number;
+    reactions: number;
+  } {
+    const published = this.comments.filter((row) => row.status === 'PUBLISHED').length;
+    const pending = this.comments.filter((row) => row.status === 'PENDING').length;
+
+    let sum = 0;
+    let count = 0;
+    for (const rating of this.ratings.values()) {
+      sum += rating.sum;
+      count += rating.count;
+    }
+
+    let reactions = 0;
+    for (const reaction of this.reactions.values()) reactions += reaction.count;
+
+    return {
+      comments: published,
+      pending,
+      ratingCount: count,
+      ratingAverage: count === 0 ? 0 : sum / count,
+      reactions,
+    };
+  }
+
+  ratingCountFor(key: string): number {
+    return this.ratings.get(key)?.count ?? 0;
   }
 
   private toComment(row: CommentRecord): Comment {

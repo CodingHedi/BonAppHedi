@@ -182,6 +182,89 @@ export interface ReactionState {
   readonly reacted: boolean;
 }
 
+// --- Admin -------------------------------------------------------------------
+
+/**
+ * The write side of a recipe.
+ *
+ * This is the one place in the contract that carries every language at once.
+ * Everything the public site reads is already resolved to a single locale,
+ * because a reader wants one; an author is writing both and needs to see them
+ * together, which is what the editor's locale tabs are for.
+ *
+ * Read-only facts a recipe accumulates — its rating totals, its reaction count,
+ * when it was first published — are deliberately absent. They are not authored,
+ * so a save must not be able to overwrite them.
+ */
+export interface TranslationDraft {
+  readonly slug: string;
+  readonly title: string;
+  readonly excerpt: string;
+  readonly bodyMarkdown: string;
+}
+
+export interface IngredientDraft {
+  readonly baseQuantity: number | null;
+  readonly unit: string;
+  readonly scalable: boolean;
+  readonly t: Record<Locale, { readonly name: string; readonly note: string | null }>;
+}
+
+export interface StepDraft {
+  readonly durationMinutes: number | null;
+  readonly videoOffsetSeconds: number | null;
+  readonly t: Record<Locale, { readonly body: string }>;
+}
+
+export interface RecipeDraft {
+  readonly key: string;
+  readonly status: RecipeStatus;
+  readonly tagKeys: readonly string[];
+  readonly prepMinutes: number | null;
+  readonly cookMinutes: number | null;
+  readonly difficulty: Difficulty;
+  readonly baseServings: number;
+  readonly youtubeVideoId: string | null;
+  readonly ingredients: readonly IngredientDraft[];
+  readonly steps: readonly StepDraft[];
+  readonly t: Record<Locale, TranslationDraft>;
+}
+
+/** A row in the admin's recipe table. Drafts included — that is the point. */
+export interface AdminRecipeRow {
+  readonly key: string;
+  readonly title: string;
+  readonly status: RecipeStatus;
+  readonly publishedAt: string;
+  /** Languages this recipe actually has a title in, so gaps are visible. */
+  readonly translated: readonly Locale[];
+  readonly ratingCount: number;
+  readonly commentCount: number;
+}
+
+/** A comment awaiting a decision, carrying enough context to judge it. */
+export interface ModerationItem {
+  readonly comment: Comment;
+  readonly recipeKey: string;
+  readonly recipeTitle: string;
+}
+
+export interface AdminStats {
+  readonly recipes: Record<RecipeStatus, number>;
+  readonly comments: { readonly total: number; readonly pending: number };
+  readonly ratings: { readonly count: number; readonly average: number };
+  readonly reactions: number;
+  readonly top: readonly AdminTopRecipe[];
+}
+
+export interface AdminTopRecipe {
+  readonly key: string;
+  readonly title: string;
+  readonly ratingAverage: number;
+  readonly ratingCount: number;
+  readonly commentCount: number;
+}
+
 export interface RecipeQuery {
   readonly locale: Locale;
   readonly query?: string;

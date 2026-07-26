@@ -14,7 +14,7 @@
  */
 
 import type { Locale } from '../core/i18n/locale';
-import type { CommentStatus, Difficulty, TagVariant } from '../core/api/models';
+import type { CommentStatus, Difficulty, RecipeStatus, TagVariant } from '../core/api/models';
 
 /**
  * Publication dates are computed backwards from this instant rather than being
@@ -104,6 +104,8 @@ interface SeedRecipeTranslation {
 
 export interface SeedRecipe {
   readonly key: string;
+  /** Absent means PUBLISHED. Only the admin area can see anything else. */
+  readonly status?: RecipeStatus;
   readonly tagKeys: readonly string[];
   readonly publishedAt: string;
   readonly prepMinutes: number | null;
@@ -592,6 +594,13 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
 
   {
     key: 'pomegranate-juice',
+    /*
+     * Seeded unpublished on purpose. A draft that never appears anywhere is a
+     * status nobody can check: this one makes "drafts are invisible to the
+     * public site but editable in the admin area" an observable behaviour
+     * rather than a claim in a type.
+     */
+    status: 'DRAFT',
     tagKeys: [],
     publishedAt: daysAgo(20),
     prepMinutes: 10,

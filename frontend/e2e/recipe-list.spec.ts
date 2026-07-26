@@ -5,9 +5,10 @@ test.describe('recipe list', () => {
     await page.goto('/fr');
   });
 
-  test('renders the six seeded recipes', async ({ page }) => {
-    await expect(page.locator('bah-recipe-card')).toHaveCount(6);
-    await expect(page.getByText('6 recettes')).toBeVisible();
+  test('renders the published recipes, and only those', async ({ page }) => {
+    // Six are seeded; one is a DRAFT and belongs to the admin area alone.
+    await expect(page.locator('bah-recipe-card')).toHaveCount(5);
+    await expect(page.getByText('5 recettes')).toBeVisible();
   });
 
   test('search folds accents, so "mijote" finds the tajine', async ({ page }) => {
@@ -34,7 +35,7 @@ test.describe('recipe list', () => {
     await expect(page.locator('bah-recipe-card')).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Réinitialiser les filtres' }).click();
-    await expect(page.locator('bah-recipe-card')).toHaveCount(6);
+    await expect(page.locator('bah-recipe-card')).toHaveCount(5);
   });
 
   test('tag filter narrows the grid', async ({ page }) => {
@@ -88,7 +89,7 @@ test.describe('recipe list', () => {
   test('English locale shows translated content and slugs', async ({ page }) => {
     await page.goto('/en');
     await expect(page.getByRole('heading', { name: 'All recipes' })).toBeVisible();
-    await expect(page.locator('bah-recipe-card')).toHaveCount(6);
+    await expect(page.locator('bah-recipe-card')).toHaveCount(5);
     await expect(page.getByRole('heading', { name: 'Chocolate babka' }).first()).toBeVisible();
 
     await page.locator('bah-recipe-card').filter({ hasText: 'Chocolate babka' }).click();
