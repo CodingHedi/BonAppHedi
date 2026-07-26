@@ -39,20 +39,30 @@ The pinned version lives in `frontend/.nvmrc`.
 
 ## Dev loop
 
-Two terminals.
+One command, from the repo root:
 
 ```powershell
-# terminal 1 — backend on :8080
-cd backend
-.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
-
-# terminal 2 — frontend on :4200 (proxies /api and /oauth2 to :8080)
-cd frontend
-npm start
+.\scripts\dev.ps1            # backend on :8080, then frontend on :4200
+.\scripts\dev.ps1 -Mocks     # frontend only, against its mock services
+.\scripts\dev.ps1 -Fresh     # delete the SQLite file first, re-run every migration
 ```
 
-Until the backend exists (milestone 2), the frontend runs entirely on mock
-services — `npm start` alone is enough.
+It waits for the backend to answer before starting the frontend, so the first
+page load never races a JVM that is still coming up, and Ctrl+C stops both. If
+either port is already taken it says so up front rather than half-starting.
+
+The frontend proxies `/api`, `/oauth2`, `/login`, `/logout` and `/media` to
+`:8080` (`frontend/proxy.conf.json`).
+
+<details>
+<summary>Two terminals, if you prefer</summary>
+
+```powershell
+cd backend  ; .\mvnw.cmd spring-boot:run
+cd frontend ; npm start
+```
+
+</details>
 
 ### Other commands
 
