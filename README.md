@@ -91,7 +91,7 @@ Full reference, and what to add as the app grows: **[TESTING.md](TESTING.md)**.
 | `typecheck` | ~10s | Type errors under **both** tsconfigs — `ng build` only covers the app one |
 | `test` | ~1s | Pure logic: relative time in both languages, accent folding, translation-key parity |
 | `build` | ~2s | Production compilation and the bundle budgets |
-| `test:e2e` | ~4s | Real browser behaviour across 33 tests |
+| `test:e2e` | ~6s | Real browser behaviour: every route, both locales, both themes |
 
 `verify:prod` swaps the dev server for an optimised, hash-named, budget-enforced
 build. Use it before an actual deploy — failures that only show up there are
