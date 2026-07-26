@@ -130,6 +130,15 @@ At that point `scripts/verify.ps1` runs both halves, and **the milestone-1 e2e
 suite must pass unmodified against the real backend** — that is the acceptance
 test for the swap.
 
+**Measured 2026-07-27: 64 of 96 pass, and none of the 32 failures is a contract
+mismatch.** ADR 0001 carries the amendment that scopes the guarantee to the
+specs not requiring a session, and explains why the other 26 cannot pass without
+a live Google. To reproduce: flip `useMocks` to false in
+`environments/environment.development.ts`, start both halves with
+`.\scripts\dev.ps1 -Fresh`, and run `npx playwright test`. The `-Fresh` matters —
+a database carrying a previous run's ratings fails specs that assert the seeded
+`4.0 / 5 · 1 avis`, and those failures look exactly like backend bugs.
+
 ---
 
 ## CI
