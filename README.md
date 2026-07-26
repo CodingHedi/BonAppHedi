@@ -137,6 +137,23 @@ CI runs the identical chain on every push and pull request, so a green local
 
 ---
 
+## Git workflow
+
+`main` is never committed to directly. Branch, verify, then merge with
+`--no-ff` so each change stays one readable unit in the history:
+
+```powershell
+git checkout -b fix/some-thing
+cd frontend ; npm run verify
+git commit
+git checkout main ; git merge --no-ff fix/some-thing
+```
+
+That, the commit-message convention and the local gotchas worth knowing are in
+**[CLAUDE.md](CLAUDE.md)**.
+
+---
+
 ## Configuration
 
 Secrets never live in the repo. Copy the example and fill it in:
