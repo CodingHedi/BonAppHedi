@@ -50,8 +50,17 @@ export class HttpAuthApi implements AuthApi {
    * finds its session through `session()`.
    */
   async signIn(provider: ProviderId): Promise<void> {
-    this.document.defaultView?.location.assign(
-      `/oauth2/authorization/${encodeURIComponent(provider)}`,
+    const view = this.document.defaultView;
+
+    // The page being left, so the server can send them back to it afterwards.
+    // Without this everyone lands on the home page, which reads as the sign-in
+    // having failed when in fact it worked. The server refuses anything that is
+    // not a path on this site, so a rewritten link cannot turn its own sign-in
+    // into a redirect somewhere else.
+    const here = view ? `${view.location.pathname}${view.location.search}` : '/';
+
+    view?.location.assign(
+      `/oauth2/authorization/${encodeURIComponent(provider)}?returnTo=${encodeURIComponent(here)}`,
     );
 
     return new Promise<void>(() => undefined);

@@ -1,5 +1,6 @@
 package fr.bonapphedi;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -13,12 +14,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import fr.bonapphedi.auth.AppUser;
 import fr.bonapphedi.auth.AppUserPrincipal;
+import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.session.Session;
+import org.springframework.session.SessionRepository;
+import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * Sign-in as the frontend meets it, with one provider configured.
@@ -43,6 +51,9 @@ class AuthApiTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private JdbcIndexedSessionRepository sessions;
 
     private static AppUserPrincipal signedIn(boolean admin) {
         return new AppUserPrincipal(
@@ -84,11 +95,55 @@ class AuthApiTest {
 
     @Test
     void startsSignInByRedirectingToTheProvider() throws Exception {
-        // The frontend's signIn() is a browser navigation to exactly this path
-        // and nothing else, so the path is part of the contract.
+        // The frontend's signIn() is a browser navigation to exactly this path,
+        // so the path is part of the contract.
         mvc.perform(get("/oauth2/authorization/google"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", startsWith("https://accounts.google.com/")));
+    }
+
+    @Test
+    void remembersThePageSignInWasStartedFrom() throws Exception {
+        // The request that knows where the visitor was does not survive the trip
+        // to Google and back, so the session is what carries it across.
+        assertThat(rememberedFrom("/fr/recettes/babka-au-chocolat"))
+                .isEqualTo("/fr/recettes/babka-au-chocolat");
+    }
+
+    @Test
+    void refusesToRememberSomewhereOffThisSite() throws Exception {
+        // Sanitized before being stored rather than checked on the way out, so
+        // nothing unchecked is ever in the session to begin with.
+        assertThat(rememberedFrom("https://evil.example/login")).isEqualTo("/");
+        assertThat(rememberedFrom("//evil.example")).isEqualTo("/");
+    }
+
+    /**
+     * Starts sign-in and reads back what the session kept.
+     *
+     * <p>Read from the session store rather than from the MockMvc request,
+     * because Spring Session wraps the request and the attribute never lands on
+     * the raw one. Going the long way round is what makes this a test of the
+     * filter being <em>wired into the chain</em> rather than of the filter class
+     * in isolation — the distinction that has already caught two things here.
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private Object rememberedFrom(String returnTo) throws Exception {
+        MvcResult result = mvc.perform(get("/oauth2/authorization/google").param("returnTo", returnTo))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        Cookie cookie = result.getResponse().getCookie("SESSION");
+        assertThat(cookie).as("no session was created to remember anything in").isNotNull();
+
+        // Spring Session base64-encodes the id into the cookie.
+        String id = new String(Base64.getDecoder().decode(cookie.getValue()), StandardCharsets.UTF_8);
+
+        SessionRepository raw = sessions;
+        Session stored = (Session) raw.findById(id);
+        assertThat(stored).as("the session cookie refers to nothing").isNotNull();
+
+        return stored.getAttribute("bah.sign-in.return-to");
     }
 
     // --- session ----------------------------------------------------------
