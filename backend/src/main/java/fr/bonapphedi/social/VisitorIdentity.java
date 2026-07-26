@@ -4,6 +4,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
@@ -11,6 +12,8 @@ import java.util.Optional;
 import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -43,12 +46,45 @@ public class VisitorIdentity {
     static final String COOKIE = "bah-visitor";
     private static final Duration COOKIE_LIFE = Duration.ofDays(365);
 
+    private static final Logger log = LoggerFactory.getLogger(VisitorIdentity.class);
+
     private final JdbcClient jdbc;
     private final byte[] salt;
 
     public VisitorIdentity(JdbcClient jdbc, @Value("${bah.security.fingerprint-salt:}") String salt) {
         this.jdbc = jdbc;
-        this.salt = salt.getBytes(StandardCharsets.UTF_8);
+        this.salt = keyFrom(salt);
+    }
+
+    /**
+     * A blank salt is a supported state and must not be an empty HMAC key.
+     *
+     * <p>The property defaults to blank so the app runs from a fresh clone with
+     * nothing configured, exactly as the OAuth credentials do. Passing that
+     * straight to {@link SecretKeySpec} throws {@code IllegalArgumentException:
+     * Empty key}, which made every rating and every reaction answer 500 on a
+     * default install - a whole feature dead in the one configuration nobody had
+     * a test for.
+     *
+     * <p>The fallback is random rather than a constant, because a hardcoded salt
+     * is no salt at all: anyone with the source could recompute a fingerprint
+     * from an address. Random means dedupe still works, and works for as long as
+     * the process lives, which is the honest cost of not configuring one.
+     */
+    private static byte[] keyFrom(String configured) {
+        if (configured != null && !configured.isBlank()) {
+            return configured.getBytes(StandardCharsets.UTF_8);
+        }
+
+        byte[] generated = new byte[32];
+        new SecureRandom().nextBytes(generated);
+
+        log.warn(
+                "bah.security.fingerprint-salt is not set; using a random salt for this run. "
+                        + "Rating and reaction dedupe will reset when the application restarts. "
+                        + "Set it in application-local.yml for anything long-lived.");
+
+        return generated;
     }
 
     /**
