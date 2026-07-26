@@ -197,6 +197,7 @@ dev proxy preserves the browser's origin on purpose).
 Docs/Design/     The design source of truth. HTML prototypes + screenshots.
                  Reference only — never edited.
 Docs/adr/        Architecture decision records.
+Docs/backlog.md  Wanted, shape already obvious, not yet scheduled.
 frontend/        Angular app (npm root).
 backend/         Spring Boot app (Maven root, owns the wrapper).
 scripts/         Dev, deploy and backup scripts.
