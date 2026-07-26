@@ -95,5 +95,15 @@ public final class Dto {
 
     public record HeroSlide(String slug, String kicker, String title, String excerpt, ImageRef image) {}
 
+    /** {@code id} is what {@code /oauth2/authorization/{id}} takes; the label is a brand name. */
+    public record AuthProvider(String id, String label) {}
+
+    /**
+     * Deliberately less than {@code app_user} holds. The email decides admin and
+     * is the server's business; sending it to the browser would put an address on
+     * the wire for no feature that needs it.
+     */
+    public record AuthUser(String id, String displayName, String avatarUrl, boolean isAdmin) {}
+
     public record Page<T>(List<T> items, int page, int size, int total) {}
 }

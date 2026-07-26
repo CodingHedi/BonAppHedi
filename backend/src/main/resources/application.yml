@@ -24,6 +24,32 @@ spring:
   jackson:
     default-property-inclusion: always
 
+  session:
+    jdbc:
+      # Spring Session has no SQLite script to run, so its tables are created by
+      # Flyway in V3 instead. Left on, this fails the context with an unresolved
+      # schema-@@platform@@.sql rather than creating anything.
+      initialize-schema: never
+    # Long enough that signing in is a thing you do once. There is nothing behind
+    # a session but the right to leave a comment.
+    timeout: 30d
+
+bah:
+  # Deliberately not spring.security.oauth2.client.registration.*: Spring rejects
+  # a blank client-id at startup, which would make an unset environment variable
+  # a boot failure instead of "sign-in is off" (ADR 0003). Blank here means the
+  # provider is skipped, and zero providers is a supported state.
+  oauth:
+    google:
+      client-id: ${BAH_GOOGLE_CLIENT_ID:}
+      client-secret: ${BAH_GOOGLE_CLIENT_SECRET:}
+    facebook:
+      client-id: ${BAH_FACEBOOK_CLIENT_ID:}
+      client-secret: ${BAH_FACEBOOK_CLIENT_SECRET:}
+  # Comma-separated. Checked on every login, so removing an address here demotes
+  # that account the next time it signs in.
+  admin-emails: ${BAH_ADMIN_EMAILS:}
+
 server:
   port: 8080
   error:

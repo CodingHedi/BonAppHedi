@@ -53,6 +53,32 @@
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
 
+    <!--
+      Session cookies rather than JWT (ADR 0003). The frontend and the API are
+      same-origin in every environment, so there is nothing to gain from putting
+      a bearer token where XSS can read it, and a session can genuinely be
+      revoked on logout.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-client</artifactId>
+    </dependency>
+
+    <!--
+      Sessions live in SQLite next to everything else, so a restart does not sign
+      everyone out and the deployment stays a single file. Spring Session ships
+      DDL for nine databases and SQLite is not among them, so the tables are
+      created by Flyway in V3 and the built-in initializer is switched off.
+    -->
+    <dependency>
+      <groupId>org.springframework.session</groupId>
+      <artifactId>spring-session-jdbc</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
@@ -106,6 +132,17 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!--
+      Not part of spring-boot-starter-test. Supplies the request post-processors
+      that stand a signed-in OAuth2 principal up in front of MockMvc, which is
+      the only way to assert the authenticated paths without a live Google.
+    -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-test</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
