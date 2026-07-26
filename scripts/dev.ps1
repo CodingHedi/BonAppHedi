@@ -94,11 +94,32 @@ try {
     if (-not $Mocks) { Assert-PortFree -Port 8080 -Who 'the backend' }
 
     if (-not $Mocks) {
-        $db = Join-Path $repo 'data\bonapphedi.db'
-        if ($Fresh -and (Test-Path $db)) {
-            Write-Host 'Deleting the database so migrations re-run from empty.' -ForegroundColor Yellow
-            # -wal and -shm travel with it; leaving them behind corrupts the next open.
-            Remove-Item "$db*" -Force
+        <#
+            Under backend\, not the repo root.
+
+            application.yml resolves ./data/bonapphedi.db against the working
+            directory, and the backend is started below with its working
+            directory set to backend\ - so that is where the file lands, and
+            `cd backend ; .\mvnw.cmd spring-boot:run` puts it in the same place.
+
+            This pointed at the repo root and so deleted nothing, silently,
+            because a path that does not exist is not an error. -Fresh appeared
+            to work for as long as nobody checked whether the seeded values had
+            actually come back, and stale ratings then failed e2e specs that
+            looked like real bugs.
+        #>
+        $db = Join-Path $backend 'data\bonapphedi.db'
+        if ($Fresh) {
+            if (Test-Path $db) {
+                Write-Host "Deleting $db so migrations re-run from empty." -ForegroundColor Yellow
+                # -wal and -shm travel with it; leaving them behind corrupts the next open.
+                Remove-Item "$db*" -Force
+            }
+            else {
+                # Said out loud rather than passed over, because "nothing to
+                # delete" and "deleted the wrong thing" look identical in silence.
+                Write-Host "-Fresh: no database at $db, so there is nothing to delete." -ForegroundColor Yellow
+            }
         }
 
         Write-Host 'Starting the backend on :8080 ...' -ForegroundColor Cyan

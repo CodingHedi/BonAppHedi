@@ -97,8 +97,13 @@ JDK 25 (Amazon Corretto) is at `C:\Program\AmazonCorretto\jdk25.0.3_9` with
 `JAVA_HOME` already set, and unlike Node it *is* on `PATH` non-interactively.
 
 Run both halves together with `.\scripts\dev.ps1` from the repo root. The SQLite
-file lives in `data/` and is gitignored; `-Fresh` deletes it so migrations
-re-run from empty.
+file lives in **`backend/data/`** and is gitignored; `-Fresh` deletes it so
+migrations re-run from empty.
+
+`backend/`, not the repo root, because `application.yml` resolves
+`./data/bonapphedi.db` against the working directory and both `dev.ps1` and
+`cd backend ; .\mvnw.cmd spring-boot:run` start the backend from there. Set
+`BAH_DB` to put it anywhere else.
 
 ---
 
