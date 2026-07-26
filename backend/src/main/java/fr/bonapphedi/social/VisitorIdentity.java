@@ -34,14 +34,17 @@ import org.springframework.web.server.ResponseStatusException;
  * each cookie is recorded against a fingerprint: an HMAC of the address and the
  * user agent under a configured salt. The address itself is never written
  * anywhere, which the privacy page states plainly and this class has to honour.
- * Two cookies from one fingerprint is a household or a shared browser; the third
- * is somebody voting twice, and is refused.
+ *
+ * <p>How many cookies one fingerprint may hold is configuration, and the default
+ * is deliberately generous. IP-and-user-agent is a crude signal: a household, an
+ * office and everyone behind a mobile carrier's NAT all share one. Set it low
+ * and the third person on a shared connection simply cannot rate anything, with
+ * no explanation and nothing in a log to say why. The control is here to bound
+ * casual ballot-stuffing, not to be airtight - it cannot be, and pretending
+ * otherwise costs real visitors rather than determined ones.
  */
 @Component
 public class VisitorIdentity {
-
-    /** Two, so a couple sharing a laptop are not mistaken for ballot-stuffing. */
-    private static final int MAX_COOKIES_PER_FINGERPRINT = 2;
 
     static final String COOKIE = "bah-visitor";
     private static final Duration COOKIE_LIFE = Duration.ofDays(365);
@@ -50,10 +53,16 @@ public class VisitorIdentity {
 
     private final JdbcClient jdbc;
     private final byte[] salt;
+    private final int maxPerFingerprint;
 
-    public VisitorIdentity(JdbcClient jdbc, @Value("${bah.security.fingerprint-salt:}") String salt) {
+    public VisitorIdentity(
+            JdbcClient jdbc,
+            @Value("${bah.security.fingerprint-salt:}") String salt,
+            @Value("${bah.security.max-visitors-per-fingerprint:10}") int maxPerFingerprint) {
+
         this.jdbc = jdbc;
         this.salt = keyFrom(salt);
+        this.maxPerFingerprint = maxPerFingerprint;
     }
 
     /**
@@ -109,8 +118,8 @@ public class VisitorIdentity {
     /**
      * The visitor this request is, creating and issuing one if needed.
      *
-     * @throws ResponseStatusException 429 when this fingerprint has already been
-     *     given as many cookies as it is allowed
+     * @throws ResponseStatusException 429 when this fingerprint already holds
+     *     {@code bah.security.max-visitors-per-fingerprint} cookies
      */
     public String require(HttpServletRequest request, HttpServletResponse response) {
         Optional<String> known = existing(request);
@@ -119,7 +128,7 @@ public class VisitorIdentity {
         }
 
         String fingerprint = fingerprint(request);
-        if (cookiesIssuedTo(fingerprint) >= MAX_COOKIES_PER_FINGERPRINT) {
+        if (cookiesIssuedTo(fingerprint) >= maxPerFingerprint) {
             // Deliberately the same answer whether they cleared cookies once or a
             // hundred times. Explaining the rule would only describe how to work
             // around it.
