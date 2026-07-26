@@ -1,0 +1,68 @@
+import { HttpClient } from '@angular/common/http';
+import { DOCUMENT, Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import type { AuthApi } from '../core/api/auth-api';
+import type { AuthProvider, AuthUser, ProviderId } from '../core/api/models';
+
+/**
+ * Sign-in against the real server.
+ *
+ * The interesting method is `signIn`, and it is interesting because it is not a
+ * request at all — see the note on `AuthApi.signIn`, which this half of the seam
+ * was written against.
+ */
+@Injectable()
+export class HttpAuthApi implements AuthApi {
+  private readonly http = inject(HttpClient);
+  private readonly document = inject(DOCUMENT);
+
+  /**
+   * Only what the server holds credentials for. An empty array is a real answer
+   * and means sign-in is switched off, which the sign-in row renders as an
+   * unavailable notice rather than as buttons that cannot work (ADR 0003).
+   */
+  async providers(): Promise<readonly AuthProvider[]> {
+    return firstValueFrom(this.http.get<AuthProvider[]>('/api/auth/providers'));
+  }
+
+  /**
+   * Null for a visitor who has not signed in, which is the normal state of
+   * almost every request to this site rather than a failure.
+   *
+   * The server answers 204 with no body and Angular reads that as `null`, so
+   * there is nothing to translate. It is deliberately not a 401: a healthy page
+   * should not fill the console with authentication errors.
+   */
+  async session(): Promise<AuthUser | null> {
+    return firstValueFrom(this.http.get<AuthUser | null>('/api/auth/session'));
+  }
+
+  /**
+   * Leaves the application.
+   *
+   * OAuth is a full-page redirect to the provider and back, so this is a browser
+   * navigation rather than an XHR — the authorization endpoint sets state in the
+   * session and answers 302 to Google, neither of which survives being fetched.
+   *
+   * The returned promise never settles, on purpose. The document is being torn
+   * down, and a caller that sequenced work after this would be running it in a
+   * page that is going away; the visitor comes back to a fresh application that
+   * finds its session through `session()`.
+   */
+  async signIn(provider: ProviderId): Promise<void> {
+    this.document.defaultView?.location.assign(
+      `/oauth2/authorization/${encodeURIComponent(provider)}`,
+    );
+
+    return new Promise<void>(() => undefined);
+  }
+
+  /**
+   * POST, and handled by Spring's logout filter rather than by a controller, so
+   * that invalidating the session and clearing the cookie are one thing that
+   * cannot half-happen. Being a POST is also what puts it behind CSRF.
+   */
+  async signOut(): Promise<void> {
+    await firstValueFrom(this.http.post<void>('/api/auth/logout', null));
+  }
+}

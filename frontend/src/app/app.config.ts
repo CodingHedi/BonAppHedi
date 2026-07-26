@@ -29,6 +29,11 @@ import { MockSocialApi } from './mock/mock-social-api';
 import { MockAuthApi } from './mock/mock-auth-api';
 import { ADMIN_API } from './core/api/admin-api';
 import { MockAdminApi } from './mock/mock-admin-api';
+import { HttpRecipeApi } from './http/http-recipe-api';
+import { HttpSocialApi } from './http/http-social-api';
+import { HttpAuthApi } from './http/http-auth-api';
+import { HttpAdminApi } from './http/http-admin-api';
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -70,13 +75,27 @@ export const appConfig: ApplicationConfig = {
       useFactory: () => LOCALE_IDS[inject(LocaleService).locale()],
     },
 
-    // The milestone-1 → milestone-2 seam. Components inject RECIPE_API and
-    // never learn which implementation they got. M2 adds HttpRecipeApi here as
-    // the `useMocks === false` branch; nothing in the component tree changes.
-    { provide: RECIPE_API, useClass: MockRecipeApi },
-    { provide: SOCIAL_API, useClass: MockSocialApi },
-    { provide: AUTH_API, useExisting: MockAuthApi },
-    { provide: ADMIN_API, useClass: MockAdminApi },
+    // The milestone-1 → milestone-2 seam, now with both sides of it present.
+    // Components inject RECIPE_API and never learn which implementation they
+    // got; this is the only place that knows, and `useMocks` is the only line
+    // that decides. Nothing in the component tree changes either way.
+    //
+    // Still defaulting to the mocks: flipping it is what the acceptance test
+    // does, and the e2e suite cannot run against the real API until signing in
+    // has an answer that does not involve a live Google.
+    ...(environment.useMocks
+      ? [
+          { provide: RECIPE_API, useClass: MockRecipeApi },
+          { provide: SOCIAL_API, useClass: MockSocialApi },
+          { provide: AUTH_API, useExisting: MockAuthApi },
+          { provide: ADMIN_API, useClass: MockAdminApi },
+        ]
+      : [
+          { provide: RECIPE_API, useClass: HttpRecipeApi },
+          { provide: SOCIAL_API, useClass: HttpSocialApi },
+          { provide: AUTH_API, useClass: HttpAuthApi },
+          { provide: ADMIN_API, useClass: HttpAdminApi },
+        ]),
 
     provideAppInitializer(() => {
       inject(ThemeService).init();
