@@ -98,6 +98,23 @@ public final class Dto {
     /** {@code id} is what {@code /oauth2/authorization/{id}} takes; the label is a brand name. */
     public record AuthProvider(String id, String label) {}
 
+    /** Deliberately not {@link Author}: a commenter has no slug, no bio and no page. */
+    public record CommentAuthor(String displayName, String avatarUrl) {}
+
+    /**
+     * {@code status} is PUBLISHED, PENDING or REJECTED, and {@code mine} is
+     * whether this reader wrote it - which is what lets the UI offer to delete it
+     * without asking a second question.
+     */
+    public record Comment(
+            long id,
+            CommentAuthor author,
+            String bodyMarkdown,
+            String bodyHtml,
+            String createdAt,
+            String status,
+            boolean mine) {}
+
     /**
      * Deliberately less than {@code app_user} holds. The email decides admin and
      * is the server's business; sending it to the browser would put an address on
