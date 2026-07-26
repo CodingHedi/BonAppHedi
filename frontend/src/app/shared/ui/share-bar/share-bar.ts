@@ -22,7 +22,7 @@ import { IconComponent } from '../../../core/icons/icon';
  */
 
 interface ShareTarget {
-  readonly id: string;
+  readonly id: 'facebook' | 'whatsapp' | 'email';
   readonly label: string;
   readonly href: string;
 }
@@ -147,8 +147,13 @@ export class ShareBarComponent {
     ];
   });
 
-  protected iconFor(id: string): 'facebook' | 'share' {
-    return id === 'facebook' ? 'facebook' : 'share';
+  /**
+   * Each target needs its own glyph. Falling back to one generic share icon
+   * gave WhatsApp and Email the same button, so the row read as a duplicate
+   * rather than as a choice.
+   */
+  protected iconFor(id: ShareTarget['id']): 'facebook' | 'message' | 'mail' {
+    return id === 'facebook' ? 'facebook' : id === 'whatsapp' ? 'message' : 'mail';
   }
 
   protected async shareNatively(): Promise<void> {

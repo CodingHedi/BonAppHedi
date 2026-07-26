@@ -94,8 +94,6 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
           <span aria-hidden="true">·</span>
           <time [attr.datetime]="r.publishedAt">{{ r.publishedAt | relativeTime }}</time>
         </div>
-
-        <bah-share-bar [title]="r.title" />
       </section>
 
       <div class="row row--media">
@@ -105,15 +103,19 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
           [youtubeVideoId]="r.youtubeVideoId"
         />
 
-        <aside class="card elev-sm description">
-          <h2>{{ 'recipe.description' | transloco }}</h2>
-          <bah-markdown class="body" [markdown]="r.bodyMarkdown" [html]="r.bodyHtml" />
-          <bah-quick-facts
-            [prepMinutes]="r.prepMinutes"
-            [cookMinutes]="r.cookMinutes"
-            [difficulty]="r.difficulty"
-          />
-        </aside>
+        <div class="side">
+          <bah-share-bar [title]="r.title" />
+
+          <aside class="card elev-sm description">
+            <h2>{{ 'recipe.description' | transloco }}</h2>
+            <bah-markdown class="body" [markdown]="r.bodyMarkdown" [html]="r.bodyHtml" />
+            <bah-quick-facts
+              [prepMinutes]="r.prepMinutes"
+              [cookMinutes]="r.cookMinutes"
+              [difficulty]="r.difficulty"
+            />
+          </aside>
+        </div>
       </div>
 
       <div class="row row--steps">
@@ -225,8 +227,18 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
       margin-top: 44px;
     }
 
-    .description {
+    /* The share bar sits above the description rather than beside the title, so
+       the two share a column and the card grows to take what is left of it. */
+    .side {
       flex: 1 1 300px;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .description {
+      flex: 1;
       min-width: 0;
       padding: 26px 24px 22px;
     }

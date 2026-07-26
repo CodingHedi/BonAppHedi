@@ -82,6 +82,12 @@ export const ICONS = {
   logout: {
     body: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
   },
+  mail: {
+    body: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 5.5 8.5-5.5"/>',
+  },
+  message: {
+    body: '<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3.5 20.5l1.5-4.4a8.4 8.4 0 0 1-.9-4.6 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.5 8.4z"/>',
+  },
 } as const satisfies Record<string, IconDef>;
 
 export type IconName = keyof typeof ICONS;
