@@ -66,6 +66,20 @@ npm run verify          # lint → typecheck → unit → build → e2e
 Green `verify` is the bar for merging into `main`. `npm run verify:prod` runs
 the same chain against a production build and is the bar before a deploy.
 
+**Both run against the mocks, and that is deliberate.** Since M2,
+`environment.ts` has `useMocks: false` — what deploys talks to the real API —
+while `environment.development.ts` keeps the mocks, and `verify:prod` builds
+`production,e2e` so it gets production optimisation with the mock environment.
+Neither suite then needs a JVM or a Google to sign in to, which is exactly why
+ADR 0001 keeps the mocks in the repo after the swap.
+
+What that does **not** cover is backend integration. That is the scoped
+acceptance run in ADR 0001: flip `environment.development.ts` to
+`useMocks: false`, start both halves with `.\scripts\dev.ps1 -Fresh`, then
+`npx playwright test`. 64 of 96 pass; the rest need a session or a configured
+provider. Flip it back afterwards — committing that file with `useMocks: false`
+turns `verify` red.
+
 ---
 
 ## Environment
