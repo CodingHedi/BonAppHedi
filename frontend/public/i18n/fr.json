@@ -81,6 +81,17 @@
     "pending": "En attente de modération",
     "empty": "Aucun commentaire pour l'instant. Lancez-vous !"
   },
+  "share": {
+    "label": "Partager",
+    "action": "Partager cette recette",
+    "on": "Partager sur {{network}}",
+    "copyLink": "Copier le lien",
+    "copied": "Lien copié"
+  },
+  "account": {
+    "signedInAs": "Connecté en tant que {{name}}",
+    "signOut": "Se déconnecter"
+  },
   "units": {
     "g": "g",
     "kg": "kg",

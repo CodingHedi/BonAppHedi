@@ -12,7 +12,12 @@ import {
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { RECIPE_API } from '../../core/api/recipe-api';
+import { SOCIAL_API } from '../../core/api/social-api';
+import type { RatingSummary, ReactionState } from '../../core/api/models';
 import { LocaleService } from '../../core/i18n/locale.service';
+import { ShareBarComponent } from '../../shared/ui/share-bar/share-bar';
+import { ReactionBarComponent } from './reaction-bar/reaction-bar';
+import { CommentSectionComponent } from './comment-section/comment-section';
 import { TagChipComponent } from '../../shared/ui/tag-chip/tag-chip';
 import { MarkdownComponent } from '../../shared/ui/markdown/markdown';
 import { RelativeTimePipe } from '../../shared/pipes';
@@ -37,6 +42,9 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
     RecipeMediaComponent,
     StepListComponent,
     IngredientPanelComponent,
+    ShareBarComponent,
+    ReactionBarComponent,
+    CommentSectionComponent,
   ],
   template: `
     @if (recipe.isLoading()) {
@@ -63,12 +71,24 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
         </div>
 
         <div class="meta">
-          <bah-star-rating [value]="r.rating.average" />
+          <!--
+            Interactive: the stars are how a visitor rates, not just how the
+            average is drawn. Your own score wins over the average once given,
+            so the control shows you what you said, not what the crowd said.
+          -->
+          <bah-star-rating
+            [value]="rating().yourRating ?? rating().average"
+            [interactive]="true"
+            (rate)="onRate($event)"
+          />
           <span>
             {{ 'recipe.ratingSummary' | transloco: { average: average() } }}
             ·
-            {{ 'recipe.reviews' | transloco: { count: r.rating.count } }}
+            {{ 'recipe.reviews' | transloco: { count: rating().count } }}
           </span>
+          @if (rating().yourRating !== null) {
+            <span class="thanks" role="status">{{ 'rating.thanks' | transloco }}</span>
+          }
           <span aria-hidden="true">·</span>
           <span>{{ 'recipe.byAuthor' | transloco: { author: r.author.displayName } }}</span>
           <span aria-hidden="true">·</span>
@@ -83,15 +103,19 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
           [youtubeVideoId]="r.youtubeVideoId"
         />
 
-        <aside class="card elev-sm description">
-          <h2>{{ 'recipe.description' | transloco }}</h2>
-          <bah-markdown class="body" [markdown]="r.bodyMarkdown" [html]="r.bodyHtml" />
-          <bah-quick-facts
-            [prepMinutes]="r.prepMinutes"
-            [cookMinutes]="r.cookMinutes"
-            [difficulty]="r.difficulty"
-          />
-        </aside>
+        <div class="side">
+          <bah-share-bar [title]="r.title" />
+
+          <aside class="card elev-sm description">
+            <h2>{{ 'recipe.description' | transloco }}</h2>
+            <bah-markdown class="body" [markdown]="r.bodyMarkdown" [html]="r.bodyHtml" />
+            <bah-quick-facts
+              [prepMinutes]="r.prepMinutes"
+              [cookMinutes]="r.cookMinutes"
+              [difficulty]="r.difficulty"
+            />
+          </aside>
+        </div>
       </div>
 
       <div class="row row--steps">
@@ -110,6 +134,26 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
           [(servings)]="servings"
         />
       </div>
+
+      <section class="social">
+        @if (writeFailed()) {
+          <p class="write-error" role="alert">{{ 'error.generic' | transloco }}</p>
+        }
+
+        <bah-reaction-bar
+          [count]="reactions().count"
+          [reacted]="reactions().reacted"
+          [busy]="busy()"
+          (react)="onReact($event)"
+        />
+
+        <bah-comment-section
+          [comments]="comments.value() ?? []"
+          [busy]="busy()"
+          (post)="onPost($event)"
+          (remove)="onRemove($event)"
+        />
+      </section>
     } @else {
       <section class="missing">
         <h1>{{ 'recipe.notFound' | transloco }}</h1>
@@ -183,8 +227,18 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
       margin-top: 44px;
     }
 
-    .description {
+    /* The share bar sits above the description rather than beside the title, so
+       the two share a column and the card grows to take what is left of it. */
+    .side {
       flex: 1 1 300px;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .description {
+      flex: 1;
       min-width: 0;
       padding: 26px 24px 22px;
     }
@@ -209,6 +263,27 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
     .steps h2 {
       font-size: 22px;
       margin: 0 0 18px;
+    }
+
+    /* The divider and the generous gap are from the prototype: the social block
+       is a separate concern from the recipe and is drawn as one. */
+    .social {
+      display: block;
+      margin-top: 70px;
+      padding-top: 34px;
+      border-top: 1px solid var(--color-divider);
+    }
+
+    .thanks {
+      color: var(--color-accent);
+      opacity: 1;
+    }
+
+    .write-error {
+      margin: 0 0 20px;
+      text-align: center;
+      font-size: 13.5px;
+      color: var(--color-accent-800);
     }
 
     .missing {
@@ -266,6 +341,7 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
 })
 export class RecipeDetailPage {
   private readonly api = inject(RECIPE_API);
+  private readonly social = inject(SOCIAL_API);
   private readonly localeService = inject(LocaleService);
 
   /** Bound from the route by `withComponentInputBinding()`. */
@@ -275,6 +351,10 @@ export class RecipeDetailPage {
 
   protected readonly servings = signal(2);
 
+  /** Blocks a second write while one is in flight, and drives disabled states. */
+  protected readonly busy = signal(false);
+  protected readonly writeFailed = signal(false);
+
   protected readonly homeLink = computed(() => this.localeService.link());
 
   protected readonly recipe = resource({
@@ -282,7 +362,33 @@ export class RecipeDetailPage {
     loader: ({ params }) => this.api.bySlug(params.slug, params.locale),
   });
 
-  protected readonly average = computed(() => (this.recipe.value()?.rating.average ?? 0).toFixed(1));
+  protected readonly comments = resource({
+    params: () => ({ slug: this.slug(), locale: this.localeService.locale() }),
+    loader: ({ params }) => this.social.comments(params.slug, params.locale),
+  });
+
+  /**
+   * Rating and reactions are held locally on top of what the recipe reported.
+   *
+   * Every write returns the recomputed state, so the alternative — refetching
+   * the recipe — buys nothing and costs something real: the reload would refire
+   * the servings effect below and silently throw away the count the visitor had
+   * dialled in. Overlaying the response keeps the write local to what changed.
+   */
+  private readonly ratedOverride = signal<RatingSummary | null>(null);
+  private readonly reactionOverride = signal<ReactionState | null>(null);
+
+  private static readonly NO_RATING: RatingSummary = { average: 0, count: 0, yourRating: null };
+
+  protected readonly rating = computed<RatingSummary>(
+    () => this.ratedOverride() ?? this.recipe.value()?.rating ?? RecipeDetailPage.NO_RATING,
+  );
+
+  protected readonly reactions = computed<ReactionState>(
+    () => this.reactionOverride() ?? this.recipe.value()?.reactions ?? { count: 0, reacted: false },
+  );
+
+  protected readonly average = computed(() => this.rating().average.toFixed(1));
 
   constructor() {
     // Reset to the recipe's own base count when a different recipe loads, so a
@@ -291,9 +397,70 @@ export class RecipeDetailPage {
       const base = this.recipe.value()?.baseServings;
       if (base !== undefined) this.servings.set(clampServings(base));
     });
+
+    // Drop the overlay when the route moves to another recipe, or the previous
+    // recipe's rating would be shown against the new one until its own load
+    // lands.
+    effect(() => {
+      this.slug();
+      this.ratedOverride.set(null);
+      this.reactionOverride.set(null);
+    });
   }
 
   protected onSeek(seconds: number): void {
     this.media()?.seekTo(seconds);
+  }
+
+  protected onRate(stars: number): void {
+    void this.write(async () => {
+      this.ratedOverride.set(await this.social.rate(this.slug(), stars, this.locale()));
+    });
+  }
+
+  protected onReact(reacted: boolean): void {
+    void this.write(async () => {
+      this.reactionOverride.set(await this.social.react(this.slug(), reacted, this.locale()));
+    });
+  }
+
+  protected onPost(body: string): void {
+    void this.write(async () => {
+      await this.social.addComment(this.slug(), body, this.locale());
+      this.comments.reload();
+    });
+  }
+
+  protected onRemove(id: number): void {
+    void this.write(async () => {
+      await this.social.deleteComment(id);
+      this.comments.reload();
+    });
+  }
+
+  private locale() {
+    return this.localeService.locale();
+  }
+
+  /**
+   * One writer at a time, and a failure that stays on the page.
+   *
+   * Rethrowing would surface as an unhandled rejection, which the e2e fixture
+   * treats as a failed test — a signal worth reserving for genuine breakage
+   * rather than spending on a rating that did not save.
+   */
+  private async write(action: () => Promise<void>): Promise<void> {
+    if (this.busy()) return;
+
+    this.busy.set(true);
+    this.writeFailed.set(false);
+
+    try {
+      await action();
+    } catch {
+      this.writeFailed.set(true);
+    } finally {
+      this.busy.set(false);
+    }
   }
 }

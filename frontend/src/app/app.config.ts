@@ -21,7 +21,12 @@ import { LocaleService } from './core/i18n/locale.service';
 import { HttpTranslocoLoader } from './core/i18n/transloco-loader';
 import { ThemeService } from './core/theme/theme.service';
 import { RECIPE_API } from './core/api/recipe-api';
+import { SOCIAL_API } from './core/api/social-api';
+import { AUTH_API } from './core/api/auth-api';
+import { AuthService } from './core/auth/auth.service';
 import { MockRecipeApi } from './mock/mock-recipe-api';
+import { MockSocialApi } from './mock/mock-social-api';
+import { MockAuthApi } from './mock/mock-auth-api';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -67,10 +72,16 @@ export const appConfig: ApplicationConfig = {
     // never learn which implementation they got. M2 adds HttpRecipeApi here as
     // the `useMocks === false` branch; nothing in the component tree changes.
     { provide: RECIPE_API, useClass: MockRecipeApi },
+    { provide: SOCIAL_API, useClass: MockSocialApi },
+    { provide: AUTH_API, useExisting: MockAuthApi },
 
     provideAppInitializer(() => {
       inject(ThemeService).init();
       inject(LocaleService).init();
+      // Awaited: the comment box must not paint its signed-out prompt to
+      // someone who is in fact signed in, and every other initializer here is
+      // synchronous, so this costs one storage read at bootstrap.
+      return inject(AuthService).init();
     }),
   ],
 };

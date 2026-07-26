@@ -36,9 +36,16 @@ flat history this convention exists to avoid.
 There is no remote, so there are no pull requests to open. If one is added
 later the branch step is already in place and only the final merge changes.
 
-**Merging is the author's call, not the agent's.** An agent working here should
-branch, commit, and stop — leaving the merge to a human who has read the diff.
-Review is the reason the branch exists.
+**Finish the cycle.** A branch is not somewhere to accumulate work — it exists
+to carry one change into `main` and then go away. Branch, build, `verify`,
+commit, merge, delete. An agent working here does the merge itself once the
+chain is green; it does not leave branches parked waiting to be collected.
+
+**One branch per change, and a new one each time.** The failure mode is subtler
+than committing to `main`: a branch that is never merged quietly becomes a
+second trunk, and three unrelated changes end up stacked on it with `main`
+frozen behind them. If the next thing is a different piece of work, it gets its
+own branch off a freshly merged `main`.
 
 ### Commit messages
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import type { Locale } from '../core/i18n/locale';
 import { LOCALES } from '../core/i18n/locale';
 import type { RecipeApi } from '../core/api/recipe-api';
@@ -17,6 +17,7 @@ import type {
 } from '../core/api/models';
 import { SEED_AUTHOR, SEED_RECIPES, SEED_TAGS, type SeedRecipe } from './seed-data';
 import { matchesQuery } from '../shared/text';
+import { SocialStore } from './social-store';
 
 /**
  * Simulated network latency.
@@ -30,6 +31,13 @@ const latency = () => sleep(120 + Math.random() * 200);
 
 @Injectable()
 export class MockRecipeApi implements RecipeApi {
+  /**
+   * Shared with MockSocialApi so a rating or a reaction is reflected the next
+   * time the recipe is read, instead of the page reporting the frozen seed
+   * numbers back at someone who just changed them.
+   */
+  private readonly social = inject(SocialStore);
+
   async list(query: RecipeQuery): Promise<Page<RecipeSummary>> {
     await latency();
 
@@ -117,13 +125,9 @@ export class MockRecipeApi implements RecipeApi {
       youtubeVideoId: recipe.youtubeVideoId,
       ingredients,
       steps,
-      rating: {
-        average: recipe.ratingCount === 0 ? 0 : recipe.ratingSum / recipe.ratingCount,
-        count: recipe.ratingCount,
-        yourRating: null,
-      },
-      reactions: { count: recipe.reactionCount, reacted: false },
-      commentCount: 0,
+      rating: this.social.ratingFor(recipe.key),
+      reactions: this.social.reactionFor(recipe.key),
+      commentCount: this.social.commentCountFor(recipe.key),
       alternates,
     };
   }
@@ -163,6 +167,7 @@ export class MockRecipeApi implements RecipeApi {
 
   private toSummary(recipe: SeedRecipe, locale: Locale): RecipeSummary {
     const t = recipe.t[locale];
+    const { average, count } = this.social.ratingFor(recipe.key);
 
     return {
       slug: t.slug,
@@ -180,10 +185,7 @@ export class MockRecipeApi implements RecipeApi {
       prepMinutes: recipe.prepMinutes,
       cookMinutes: recipe.cookMinutes,
       difficulty: recipe.difficulty,
-      rating: {
-        average: recipe.ratingCount === 0 ? 0 : recipe.ratingSum / recipe.ratingCount,
-        count: recipe.ratingCount,
-      },
+      rating: { average, count },
       searchText: [
         t.title,
         t.excerpt,
