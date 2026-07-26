@@ -148,12 +148,13 @@ export class ShareBarComponent {
   });
 
   /**
-   * Each target needs its own glyph. Falling back to one generic share icon
-   * gave WhatsApp and Email the same button, so the row read as a duplicate
-   * rather than as a choice.
+   * The real brand marks, monochrome so they take the theme's foreground.
+   * Generic stand-ins made the row unreadable: everything that was not Facebook
+   * drew the same glyph, so two different destinations looked like one repeated
+   * button.
    */
-  protected iconFor(id: ShareTarget['id']): 'facebook' | 'message' | 'mail' {
-    return id === 'facebook' ? 'facebook' : id === 'whatsapp' ? 'message' : 'mail';
+  protected iconFor(id: ShareTarget['id']): 'facebook-mark' | 'whatsapp-mark' | 'mail' {
+    return id === 'facebook' ? 'facebook-mark' : id === 'whatsapp' ? 'whatsapp-mark' : 'mail';
   }
 
   protected async shareNatively(): Promise<void> {

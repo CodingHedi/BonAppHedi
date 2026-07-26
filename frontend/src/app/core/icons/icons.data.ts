@@ -85,8 +85,37 @@ export const ICONS = {
   mail: {
     body: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 5.5 8.5-5.5"/>',
   },
-  message: {
-    body: '<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3.5 20.5l1.5-4.4a8.4 8.4 0 0 1-.9-4.6 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.5 8.4z"/>',
+  // --- brand silhouettes, for sharing ----------------------------------------
+  //
+  // The real marks, drawn as one filled path in `currentColor` rather than in
+  // brand colours. A blue disc and a green disc side by side fight the warm
+  // palette everywhere else on the page, and monochrome means they follow the
+  // theme for free — near-black on the light one, near-white on the dark.
+  //
+  // The coloured versions still exist in BRAND_ICONS and are still used for
+  // sign-in, where the provider's own branding rules apply. Sharing to a
+  // network carries no such obligation.
+  'facebook-mark': {
+    body:
+      '<path d="M24 12.07C24 5.44 18.63.07 12 .07S0 5.44 0 12.07c0 5.99 4.39 10.95 10.13 ' +
+      '11.85v-8.38H7.08v-3.47h3.05V9.43c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.69.24 2.69.24v2.95' +
+      'h-1.51c-1.49 0-1.96.93-1.96 1.88v2.25h3.33l-.53 3.47h-2.8v8.38C19.61 23.02 24 18.06 24 12.07z"/>',
+    filled: true,
+  },
+  'whatsapp-mark': {
+    body:
+      '<path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 ' +
+      '1.16-.17.2-.35.23-.64.08-.3-.15-1.26-.46-2.39-1.48-.88-.79-1.48-1.76-1.65-2.06-.18-.3-.02-.46' +
+      '.13-.6.13-.14.3-.35.44-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24' +
+      '-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37s-1.04 1.02-1.04 2.48c0 1.46 1.07 2.87 1.22 3.07' +
+      '.15.2 2.09 3.2 5.07 4.49.71.3 1.26.49 1.7.62.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2-1.41.25' +
+      '-.7.25-1.29.18-1.42-.08-.12-.28-.2-.57-.35z"/>' +
+      '<path d="M20.46 3.49A11.82 11.82 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 ' +
+      '5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.69 1.45h.01c6.54 0 11.88-5.34 11.88-11.89 0-3.18' +
+      '-1.24-6.17-3.48-8.42zM12.05 21.79h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65' +
+      '-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.89 9.89-9.89 2.64 0 5.12 1.03 6.99 2.9' +
+      'a9.83 9.83 0 0 1 2.89 6.99c0 5.45-4.43 9.89-9.88 9.89z"/>',
+    filled: true,
   },
 } as const satisfies Record<string, IconDef>;
 
