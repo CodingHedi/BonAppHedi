@@ -81,6 +81,56 @@ $env:Path = "C:\nvm4w\nodejs;$env:Path"
 A dev server may already be running on `:4200` from another session. Playwright
 reuses it (`reuseExistingServer`), so specs need no server started by hand;
 `npm start` will simply fail with "port already in use", which is harmless.
+`scripts/dev.ps1` refuses to start at all when either port is taken, which is
+usually a leftover server rather than anything wrong with the code.
+
+**Maven is not installed, by design.** Use the committed wrapper — it downloads
+what it needs on first run:
+
+```powershell
+cd backend
+.\mvnw.cmd test          # 51 tests
+.\mvnw.cmd spring-boot:run
+```
+
+JDK 25 (Amazon Corretto) is at `C:\Program\AmazonCorretto\jdk25.0.3_9` with
+`JAVA_HOME` already set, and unlike Node it *is* on `PATH` non-interactively.
+
+Run both halves together with `.\scripts\dev.ps1` from the repo root. The SQLite
+file lives in `data/` and is gitignored; `-Fresh` deletes it so migrations
+re-run from empty.
+
+---
+
+## Backend
+
+**Write the test first, watch it fail, then make it pass.** Not a style
+preference — it has caught two real defects here that a green-only run would
+have shipped:
+
+- an ingredient mapper read `base_quantity`, then `name`, then asked
+  `wasNull()`. JDBC reports on the column read *last*, so "salt and pepper, to
+  taste" came back quantified and would have multiplied on the servings stepper.
+- the markdown renderer escaped raw HTML instead of sanitizing it. Safe, but it
+  made `<b>bold</b>` render bold in the comment preview and appear as literal
+  text once stored. Only reading the actual failure output showed it.
+
+Beware also that a test asserting `isNotFound()` passes against an application
+with no controller at all. Red has to fail for the reason you think it does.
+
+Three things exist because SQLite and Spring Data JDBC do not get on, and all
+three fail loudly if removed — see `config/`:
+
+- `SqliteDialect` — Spring Data JDBC ships no SQLite dialect, so the context
+  dies at `jdbcDialect` without it.
+- `Instant` ↔ TEXT converters — SQLite has no date type and the driver maps
+  neither direction.
+- `foreign_keys=on` in the JDBC URL — off by default *per connection*, and
+  without it every `ON DELETE CASCADE` in the schema is silently inert.
+
+The seed in `V2__seed.sql` is a transcription of `mock/seed-data.ts`, not a
+reinterpretation of it (ADR 0001). The e2e suite asserts exact content, so a row
+out of place fails the suite somewhere unrelated and blames the wrong thing.
 
 ---
 
