@@ -36,7 +36,9 @@ import org.springframework.test.web.servlet.MockMvc;
             "spring.datasource.url=jdbc:sqlite:file:./target/test-unsalted.db?foreign_keys=on",
             // Blank, not absent: this is what an unset BAH_FINGERPRINT_SALT
             // resolves to through the placeholder in application.yml.
-            "bah.security.fingerprint-salt="
+            "bah.security.fingerprint-salt=",
+            // Two, so the limit is reached in three requests rather than eleven.
+            "bah.security.max-visitors-per-fingerprint=2"
         })
 class UnsaltedVisitorTest {
 

@@ -43,7 +43,8 @@ import org.springframework.test.web.servlet.MvcResult;
 @TestPropertySource(
         properties = {
             "spring.datasource.url=jdbc:sqlite:file:./target/test-social.db?foreign_keys=on",
-            "bah.security.fingerprint-salt=test-salt"
+            "bah.security.fingerprint-salt=test-salt",
+            "bah.security.max-visitors-per-fingerprint=3"
         })
 class SocialApiTest {
 
@@ -188,10 +189,15 @@ class SocialApiTest {
     // --- abuse ------------------------------------------------------------
 
     @Test
-    void refusesTheThirdCookieSharingOneFingerprint() throws Exception {
+    void refusesMoreCookiesThanTheConfiguredLimitAllows() throws Exception {
         // Clearing cookies to vote again is the obvious way round a per-cookie
         // limit. The fingerprint is a salted hash of address and user agent -
         // no raw IP is stored anywhere, which the privacy page states.
+        //
+        // Three, because this class configures three. Asserting the shipped
+        // default here would make the test pass whether or not the property is
+        // ever read; asserting a number only this file sets cannot.
+        mvc.perform(rate("babka-au-chocolat", "fr", 5).with(csrf())).andExpect(status().isOk());
         mvc.perform(rate("babka-au-chocolat", "fr", 5).with(csrf())).andExpect(status().isOk());
         mvc.perform(rate("babka-au-chocolat", "fr", 5).with(csrf())).andExpect(status().isOk());
 

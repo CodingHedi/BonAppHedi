@@ -64,6 +64,12 @@ bah:
     # stored fingerprint becomes unmatchable when the salt changes.
     fingerprint-salt: ${BAH_FINGERPRINT_SALT:}
 
+    # How many visitor cookies one fingerprint may hold before a rating is
+    # refused with 429. Generous on purpose: a household, an office and a whole
+    # mobile carrier all look like one fingerprint, so a low number stops real
+    # people rather than the one person clearing cookies to vote twice.
+    max-visitors-per-fingerprint: ${BAH_MAX_VISITORS_PER_FINGERPRINT:10}
+
 server:
   port: 8080
   error:
