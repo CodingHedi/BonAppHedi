@@ -4,7 +4,8 @@ const BABKA = '/fr/recettes/babka-au-chocolat';
 const SHAKSHUKA = '/fr/recettes/chakchouka';
 
 /** Hosts that would mean a third party learned the visitor's IP. */
-const THIRD_PARTY = /facebook\.com|whatsapp\.com|connect\.facebook|twitter\.com|x\.com|google\.com|gstatic\.com/i;
+const THIRD_PARTY =
+  /facebook\.com|whatsapp\.com|connect\.facebook|twitter\.com|x\.com|pinterest\.com|google\.com|gstatic\.com/i;
 
 /** Signs in through the provider row inside the comment box. */
 async function signIn(page: import('@playwright/test').Page, provider = 'Google') {
@@ -237,7 +238,7 @@ test.describe('sharing', () => {
     await page.goto(BABKA);
 
     const links = page.locator('bah-share-bar a');
-    await expect(links).toHaveCount(3);
+    await expect(links).toHaveCount(4);
 
     const encoded = encodeURIComponent(`${new URL(BABKA, 'http://localhost:4200')}`);
     for (const href of await links.evaluateAll((all) =>

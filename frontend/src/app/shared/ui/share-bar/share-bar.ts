@@ -1,6 +1,7 @@
 import { DOCUMENT, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { IconComponent } from '../../../core/icons/icon';
+import type { IconName } from '../../../core/icons/icons.data';
 
 /**
  * Share this recipe.
@@ -22,7 +23,7 @@ import { IconComponent } from '../../../core/icons/icon';
  */
 
 interface ShareTarget {
-  readonly id: 'facebook' | 'whatsapp' | 'email';
+  readonly id: 'facebook' | 'x' | 'pinterest' | 'whatsapp';
   readonly label: string;
   readonly href: string;
 }
@@ -135,26 +136,44 @@ export class ShareBarComponent {
         href: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
       },
       {
+        id: 'x',
+        label: 'X',
+        href: `https://x.com/intent/post?url=${url}&text=${text}`,
+      },
+      {
+        // Worth its place on a recipe site specifically: Pinterest is where
+        // recipes are actually collected, and its intent URL takes a
+        // description as well as a link.
+        id: 'pinterest',
+        label: 'Pinterest',
+        href: `https://www.pinterest.com/pin/create/button/?url=${url}&description=${text}`,
+      },
+      {
         id: 'whatsapp',
         label: 'WhatsApp',
         href: `https://api.whatsapp.com/send?text=${text}%20${url}`,
-      },
-      {
-        id: 'email',
-        label: 'Email',
-        href: `mailto:?subject=${text}&body=${url}`,
       },
     ];
   });
 
   /**
    * The real brand marks, monochrome so they take the theme's foreground.
-   * Generic stand-ins made the row unreadable: everything that was not Facebook
-   * drew the same glyph, so two different destinations looked like one repeated
-   * button.
+   *
+   * Spelled out rather than derived from the id by string concatenation: a
+   * Record keyed on the target union is checked at compile time, so adding a
+   * network without drawing its mark fails the build instead of rendering an
+   * empty circle — which is exactly how the first version of these icons
+   * shipped past a green test suite.
    */
-  protected iconFor(id: ShareTarget['id']): 'facebook-mark' | 'whatsapp-mark' | 'mail' {
-    return id === 'facebook' ? 'facebook-mark' : id === 'whatsapp' ? 'whatsapp-mark' : 'mail';
+  private static readonly MARKS: Record<ShareTarget['id'], IconName> = {
+    facebook: 'facebook-mark',
+    x: 'x-mark',
+    pinterest: 'pinterest-mark',
+    whatsapp: 'whatsapp-mark',
+  };
+
+  protected iconFor(id: ShareTarget['id']): IconName {
+    return ShareBarComponent.MARKS[id];
   }
 
   protected async shareNatively(): Promise<void> {
