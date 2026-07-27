@@ -5,11 +5,16 @@ import { filter } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../core/auth/auth.service';
 import { LocaleService } from '../../core/i18n/locale.service';
-import { SEGMENTS } from '../../core/i18n/locale';
+import { SEGMENTS, type RouteKey } from '../../core/i18n/locale';
 
 /**
- * The site footer, and the only way into an account from a page that is not a
- * recipe.
+ * The site footer: the legal pages, and the only way into an account from a page
+ * that is not a recipe.
+ *
+ * <p>The mentions légales and the privacy policy are linked from here because
+ * they have to be linked from everywhere — a mandatory notice reachable only by
+ * typing its URL is not published in any sense that counts. The prototype's
+ * footer has neither (ADR 0006).
  *
  * <p>A link rather than a provider row, and that is not only a matter of taste:
  * a row here would put a second set of provider buttons on every recipe page,
@@ -32,8 +37,11 @@ import { SEGMENTS } from '../../core/i18n/locale';
         <span>{{ 'site.title' | transloco }} — {{ 'site.tagline' | transloco }}</span>
 
         <span class="right">
+          <a [routerLink]="link('legal')">{{ 'footer.legal' | transloco }}</a>
+          <a [routerLink]="link('privacy')">{{ 'footer.privacy' | transloco }}</a>
+
           @if (offersSignIn()) {
-            <a [routerLink]="signInLink()" [queryParams]="{ returnTo: currentUrl() }">
+            <a [routerLink]="link('signIn')" [queryParams]="{ returnTo: currentUrl() }">
               {{ 'account.signIn' | transloco }}
             </a>
           }
@@ -61,6 +69,9 @@ import { SEGMENTS } from '../../core/i18n/locale';
     .right {
       display: flex;
       align-items: center;
+      /* Four items now rather than two, so this side wraps on its own on a
+         narrow screen instead of forcing the whole row apart. */
+      flex-wrap: wrap;
       gap: 16px;
     }
 
@@ -86,10 +97,16 @@ export class SiteFooterComponent {
    */
   protected readonly offersSignIn = computed(() => this.auth.resolved() && !this.auth.signedIn());
 
-  protected readonly signInLink = computed(() => {
+  /**
+   * A route in the language being read. Built from SEGMENTS rather than written
+   * out, because the segments themselves are translated: `/fr/mentions-legales`
+   * and `/en/legal-notice` are genuinely different paths, and a hardcoded one
+   * would 404 in the other language.
+   */
+  protected link(key: RouteKey): unknown[] {
     const locale = this.locale.locale();
-    return ['/', locale, SEGMENTS[locale].signIn];
-  });
+    return ['/', locale, SEGMENTS[locale][key]];
+  }
 
   /**
    * Driven off navigation events rather than read straight from `router.url`.

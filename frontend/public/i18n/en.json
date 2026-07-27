@@ -15,7 +15,9 @@
     "home": "Home"
   },
   "footer": {
-    "copyright": "© {{year}}"
+    "copyright": "© {{year}}",
+    "legal": "Legal notice",
+    "privacy": "Privacy"
   },
   "list": {
     "heading": "All recipes",
@@ -151,6 +153,39 @@
     "statReactions": "Reactions",
     "topRated": "Best rated",
     "noRatingsYet": "No recipe has been rated yet."
+  },
+  "privacy": {
+    "title": "Privacy",
+    "updated": "Last updated: 27 July 2026",
+    "lead": "This site is a personal recipe notebook. There are no ads, no trackers and no audience measurement, and nothing is passed to a third party. This page describes exactly what is recorded, when, and why.",
+    "nothingTitle": "What this site does not do",
+    "nothingAnalytics": "No audience measurement: no Google Analytics, no Matomo, nothing equivalent. Visits are not counted.",
+    "nothingAds": "No advertising, no profiling, and no sale or sharing of data.",
+    "nothingWidgets": "No social network widgets. The share buttons are plain links: nothing is loaded from Facebook, X, Pinterest or WhatsApp unless you click.",
+    "nothingFonts": "Typefaces are hosted here rather than on a CDN, so your IP address is not disclosed to Google when the page loads.",
+    "readingTitle": "Reading a recipe",
+    "readingBody": "Nothing is recorded and no cookie is set. For as long as you are only reading, this site knows nothing about you.",
+    "ratingTitle": "Rating a recipe or reacting to it",
+    "ratingCookie": "On your first vote, and not before, a “bah-visitor” cookie is set. It holds a random identifier unrelated to who you are and lasts a year. It does one thing: keep your rating yours, so the same person does not rate the same recipe twice.",
+    "ratingFingerprint": "A cookie is one keystroke away from being cleared. To limit ballot stuffing, a fingerprint is derived from your IP address and your browser (HMAC-SHA256 under a secret key). The IP address itself is never stored, the fingerprint cannot be reversed, and nobody can recompute it without the key.",
+    "ratingConsent": "This cookie is strictly functional: it does not follow you from site to site and serves no measurement. That is why this site shows no consent banner — it has nothing to ask you to accept.",
+    "commentTitle": "Leaving a comment",
+    "commentIdentity": "Commenting requires signing in with a provider. What is then recorded is your display name, your email address, your account identifier at that provider, and the address of your profile picture.",
+    "commentEmail": "The email address is used to recognise your account between visits and to check whether it belongs to a site administrator. It is never shown publicly and is never used to write to you.",
+    "commentPublic": "Publicly visible: your display name, your picture and the text of your comment.",
+    "commentAvatar": "The picture stays hosted at your provider, so showing it under a comment means your browser makes a request to their servers.",
+    "commentCookies": "Two cookies come with a session. “SESSION” keeps you signed in for thirty days and cannot be read by the page's own code. “XSRF-TOKEN” protects what you submit against requests forged from another site.",
+    "videoTitle": "Videos",
+    "videoBody": "No request reaches YouTube until you press play: the image shown beforehand is hosted here. On click the player is loaded from youtube-nocookie.com, and Google's terms apply from that point on.",
+    "localTitle": "Your display preferences",
+    "localBody": "The light or dark theme and the language you pick are kept in your browser, under “bah-organic-theme” and “bah-locale”. They are never sent to the server.",
+    "storageTitle": "Where the data lives",
+    "storageBody": "Everything is stored in a single database, on the server hosting this site. The host is named in the legal notice. Nothing is copied elsewhere and no subcontractor has access to it.",
+    "storageRetention": "Ratings and reactions are kept for as long as the recipe exists. Comments are kept until you delete them.",
+    "rightsTitle": "Your rights",
+    "rightsBody": "You can delete your own comments, from the recipe you posted them on. Clearing your browser cookies is enough to detach any rating already given from you.",
+    "rightsContact": "For access, correction or erasure requests, write to the address given in the legal notice.",
+    "rightsLink": "Legal notice"
   },
   "units": {
     "g": "g",
