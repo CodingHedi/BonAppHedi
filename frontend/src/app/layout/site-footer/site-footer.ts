@@ -44,6 +44,11 @@ import { SEGMENTS, type RouteKey } from '../../core/i18n/locale';
             <a [routerLink]="link('signIn')" [queryParams]="{ returnTo: currentUrl() }">
               {{ 'account.signIn' | transloco }}
             </a>
+          } @else if (offersProfile()) {
+            <!-- The same slot, the other way round. A footer offering "sign in"
+                 to somebody already signed in was the state before there was
+                 anywhere else for it to point. -->
+            <a [routerLink]="link('profile')">{{ 'account.open' | transloco }}</a>
           }
           <span>{{ 'footer.copyright' | transloco: { year } }}</span>
         </span>
@@ -96,6 +101,9 @@ export class SiteFooterComponent {
    * sign-in link at somebody who is already signed in on every page load.
    */
   protected readonly offersSignIn = computed(() => this.auth.resolved() && !this.auth.signedIn());
+
+  /** The same caution the other way: nothing until the session is resolved. */
+  protected readonly offersProfile = computed(() => this.auth.resolved() && this.auth.signedIn());
 
   /**
    * A route in the language being read. Built from SEGMENTS rather than written

@@ -3,6 +3,7 @@ import type { Route, Routes } from '@angular/router';
 import { LOCALES, SEGMENTS, type Locale } from './core/i18n/locale';
 import { LocaleService } from './core/i18n/locale.service';
 import { adminGuard } from './core/auth/admin.guard';
+import { signedInGuard } from './core/auth/signed-in.guard';
 
 /**
  * Routes are generated per locale rather than written once with a `:locale`
@@ -89,6 +90,17 @@ function routesFor(locale: Locale): Route {
          */
         path: seg.signIn,
         loadComponent: () => import('./pages/sign-in/sign-in-page').then((m) => m.SignInPage),
+      },
+      {
+        /*
+         * The account page: choose an avatar, and sign out. Localized like every
+         * other public route, unlike the admin area's sub-paths — this one is
+         * reachable by an ordinary visitor, so its URL is part of the site rather
+         * than an internal detail (ADR 7).
+         */
+        path: seg.profile,
+        canActivate: [signedInGuard],
+        loadComponent: () => import('./pages/profile/profile-page').then((m) => m.ProfilePage),
       },
       {
         path: seg.legal,

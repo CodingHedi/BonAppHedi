@@ -64,4 +64,22 @@ export class AuthService {
     await this.api.signOut();
     this.current.set({ status: 'resolved', user: null });
   }
+
+  /**
+   * Records the avatar chosen on the profile page.
+   *
+   * The signal is set from what the server sent back rather than from the token
+   * that was sent up, so the UI shows what was stored rather than what was asked
+   * for.
+   *
+   * That updates the places reading this service — the profile page and the
+   * header. Comments carry their author's avatar from the comments endpoint, and
+   * pick it up the next time a thread is loaded; the server resolves it through
+   * the account rather than from a copy on the row, which is what makes them
+   * follow at all (ADR 7).
+   */
+  async chooseAvatar(avatar: string): Promise<void> {
+    const user = await this.api.chooseAvatar(avatar);
+    this.current.set({ status: 'resolved', user });
+  }
 }

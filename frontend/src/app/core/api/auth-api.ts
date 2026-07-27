@@ -37,6 +37,21 @@ export interface AuthApi {
   signIn(provider: ProviderId): Promise<void>;
 
   signOut(): Promise<void>;
+
+  /**
+   * Records the avatar chosen on the profile page and answers with the account
+   * as it now stands.
+   *
+   * `avatar` is a token — `carrot/3` — from the closed set in
+   * `core/avatar/avatar-token.ts`, never a URL (ADR 7). The server validates it
+   * against its own copy of that set and rejects anything else, so a caller
+   * inventing a token gets an error rather than an account with an avatar that
+   * renders as nothing.
+   *
+   * The whole `AuthUser` comes back rather than nothing, so the caller updates
+   * from what was stored instead of from what it hoped would be.
+   */
+  chooseAvatar(avatar: string): Promise<AuthUser>;
 }
 
 export const AUTH_API = new InjectionToken<AuthApi>('AuthApi');
