@@ -7,11 +7,12 @@ import { LOCALE_LABELS, stripLocale } from '../../core/i18n/locale';
 import { ThemeService } from '../../core/theme/theme.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { BrandLogoComponent } from '../brand-logo/brand-logo';
+import { AvatarComponent } from '../../shared/ui/avatar/avatar';
 
 @Component({
   selector: 'bah-site-header',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, IconComponent, BrandLogoComponent, TranslocoPipe],
+  imports: [RouterLink, IconComponent, BrandLogoComponent, AvatarComponent, TranslocoPipe],
   template: `
     <header>
       <nav class="nav container">
@@ -42,15 +43,23 @@ import { BrandLogoComponent } from '../brand-logo/brand-logo';
           }
 
           @if (auth.user(); as user) {
-            <button
-              type="button"
-              class="btn btn-icon btn-secondary"
-              [attr.aria-label]="'account.signOut' | transloco"
+            <!--
+              The prototype's user icon, finally doing what a user icon does.
+              It signed the visitor out on one unlabelled click until there was
+              an account page to send them to instead (ADR 7); signing out is now
+              a labelled button on that page.
+
+              Their own avatar rather than the generic glyph, so the header shows
+              the choice the page exists to make.
+            -->
+            <a
+              class="btn btn-icon btn-secondary account"
+              [routerLink]="profileLink()"
+              [attr.aria-label]="'account.open' | transloco"
               [attr.title]="'account.signedInAs' | transloco: { name: user.displayName }"
-              (click)="signOut()"
             >
-              <bah-icon name="logout" />
-            </button>
+              <bah-avatar [avatar]="user.avatar" [name]="user.displayName" [size]="30" />
+            </a>
           }
 
           <!--
@@ -112,6 +121,18 @@ import { BrandLogoComponent } from '../brand-logo/brand-logo';
       font-weight: 700;
       letter-spacing: 0.04em;
     }
+
+    /* The avatar fills the icon button rather than sitting inside it as a glyph
+       would, so it reads as a portrait and not as a picture of one. */
+    .account {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .account bah-avatar {
+      width: 30px;
+      height: 30px;
+    }
   `,
 })
 export class SiteHeaderComponent {
@@ -125,6 +146,7 @@ export class SiteHeaderComponent {
   protected readonly otherLabel = computed(() => LOCALE_LABELS[this.other()]);
   protected readonly homeLink = computed(() => this.locale.link());
   protected readonly adminLink = computed(() => this.locale.link([this.locale.segment('admin')]));
+  protected readonly profileLink = computed(() => this.locale.link([this.locale.segment('profile')]));
 
   protected readonly themeLabel = computed(() =>
     this.theme.isDark() ? 'nav.themeToLight' : 'nav.themeToDark',
@@ -139,16 +161,16 @@ export class SiteHeaderComponent {
    * `alternates` field and overrides this. Falling back to the section root is
    * the correct behaviour when no counterpart is known — better than a 404.
    */
-  protected signOut(): void {
-    void this.auth.signOut();
-  }
-
   protected switchLanguage(): void {
     const target = this.other();
     const rest = stripLocale(this.router.url.split('?')[0].split('#')[0]);
 
     const translated = rest.map((segment) => {
-      const key = (['recipes', 'legal', 'privacy', 'admin'] as const).find(
+      // Every translated segment has to be listed here, and two were missing:
+      // switching language on /fr/connexion asked for /en/connexion, which is
+      // not a route, so the catch-all rendered the 404 page. `profile` joins for
+      // the same reason and `signIn` is the fix for that.
+      const key = (['recipes', 'legal', 'privacy', 'admin', 'signIn', 'profile'] as const).find(
         (candidate) => this.locale.segment(candidate) === segment,
       );
       return key ? this.locale.segment(key, target) : segment;

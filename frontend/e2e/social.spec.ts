@@ -217,13 +217,25 @@ test.describe('comments', () => {
     await expect(page.locator('bah-comment-section .prompt')).toHaveCount(0);
   });
 
-  test('signing out from the header returns the visitor to the prompt', async ({ page }) => {
+  test('signing out returns the visitor to the prompt', async ({ page }) => {
+    // Signing out moved out of the header when there was finally an account page
+    // to put it on (ADR 7): the header control was a single unlabelled click that
+    // ended your session, and it now opens the profile instead.
     await page.goto(BABKA);
     await signIn(page);
 
+    await page.getByRole('link', { name: 'Mon compte' }).first().click();
     await page.getByRole('button', { name: 'Se déconnecter' }).click();
+
+    // Waited for, not assumed. The profile page navigates home once the sign-out
+    // has actually completed, and the mock takes a moment on purpose — leaving
+    // for another page first reads the session back before it has been cleared,
+    // and the visitor arrives still signed in.
+    await expect(page).toHaveURL(/\/fr$/);
+
+    await page.goto(BABKA);
     await expect(page.locator('bah-comment-section .prompt')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Se déconnecter' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Mon compte' })).toHaveCount(0);
   });
 
   test('the write/preview tabs are a real tablist, reachable by keyboard', async ({ page }) => {

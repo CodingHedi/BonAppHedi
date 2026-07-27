@@ -80,6 +80,18 @@ export class HttpAuthApi implements AuthApi {
     await firstValueFrom(this.http.post<void>('/api/auth/logout', null));
   }
 
+  /**
+   * PUT, because choosing again replaces the choice: doing it twice leaves the
+   * account exactly as doing it once did.
+   *
+   * Behind CSRF like every other write here, which works only because
+   * `CsrfCookieFilter` server-side forces the XSRF-TOKEN cookie to exist for
+   * Angular's HttpClient to echo back (ADR 0003).
+   */
+  async chooseAvatar(avatar: string): Promise<AuthUser> {
+    return firstValueFrom(this.http.put<AuthUser>('/api/auth/avatar', { avatar }));
+  }
+
   private returnTarget(view: Window): string {
     const explicit = new URLSearchParams(view.location.search).get('returnTo');
     if (explicit) return explicit;

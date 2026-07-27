@@ -93,12 +93,39 @@
   "account": {
     "signedInAs": "Signed in as {{name}}",
     "signOut": "Sign out",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "open": "My account"
   },
   "signIn": {
     "title": "Sign in",
     "lead": "Sign in to leave a comment. No account is needed to read a recipe or to rate one.",
     "home": "Back to the home page"
+  },
+  "profile": {
+    "title": "My account",
+    "avatarTitle": "Your avatar",
+    "avatarLead": "It appears beside your comments. Pick a subject and a tint — nothing is uploaded, and no image is fetched from anywhere else.",
+    "pickSubject": "Subject",
+    "pickTint": "Tint",
+    "tint": "Tint {{number}}",
+    "save": "Save",
+    "shuffle": "Surprise me",
+    "saved": "Avatar saved.",
+    "failed": "The avatar could not be saved. Please try again."
+  },
+  "avatar": {
+    "carrot": "Carrot",
+    "citrus": "Citrus",
+    "cherry": "Cherries",
+    "herb": "Leaf",
+    "egg": "Egg",
+    "bread": "Bread",
+    "cupcake": "Cupcake",
+    "mushroom": "Mushroom",
+    "pot": "Pot",
+    "pan": "Pan",
+    "rolling-pin": "Rolling pin",
+    "mug": "Mug"
   },
   "admin": {
     "title": "Administration",

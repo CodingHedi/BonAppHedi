@@ -69,6 +69,23 @@ export class MockAuthApi implements AuthApi {
     this.write(null);
   }
 
+  async chooseAvatar(avatar: string): Promise<AuthUser> {
+    await latency();
+
+    const user = this.read();
+    // The real endpoint answers 401 here. Throwing keeps the two halves behaving
+    // the same way for a caller, which is the point of the seam — the profile
+    // page is behind a guard, so reaching this means something is wrong.
+    if (!user) throw new Error('nobody is signed in');
+
+    // Validated server-side against the same closed set, and deliberately not
+    // validated here: a mock that silently accepted what the server refuses
+    // would hide exactly the bug worth finding.
+    const updated: AuthUser = { ...user, avatar };
+    this.write(updated);
+    return updated;
+  }
+
   private read(): AuthUser | null {
     try {
       const raw = this.document.defaultView?.localStorage.getItem(SESSION_KEY);

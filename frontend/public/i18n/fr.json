@@ -93,12 +93,39 @@
   "account": {
     "signedInAs": "Connecté en tant que {{name}}",
     "signOut": "Se déconnecter",
-    "signIn": "S'identifier"
+    "signIn": "S'identifier",
+    "open": "Mon compte"
   },
   "signIn": {
     "title": "S'identifier",
     "lead": "Identifiez-vous pour laisser un commentaire. Aucun compte n'est nécessaire pour lire ou noter une recette.",
     "home": "Retour à l'accueil"
+  },
+  "profile": {
+    "title": "Mon compte",
+    "avatarTitle": "Votre vignette",
+    "avatarLead": "Elle apparaît à côté de vos commentaires. Choisissez un motif et une teinte : rien n'est téléversé et aucune image n'est chargée depuis un autre site.",
+    "pickSubject": "Motif",
+    "pickTint": "Teinte",
+    "tint": "Teinte {{number}}",
+    "save": "Enregistrer",
+    "shuffle": "Au hasard",
+    "saved": "Vignette enregistrée.",
+    "failed": "Impossible d'enregistrer la vignette. Réessayez."
+  },
+  "avatar": {
+    "carrot": "Carotte",
+    "citrus": "Agrume",
+    "cherry": "Cerises",
+    "herb": "Feuille",
+    "egg": "Œuf",
+    "bread": "Pain",
+    "cupcake": "Gâteau",
+    "mushroom": "Champignon",
+    "pot": "Casserole",
+    "pan": "Poêle",
+    "rolling-pin": "Rouleau à pâtisserie",
+    "mug": "Tasse"
   },
   "admin": {
     "title": "Administration",
