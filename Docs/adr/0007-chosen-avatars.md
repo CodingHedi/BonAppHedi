@@ -107,9 +107,11 @@ allowed now milestone 2 is closed and its acceptance run is recorded — but it
 means the mocks, the unit tests and the e2e suite move with it, in one branch, or
 the suites go red halfway through.
 
-`privacy.commentAvatar` is deleted rather than reworded. The privacy policy gets
-shorter, which is the outcome worth having: the honest sentence about a leak is
-replaced by no sentence, because there is no longer anything to disclose.
+`privacy.commentAvatar` was going to be deleted — there is no longer a leak to
+disclose — but it is reworded instead. "No picture is taken from your provider"
+is worth more to a reader than the absence of a sentence, and a privacy policy
+that says what a site declines to collect is doing its job. `commentPublic`
+changes with it: what is public is now the avatar you chose, not your picture.
 
 The recipe *author* avatar (`author.avatar_url`, seeded and served from our own
 origin) is untouched. It was never a provider URL and never leaked anything.

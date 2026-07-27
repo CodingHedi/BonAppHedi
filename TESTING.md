@@ -55,6 +55,8 @@ the DOM a visitor actually gets.
   persistence across reload, OS dark-mode default, 404 handling.
 - **`e2e/recipe-list.spec.ts`** — search, filtering, sorting, carousel, and
   locale-correct slugs.
+- **`e2e/profile.spec.ts`** — the account page: the guard, the picker, saving,
+  and that choosing an avatar costs no request to anyone (ADR 7).
 
 ---
 
@@ -108,8 +110,18 @@ Recorded because each one cost time once:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 141 tests
+.\mvnw.cmd test          # 169 tests
 ```
+
+**One assertion cannot live in `AuthApiTest`, and it is worth knowing why.**
+Spring Security's `csrf()` request post-processor swaps the application's
+`CookieCsrfTokenRepository` for a test one at *servlet-context* scope, not per
+request. So from the first test in a class that uses `csrf()` onwards, no
+response carries `XSRF-TOKEN`, and any assertion that it does passes or fails on
+whatever order JUnit happens to run the methods in. It passed that way for
+months and went red when five unrelated methods were added. It now lives in
+`CsrfCookieTest`, which has a context with no `csrf()` in it — so do not add one
+there.
 
 **Renaming or deleting a migration needs `clean`.** Maven copies resources into
 `target/classes` and never removes ones that have disappeared from `src`, so a
@@ -162,11 +174,38 @@ that is the acceptance test for the swap, scoped by the amendment in ADR 0001.
 **Measured 2026-07-27: 64 of 96 pass, and none of the 32 failures is a contract
 mismatch.** ADR 0001 carries the amendment that scopes the guarantee to the
 specs not requiring a session, and explains why the other 26 cannot pass without
-a live Google. To reproduce: flip `useMocks` to false in
-`environments/environment.development.ts`, start both halves with
-`.\scripts\dev.ps1 -Fresh`, and run `npx playwright test`. The `-Fresh` matters —
-a database carrying a previous run's ratings fails specs that assert the seeded
-`4.0 / 5 · 1 avis`, and those failures look exactly like backend bugs.
+a live Google. That figure predates the avatar work and the suite is now 115
+specs; it has not been re-measured, because it currently cannot be.
+
+**The reproduction below no longer does what it says, and that is the fix worth
+making next.** It used to work because the suite reused whatever served on 4200.
+Pinning it to its own port and to `environment.e2e.ts` is what stopped a flipped
+dev loop turning `verify` red — and it also removed the only way to point the
+suite at the real backend. `npx playwright test` now starts its own server on
+4300 against the mocks, whatever is running on 4200:
+
+```powershell
+# What the acceptance run used to be. The last line no longer reaches :4200.
+# Flip useMocks to false in environments/environment.development.ts
+.\scripts\dev.ps1 -Fresh
+npx playwright test
+```
+
+Reaching the real API again needs a deliberate opt-in in `playwright.config.ts`
+— a `PW_TARGET=real` alongside the existing `prod`, setting `baseURL` to 4200 and
+omitting `webServer` — and that is in `Docs/backlog.md`. The `-Fresh` still
+matters when it comes back: a database carrying a previous run's ratings fails
+specs that assert the seeded `4.0 / 5 · 1 avis`, and those failures look exactly
+like backend bugs.
+
+What *was* checked against the real API on 2026-07-27, by hand rather than
+through the suite: migrations apply from empty through V6; a plain GET issues
+`XSRF-TOKEN`; `PUT /api/auth/avatar` answers 403 without the token and 401 with
+it while anonymous; the comment endpoint returns `author.avatar` and no
+`author.avatarUrl`; `/fr/profil` redirects an anonymous visitor to sign-in
+carrying `returnTo`; and a recipe page with its seeded thread makes no request to
+any provider. Signing in, choosing an avatar and seeing it against a comment
+needs a person at a browser, because the OAuth round trip does.
 
 ---
 

@@ -33,21 +33,23 @@ systematically, so a new endpoint added without a rule would not fail anything.
 
 ---
 
-## Commenter avatars are fetched from the identity provider
+## A way to point the e2e suite at the real backend again
 
-Found while writing the privacy policy, which is the point of writing one:
-`comment.avatar_url` holds whatever URL Google returned, and the page renders it
-directly. So opening a recipe with signed comments makes the visitor's browser
-request `lh3.googleusercontent.com`, disclosing their address to Google.
+The acceptance run in ADR 0001 — the milestone-1 specs against the real API — is
+currently unreproducible, and nothing says so at the point of use except
+`TESTING.md`.
 
-That is precisely the request the YouTube facade, the self-hosted fonts and the
-plain-link share bar all exist to prevent. It is the one place the site does the
-thing it is otherwise built not to do, and the privacy page now has to admit it.
+It was a casualty of a good change. The suite used to reuse whatever served on
+:4200, which meant a dev loop flipped to the real API silently made `verify` run
+every spec against a live database. Pinning the suite to its own port and to
+`environment.e2e.ts` fixed that properly, and removed the one route to the real
+backend at the same time.
 
-Two ways out, neither large: fetch the picture once at sign-in and store it
-locally, or drop remote avatars and use the initial-in-a-tint placeholder the
-component already falls back to. The first keeps the design, the second is a
-handful of lines. Worth deciding before the site is public.
+The shape is already there: `playwright.config.ts` has `PW_TARGET=prod`. A
+`real` value alongside it would set `baseURL` to 4200 and omit `webServer`
+entirely, so the suite runs against whatever `dev.ps1` started and never starts a
+server of its own. Worth doing before the next milestone claims an acceptance
+number, since the last measured one is now several features old.
 
 ## scripts/verify.ps1
 

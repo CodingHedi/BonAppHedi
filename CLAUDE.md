@@ -85,11 +85,17 @@ against a live database. 33 failed on real comments and ratings, and read
 exactly like regressions in the change under test.
 
 What the suites do **not** cover is backend integration. That is the scoped
-acceptance run in ADR 0001: flip `environment.development.ts`, start both halves
-with `.\scripts\dev.ps1 -Fresh`, then `npx playwright test`. 64 of 96 pass; the
-rest need a session or a configured provider. Leaving that file flipped is now
-harmless — it no longer turns `verify` red — but it is still a working file
-rather than something to commit.
+acceptance run in ADR 0001, and **it cannot currently be run**: pinning the suite
+to port 4300 and to `environment.e2e.ts` is what stopped a flipped dev loop
+turning `verify` red, and it also removed the only way to aim the suite at the
+real backend. `npx playwright test` now starts its own mock server whatever is on
+4200. TESTING.md records the last real measurement (64 of 96, before the avatar
+work) and `Docs/backlog.md` has the fix — a `PW_TARGET=real` beside the existing
+`prod`.
+
+Flipping `environment.development.ts` is still how you point the *dev loop* at
+the real API, and leaving it flipped is harmless. It is a working file rather
+than something to commit.
 
 ---
 
@@ -116,7 +122,7 @@ what it needs on first run:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 141 tests
+.\mvnw.cmd test          # 169 tests
 .\mvnw.cmd spring-boot:run
 ```
 
@@ -212,6 +218,14 @@ whether it is load-bearing:
 - **The e2e fixture** in `frontend/e2e/fixtures.ts` fails tests on console
   errors and failed requests even when assertions pass. That is the highest-value
   behaviour in the suite; do not bypass it.
+- **The avatar vocabulary exists twice**, in `core/avatar/avatar-token.ts` and in
+  `auth/Avatar.java`, and that is not an oversight to consolidate. The frontend
+  owns the drawings and the backend owns the guard on what may be written to the
+  column. `AvatarTest` reads the TypeScript and fails if the two lists disagree,
+  because the drift is silent and one-directional: an icon the picker offers and
+  the server does not know is a 400 on the one avatar nobody clicked. The names
+  are also in the database against real accounts, so one may be added but never
+  renamed (ADR 7).
 
 Deviations from the prototypes get an ADR in `Docs/adr/`.
 
