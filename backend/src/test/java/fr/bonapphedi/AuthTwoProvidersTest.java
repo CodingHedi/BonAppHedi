@@ -95,6 +95,19 @@ class AuthTwoProvidersTest {
     }
 
     @Test
+    void doesNotAskFacebookForAPictureItWillNotRead() {
+        // ADR 7 stopped anything reading the provider's picture, because
+        // rendering it made every reader of a comment thread call the provider.
+        // This is the step before that: not asking. Requesting a field nothing
+        // consumes would collect a URL to somebody's face on every sign-in and
+        // drop it on the floor, which is the same disclosure with none of the
+        // benefit — and it is exactly what this URI did until the two-provider
+        // coverage above went looking.
+        assertThat(registration("facebook").getProviderDetails().getUserInfoEndpoint().getUri())
+                .doesNotContain("picture");
+    }
+
+    @Test
     void leavesTheFirstRegistrationAlone() {
         // A second provider is additive. This is the assertion that fails if the
         // builder is ever shared or mutated between the two rather than built per

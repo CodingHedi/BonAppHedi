@@ -46,11 +46,20 @@ public class ClientRegistrationConfig {
                     case "google" -> CommonOAuth2Provider.GOOGLE.getBuilder(id);
                     case "facebook" -> CommonOAuth2Provider.FACEBOOK
                             .getBuilder(id)
-                            // The default user-info URI asks for nothing in
-                            // particular, and the Graph API answers with nothing
-                            // in particular: no name, no email, no picture. The
-                            // fields have to be named (ADR 0003).
-                            .userInfoUri("https://graph.facebook.com/me?fields=id,name,email,picture");
+                            // The Graph API returns exactly the fields the URI
+                            // names and nothing else, so they are named here
+                            // rather than left to a default that could change
+                            // under us (ADR 0003).
+                            //
+                            // `picture` is deliberately absent. It used to be
+                            // asked for, and ADR 7 stopped anything reading it:
+                            // an avatar is chosen on this site now. Continuing to
+                            // request it would collect a URL to somebody's face
+                            // on every Facebook sign-in and drop it on the floor,
+                            // which is the thing that ADR argues against — not
+                            // reading it is the whole point, and not asking is
+                            // where that starts.
+                            .userInfoUri("https://graph.facebook.com/me?fields=id,name,email");
                     default -> throw new IllegalStateException(
                             "bah.oauth." + id + " is configured but no such provider is supported");
                 };
