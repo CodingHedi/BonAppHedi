@@ -122,7 +122,7 @@ Recorded because each one cost time once:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 170 tests
+.\mvnw.cmd test          # 185 tests
 ```
 
 **One assertion cannot live in `AuthApiTest`, and it is worth knowing why.**
@@ -156,13 +156,21 @@ was carried out.
 | MockMvc contract tests per endpoint, per locale | **Yes** — `RecipeApiTest`, `SocialApiTest`, `AdminApiTest`, `AuthApiTest` assert JSON keys, not just status codes |
 | Rating dedupe: same cookie twice, both locales, fingerprint limit | **Yes** — all three, in `SocialApiTest` |
 | Sanitizer tests for `<script>`, `<img onerror>`, `javascript:` hrefs | **Yes** — `MarkdownRendererTest`, plus a comment fed through the write path |
-| Security matrix, anonymous / `ROLE_USER` / `ROLE_ADMIN` | **Partly** — every `/api/admin/**` path across all three roles, but not each social endpoint |
-| The 0/1/2-provider matrix for config-driven OAuth | **Partly** — 0 (`AuthDisabledTest`) and 1 (`AuthApiTest`). Two configured at once is untested |
+| Security matrix, anonymous / `ROLE_USER` / `ROLE_ADMIN` | **Yes** — `ApiSecurityMatrixTest` covers every endpoint under `/api`, and fails when one appears that the matrix does not name |
+| The 0/1/2-provider matrix for config-driven OAuth | **Yes** — 0 (`AuthDisabledTest`), 1 (`AuthApiTest`), 2 (`AuthTwoProvidersTest`) |
 | A Flyway migration test running V1→Vn on a fresh database | **Yes** — `MigrationsFromEmptyTest`, against a `@TempDir` file that has never existed |
 | `scripts/verify.ps1` running both halves | **No** — it does not exist. `frontend/npm run verify` and `backend/.\mvnw.cmd test` are run separately |
 
-The three gaps are in [Docs/backlog.md](Docs/backlog.md) rather than left here as
-implied promises.
+**`ApiSecurityMatrixTest` is the one to know about before adding an endpoint.**
+It reads the mapped handlers out of Spring and compares them against four
+declared sets, so a new mapping fails the build until somebody writes down who
+may call it. That is the gap it closes: the rules were tested where anyone
+thought to test them, and an endpoint nobody thought about was covered by
+nothing. It fails in the other direction too, when the matrix names an endpoint
+that has been deleted.
+
+The one remaining gap is in [Docs/backlog.md](Docs/backlog.md) rather than left
+here as an implied promise.
 
 ### Things caught by tests that were written first
 

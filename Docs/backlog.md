@@ -10,46 +10,30 @@ is probably not wanted — say so and remove it rather than letting the list rot
 
 ---
 
-## Two gaps in the backend test plan
+## Search runs entirely in the browser
 
-Named here because they were listed in `TESTING.md` as planned coverage and
-quietly never written. A plan that is not carried out reads exactly like one
-that was, which is the whole reason for moving them.
+`RecipeListPage` fetches the catalogue once per locale and every filter — the
+query, the tags, the author, the sort — runs in a computed over the result. That
+is deliberate and it is right at this size: filtering in the browser is instant,
+and typing fires no request at all.
 
-*(The third, a migration test from an empty database, was written —
-`MigrationsFromEmptyTest`.)*
+Two things will end that, and neither has yet:
 
-**Two providers configured at once.** Zero is tested (`AuthDisabledTest`) and one
-is (`AuthApiTest`); two never has been, so nothing asserts the sign-in row
-renders both, or that the second registration is built correctly. Blocked in
-practice on Facebook needing Meta app review before it releases an email
-address, but the *configuration* half could be tested today with a second
-fake registration.
+**Volume.** Every recipe is shipped to every visitor before the first keystroke.
+At six recipes that is nothing. At a few hundred it is the page-load budget, and
+at that point the list needs real pagination and the filters need to move to
+`RecipeQueryDao`, which already understands `query`, `tag`, `author` and `sort`
+and has been sitting unused by the list page since M2.
 
-**A security matrix across the social endpoints.** `/api/admin/**` is covered for
-anonymous, `ROLE_USER` and `ROLE_ADMIN`. The social write endpoints are covered
-where it matters — comments need a session, deletion is owner-only — but not
-systematically, so a new endpoint added without a rule would not fail anything.
+**The typo tolerance.** `matchesFuzzy` walks every word of every recipe's
+`searchText` and runs a bounded edit distance against each. It only runs when the
+exact search has found nothing, so most keystrokes never reach it — but it is the
+part that scales worst, and Levenshtein in SQLite is not a thing you want to
+discover you need on a deadline.
 
----
-
-## A way to point the e2e suite at the real backend again
-
-The acceptance run in ADR 0001 — the milestone-1 specs against the real API — is
-currently unreproducible, and nothing says so at the point of use except
-`TESTING.md`.
-
-It was a casualty of a good change. The suite used to reuse whatever served on
-:4200, which meant a dev loop flipped to the real API silently made `verify` run
-every spec against a live database. Pinning the suite to its own port and to
-`environment.e2e.ts` fixed that properly, and removed the one route to the real
-backend at the same time.
-
-The shape is already there: `playwright.config.ts` has `PW_TARGET=prod`. A
-`real` value alongside it would set `baseURL` to 4200 and omit `webServer`
-entirely, so the suite runs against whatever `dev.ps1` started and never starts a
-server of its own. Worth doing before the next milestone claims an acceptance
-number, since the last measured one is now several features old.
+Not urgent, and moving it early would make the search *slower* for the current
+catalogue: a round trip per keystroke where there is now none. The trigger to
+watch is the recipe count, not the calendar.
 
 ## scripts/verify.ps1
 
