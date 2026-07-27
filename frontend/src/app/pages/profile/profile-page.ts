@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../core/auth/auth.service';
 import { LocaleService } from '../../core/i18n/locale.service';
@@ -34,7 +34,7 @@ import {
 @Component({
   selector: 'bah-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslocoPipe, RouterLink, AvatarComponent, IconComponent],
+  imports: [TranslocoPipe, AvatarComponent, IconComponent],
   template: `
     <section class="container page">
       <h1>{{ 'profile.title' | transloco }}</h1>

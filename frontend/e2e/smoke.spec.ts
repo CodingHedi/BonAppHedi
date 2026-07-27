@@ -38,6 +38,21 @@ const ROUTES: readonly RouteCheck[] = [
   { path: '/fr/confidentialite', expects: /confidentialité|privacy/i },
   { path: '/en/legal-notice', expects: /mentions légales|legal notice/i },
   { path: '/en/privacy', expects: /confidentialité|privacy/i },
+  { path: '/fr/connexion', expects: /S'identifier|Sign in/ },
+  { path: '/en/sign-in', expects: /S'identifier|Sign in/ },
+  // Behind a guard, so what is swept is the redirect: an anonymous visitor is
+  // sent to sign in and told where they were going. A route that resolved to a
+  // blank page for them would look identical from the outside.
+  {
+    path: '/fr/profil',
+    landsOn: /\/fr\/connexion\?returnTo=/,
+    expects: /S'identifier|Sign in/,
+  },
+  {
+    path: '/en/profile',
+    landsOn: /\/en\/sign-in\?returnTo=/,
+    expects: /S'identifier|Sign in/,
+  },
   { path: '/fr/cette-page-nexiste-pas', expects: 'Page introuvable' },
   { path: '/en/no-such-page', expects: 'Page not found' },
 ];
