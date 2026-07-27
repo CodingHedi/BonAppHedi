@@ -29,7 +29,10 @@
     "sortNewest": "Newest first",
     "sortOldest": "Oldest first",
     "empty": "No recipe matches your search.",
-    "emptyAction": "Clear filters"
+    "emptyAction": "Clear filters",
+    "clearSearch": "Clear the search",
+    "clearAll": "Clear all",
+    "approximate": "No exact match for “{{query}}”. Showing the closest recipes."
   },
   "hero": {
     "cta": "Read the recipe",

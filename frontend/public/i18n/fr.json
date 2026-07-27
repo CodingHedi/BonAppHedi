@@ -29,7 +29,10 @@
     "sortNewest": "Plus récent",
     "sortOldest": "Plus ancien",
     "empty": "Aucune recette ne correspond à votre recherche.",
-    "emptyAction": "Réinitialiser les filtres"
+    "emptyAction": "Réinitialiser les filtres",
+    "clearSearch": "Effacer la recherche",
+    "clearAll": "Tout effacer",
+    "approximate": "Aucun résultat exact pour « {{query}} ». Voici les recettes les plus proches."
   },
   "hero": {
     "cta": "Lire la recette",
