@@ -6,6 +6,7 @@ import { LocaleService } from '../../core/i18n/locale.service';
 import { LOCALE_LABELS, stripLocale } from '../../core/i18n/locale';
 import { ThemeService } from '../../core/theme/theme.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { SearchFocusService } from '../../core/search/search-focus.service';
 import { BrandLogoComponent } from '../brand-logo/brand-logo';
 import { AvatarComponent } from '../../shared/ui/avatar/avatar';
 
@@ -21,7 +22,18 @@ import { AvatarComponent } from '../../shared/ui/avatar/avatar';
         </a>
 
         <div class="actions">
-          <button type="button" class="btn btn-icon btn-secondary" [attr.aria-label]="'nav.search' | transloco">
+          <!--
+            Transcribed from the prototype as a button that did nothing, on
+            every page, for the whole of milestone 1. There is one search on
+            this site and it lives on the recipe list, so this goes there and
+            puts the cursor in it rather than opening a second one.
+          -->
+          <button
+            type="button"
+            class="btn btn-icon btn-secondary"
+            [attr.aria-label]="'nav.search' | transloco"
+            (click)="openSearch()"
+          >
             <bah-icon name="search" />
           </button>
 
@@ -139,6 +151,7 @@ export class SiteHeaderComponent {
   private readonly router = inject(Router);
   private readonly locale = inject(LocaleService);
   private readonly transloco = inject(TranslocoService);
+  private readonly searchFocus = inject(SearchFocusService);
   protected readonly theme = inject(ThemeService);
   protected readonly auth = inject(AuthService);
 
@@ -161,6 +174,19 @@ export class SiteHeaderComponent {
    * `alternates` field and overrides this. Falling back to the section root is
    * the correct behaviour when no counterpart is known — better than a 404.
    */
+  /**
+   * Goes to the recipe list and asks the filter bar for its cursor.
+   *
+   * The request is made *after* the navigation resolves so that it cannot be
+   * consumed by a filter bar that is about to be destroyed — from a recipe page
+   * there is none anyway, and from the list itself the navigation is a no-op
+   * that settles immediately.
+   */
+  protected async openSearch(): Promise<void> {
+    await this.router.navigate(this.locale.link());
+    this.searchFocus.request();
+  }
+
   protected switchLanguage(): void {
     const target = this.other();
     const rest = stripLocale(this.router.url.split('?')[0].split('#')[0]);
