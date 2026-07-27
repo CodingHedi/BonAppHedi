@@ -128,7 +128,7 @@ what it needs on first run:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 170 tests
+.\mvnw.cmd test          # 185 tests
 .\mvnw.cmd spring-boot:run
 ```
 
@@ -172,6 +172,14 @@ and never serialized — a non-serializable field on `AppUser` would fail no tes
 and then throw on the first real login, after the OAuth round trip succeeded.
 Both now have a test that fails when the wiring breaks, and both were confirmed
 to fail by breaking it on purpose once.
+
+**Adding an endpoint under `/api` fails the build until you say who may call
+it.** `ApiSecurityMatrixTest` reads the mapped handlers out of Spring and
+compares them against four declared sets — public reads, anonymous writes,
+session writes, admin-only. That is deliberate and it is the whole point of the
+class: every other security test covers a rule somebody remembered to write, and
+the endpoint nobody thought about was covered by nothing. Put the new line in
+whichever set is true and the failure goes away.
 
 Three things exist because SQLite and Spring Data JDBC do not get on, and all
 three fail loudly if removed — see `config/`:
