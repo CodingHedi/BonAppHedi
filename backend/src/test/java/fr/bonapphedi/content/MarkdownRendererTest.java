@@ -46,6 +46,23 @@ class MarkdownRendererTest {
     }
 
     @Test
+    void rendersEveryMarkTheCommentToolbarCanProduce() {
+        // The comment composer has a formatting toolbar, and its six buttons emit
+        // exactly this syntax. The failure being guarded is silent and one-sided:
+        // the Preview tab renders in the browser and the stored comment is
+        // rendered here, so a mark the two disagree about looks correct right up
+        // until it is posted, and then quietly loses its formatting.
+        //
+        // Anything added to MARKS in comment-section.ts belongs here too.
+        assertThat(renderer.render("**gras**")).contains("<strong>gras</strong>");
+        assertThat(renderer.render("*penché*")).contains("<em>penché</em>");
+        assertThat(renderer.render("~~barré~~")).contains("<del>barré</del>");
+        assertThat(renderer.render("[texte](https://example.com)")).contains("href=\"https://example.com\"");
+        assertThat(renderer.render("- une puce")).contains("<ul>").contains("<li>une puce</li>");
+        assertThat(renderer.render("> une citation")).contains("<blockquote>");
+    }
+
+    @Test
     void keepsAccentedFrenchIntact() {
         String html = renderer.render("Pétrir jusqu'à obtenir une pâte souple.");
 
