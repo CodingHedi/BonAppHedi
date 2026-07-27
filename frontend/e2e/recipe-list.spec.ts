@@ -38,9 +38,92 @@ test.describe('recipe list', () => {
     await expect(page.locator('bah-recipe-card')).toHaveCount(5);
   });
 
-  test('tag filter narrows the grid', async ({ page }) => {
-    await page.getByLabel('Trier par tags').selectOption('dessert');
+  test('a typo still finds the recipe, and says that it guessed', async ({ page }) => {
+    // The exact search finds nothing for this, so the tolerant one answers —
+    // and announces itself, because near misses presented as matches are worse
+    // than no results.
+    await page.getByRole('searchbox').fill('chakchuka');
+
+    await expect(page.getByRole('heading', { name: 'Chakchouka' })).toBeVisible();
+    await expect(page.getByRole('status')).toContainText('Aucun résultat exact');
+  });
+
+  test('an exact search is never widened underneath the visitor', async ({ page }) => {
+    // "poivron" is two edits from "poivre", which other recipes contain. It
+    // matches exactly here, so the tolerant pass must never run.
+    await page.getByRole('searchbox').fill('poivron');
+
+    await expect(page.locator('bah-recipe-card')).toHaveCount(1);
+    await expect(page.getByRole('status')).toHaveCount(0);
+  });
+
+  test('tags narrow the grid, and combine', async ({ page }) => {
+    const dessert = page.getByRole('button', { name: 'dessert' });
+    await dessert.click();
+    await expect(dessert).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('bah-recipe-card')).toHaveCount(2);
+
+    // A second tag narrows further rather than adding to the results: picking
+    // two filters asks for both, and a filter that grows the grid reads as
+    // broken.
+    await page.getByRole('button', { name: 'chocolat' }).click();
+    await expect(page.locator('bah-recipe-card')).toHaveCount(1);
+    // Scoped to the grid: the carousel carries the same title above it.
+    await expect(page.locator('bah-recipe-card h3')).toHaveText('Babka au chocolat');
+  });
+
+  test('a tag is removed on its own, without rebuilding the query', async ({ page }) => {
+    await page.getByRole('button', { name: 'dessert' }).click();
+    await page.getByRole('button', { name: 'chocolat' }).click();
+    await expect(page.locator('bah-recipe-card')).toHaveCount(1);
+
+    // Pressing it again lets go of that one tag and keeps the rest.
+    await page.getByRole('button', { name: 'chocolat' }).click();
+    await expect(page.locator('bah-recipe-card')).toHaveCount(2);
+    await expect(page.getByRole('button', { name: 'dessert' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  test('the search box clears on its own', async ({ page }) => {
+    const search = page.getByRole('searchbox');
+    await search.fill('babka');
+    await expect(page.locator('bah-recipe-card')).toHaveCount(1);
+
+    await page.getByRole('button', { name: 'Effacer la recherche' }).click();
+    await expect(search).toHaveValue('');
+    await expect(page.locator('bah-recipe-card')).toHaveCount(5);
+  });
+
+  test('clear all appears only when there is something to clear', async ({ page }) => {
+    const clearAll = page.getByRole('button', { name: 'Tout effacer' });
+    await expect(clearAll).toHaveCount(0);
+
+    await page.getByRole('searchbox').fill('babka');
+    await page.getByRole('button', { name: 'dessert' }).click();
+    await expect(clearAll).toBeVisible();
+
+    await clearAll.click();
+    await expect(page.getByRole('searchbox')).toHaveValue('');
+    await expect(page.getByRole('button', { name: 'dessert' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    await expect(page.locator('bah-recipe-card')).toHaveCount(5);
+    await expect(clearAll).toHaveCount(0);
+  });
+
+  test('clearing everything leaves the sort order alone', async ({ page }) => {
+    // Sort is how the list is ordered, not what it contains. Resetting it would
+    // undo a choice about a different question.
+    await page.getByLabel('Trier par date').selectOption('oldest');
+    await page.getByRole('searchbox').fill('babka');
+
+    await page.getByRole('button', { name: 'Tout effacer' }).click();
+
+    await expect(page.getByLabel('Trier par date')).toHaveValue('oldest');
+    await expect(page.locator('bah-recipe-card h3').first()).toHaveText('Pain au levain');
   });
 
   test('sort order flips the grid', async ({ page }) => {

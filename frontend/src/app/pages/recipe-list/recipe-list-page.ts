@@ -10,7 +10,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { RECIPE_API } from '../../core/api/recipe-api';
 import { LocaleService } from '../../core/i18n/locale.service';
 import type { SortOrder } from '../../core/api/models';
-import { matchesQuery } from '../../shared/text';
+import { matchesFuzzy, matchesQuery } from '../../shared/text';
 import { HeroCarouselComponent } from './hero-carousel/hero-carousel';
 import { FilterBarComponent } from './filter-bar/filter-bar';
 import { RecipeCardComponent } from './recipe-card/recipe-card';
@@ -40,7 +40,7 @@ import { RecipeCardComponent } from './recipe-card/recipe-card';
       [tags]="tags.value() ?? []"
       [(query)]="query"
       [(author)]="author"
-      [(tag)]="tag"
+      [(selectedTags)]="selectedTags"
       [(sort)]="sort"
     />
 
@@ -48,6 +48,14 @@ import { RecipeCardComponent } from './recipe-card/recipe-card';
       <h2>{{ 'list.heading' | transloco }}</h2>
       <span class="count">{{ 'list.count' | transloco: { count: visible().length } }}</span>
     </div>
+
+    @if (approximate()) {
+      <!-- Said out loud rather than silently widening the search. A visitor who
+           mistyped needs to know these are near misses, not exact matches. -->
+      <p class="approximate" role="status">
+        {{ 'list.approximate' | transloco: { query: query().trim() } }}
+      </p>
+    }
 
     @if (recipes.isLoading()) {
       <section class="grid">
@@ -88,6 +96,12 @@ import { RecipeCardComponent } from './recipe-card/recipe-card';
       font-size: 12.5px;
       opacity: 0.55;
       white-space: nowrap;
+    }
+
+    .approximate {
+      margin: -8px 0 18px;
+      font-size: 13.8px;
+      opacity: 0.7;
     }
 
     .grid {
@@ -148,7 +162,7 @@ export class RecipeListPage {
 
   protected readonly query = signal('');
   protected readonly author = signal<string | null>(null);
-  protected readonly tag = signal<string | null>(null);
+  protected readonly selectedTags = signal<readonly string[]>([]);
   protected readonly sort = signal<SortOrder>('recent');
 
   private readonly locale = this.localeService.locale;
@@ -181,21 +195,57 @@ export class RecipeListPage {
     loader: ({ params }) => this.api.list({ locale: params.locale }),
   });
 
-  protected readonly visible = computed(() => {
+  /**
+   * Everything except the search term, which is applied after.
+   *
+   * Tags narrow rather than widen: selecting "dessert" and "chocolate" asks for
+   * recipes that are both, which is what picking a second filter means
+   * everywhere else on the web. Or-semantics would make each extra chip return
+   * *more*, and a filter that grows the result set reads as broken.
+   */
+  private readonly narrowed = computed(() => {
     const all = this.recipes.value()?.items ?? [];
-    const needle = this.query().trim();
-    const tag = this.tag();
+    const tags = this.selectedTags();
     const author = this.author();
 
-    const filtered = all.filter((recipe) => {
-      if (tag && !recipe.tags.some((candidate) => candidate.slug === tag)) return false;
+    return all.filter((recipe) => {
       if (author && recipe.author.slug !== author) return false;
-      // searchText already covers title, excerpt, tags and ingredient names.
-      return !needle || matchesQuery([recipe.searchText], needle);
+      return tags.every((wanted) => recipe.tags.some((candidate) => candidate.slug === wanted));
     });
+  });
 
+  /**
+   * The search, strictly first and forgivingly second.
+   *
+   * A typo-tolerant search that ran on every query would quietly answer
+   * questions nobody asked — `poivron` is a couple of edits from `poivre`. So
+   * the exact search runs alone, and the tolerant one is reached only when it
+   * found nothing at all, which is the moment a search box looks broken and the
+   * only moment guessing is welcome.
+   */
+  private readonly matched = computed(() => {
+    const needle = this.query().trim();
+    const candidates = this.narrowed();
+    if (!needle) return { items: candidates, approximate: false };
+
+    // searchText already covers title, excerpt, tags and ingredient names.
+    const exact = candidates.filter((recipe) => matchesQuery([recipe.searchText], needle));
+    if (exact.length > 0) return { items: exact, approximate: false };
+
+    const near = candidates.filter((recipe) => matchesFuzzy([recipe.searchText], needle));
+    return { items: near, approximate: near.length > 0 };
+  });
+
+  /** Whether what is on screen is a best guess rather than a match. */
+  protected readonly approximate = computed(() => this.matched().approximate);
+
+  protected readonly visible = computed(() => {
     const direction = this.sort() === 'oldest' ? -1 : 1;
-    return [...filtered].sort(
+
+    // Sorted by date even when the match was approximate. Relevance ranking
+    // would quietly override the order the visitor picked in the sort control,
+    // and with a catalogue this size it would decide almost nothing.
+    return [...this.matched().items].sort(
       (a, b) => direction * (Date.parse(b.publishedAt) - Date.parse(a.publishedAt)),
     );
   });
@@ -203,7 +253,7 @@ export class RecipeListPage {
   protected reset(): void {
     this.query.set('');
     this.author.set(null);
-    this.tag.set(null);
+    this.selectedTags.set([]);
     this.sort.set('recent');
   }
 }
