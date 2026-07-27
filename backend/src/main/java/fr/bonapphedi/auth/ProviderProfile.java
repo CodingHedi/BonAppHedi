@@ -3,17 +3,25 @@ package fr.bonapphedi.auth;
 import java.util.Map;
 
 /**
- * One person as a provider describes them, flattened to the four fields
- * {@code app_user} keeps.
+ * One person as a provider describes them, flattened to the three fields
+ * {@code app_user} takes from them.
  *
  * <p>Google and Facebook agree on none of it. The identifier is {@code sub} on
- * one and {@code id} on the other, and Facebook returns the avatar as
- * {@code picture.data.url} rather than a string. None of that fails loudly if
- * read wrongly - it produces an account called {@code null} - so the mapping is
- * explicit per provider instead of a hopeful list of candidate keys.
+ * one and {@code id} on the other. None of that fails loudly if read wrongly - it
+ * produces an account called {@code null} - so the mapping is explicit per
+ * provider instead of a hopeful list of candidate keys.
+ *
+ * <p>The picture each provider sends is <em>not read at all</em>, which is the
+ * point rather than an omission (ADR 7). It used to be mapped here — including
+ * Facebook's {@code picture.data.url}, which is an object rather than a string —
+ * stored on the account, copied onto every comment, and rendered straight into
+ * the thread, so reading a recipe disclosed the reader's address to Google.
+ * Declining to render a URL still held would leave the personal data in the
+ * database and the leak one template away; not reading it means there is nothing
+ * to leak. An avatar is chosen on the site instead, and is a token rather than an
+ * address — see {@link Avatar}.
  */
-public record ProviderProfile(
-        String provider, String providerUserId, String displayName, String email, String avatarUrl) {
+public record ProviderProfile(String provider, String providerUserId, String displayName, String email) {
 
     public static ProviderProfile from(String registrationId, Map<String, Object> attributes) {
         return switch (registrationId) {
@@ -21,14 +29,12 @@ public record ProviderProfile(
                     "google",
                     text(attributes, "sub"),
                     name(attributes, text(attributes, "email"), text(attributes, "sub")),
-                    text(attributes, "email"),
-                    text(attributes, "picture"));
+                    text(attributes, "email"));
             case "facebook" -> new ProviderProfile(
                     "facebook",
                     text(attributes, "id"),
                     name(attributes, text(attributes, "email"), text(attributes, "id")),
-                    text(attributes, "email"),
-                    facebookAvatar(attributes));
+                    text(attributes, "email"));
             // app_user.provider carries a CHECK constraint listing these two.
             // Refusing here names the problem; letting it through names a
             // constraint violation three layers away.
@@ -51,17 +57,6 @@ public record ProviderProfile(
             return at > 0 ? email.substring(0, at) : email;
         }
         return id;
-    }
-
-    /** {@code ?fields=...,picture} answers with an object, never a URL. */
-    private static String facebookAvatar(Map<String, Object> attributes) {
-        if (attributes.get("picture") instanceof Map<?, ?> picture
-                && picture.get("data") instanceof Map<?, ?> data
-                && data.get("url") instanceof String url
-                && !url.isBlank()) {
-            return url;
-        }
-        return null;
     }
 
     /** Blank and absent are the same thing here: nothing worth storing. */

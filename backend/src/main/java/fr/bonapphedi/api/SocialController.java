@@ -137,7 +137,6 @@ public class SocialController {
                 recipeId,
                 principal.user().id(),
                 principal.user().displayName(),
-                principal.user().avatarUrl(),
                 markdownBody,
                 markdown.render(markdownBody));
 

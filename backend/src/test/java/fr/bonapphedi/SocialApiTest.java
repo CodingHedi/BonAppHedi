@@ -79,7 +79,7 @@ class SocialApiTest {
     }
 
     private static AppUserPrincipal user(long id, String name) {
-        return new AppUserPrincipal(new AppUser(id, "google", "g-" + id, name, name + "@example.com", null, false));
+        return new AppUserPrincipal(new AppUser(id, "google", "g-" + id, name, name + "@example.com", false));
     }
 
     // --- ratings ----------------------------------------------------------
@@ -238,6 +238,48 @@ class SocialApiTest {
                         "<p><strong>Excellent</strong> avec un peu de fleur de sel</p>\n"))
                 .andExpect(jsonPath("$.status").value("PUBLISHED"))
                 .andExpect(jsonPath("$.mine").value(true));
+    }
+
+    @Test
+    void showsTheCommenterTheAvatarTheirAccountCurrentlyHolds() throws Exception {
+        jdbc.sql("UPDATE app_user SET avatar = 'carrot/3' WHERE id = 1").update();
+
+        mvc.perform(comment("babka-au-chocolat", "fr", "Très bon")
+                        .with(oauth2Login().oauth2User(user(1, "Camille")))
+                        .with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.author.avatar").value("carrot/3"));
+    }
+
+    @Test
+    void followsTheAvatarWhenTheAccountChangesItLater() throws Exception {
+        jdbc.sql("UPDATE app_user SET avatar = 'carrot/3' WHERE id = 1").update();
+        mvc.perform(comment("babka-au-chocolat", "fr", "Très bon")
+                        .with(oauth2Login().oauth2User(user(1, "Camille")))
+                        .with(csrf()))
+                .andExpect(status().isCreated());
+
+        // The reason the avatar is resolved through user_id instead of being
+        // copied onto the row the way display_name is (ADR 7). A profile page that
+        // left comments already posted showing the old avatar is not one anybody
+        // would recognise as a profile page.
+        jdbc.sql("UPDATE app_user SET avatar = 'mug/5' WHERE id = 1").update();
+
+        mvc.perform(get("/api/recipes/babka-au-chocolat/comments").param("locale", "fr"))
+                .andExpect(jsonPath("$[0].author.avatar").value("mug/5"));
+    }
+
+    @Test
+    void leavesASeededCommentWithNoAvatarRatherThanBorrowingOne() throws Exception {
+        // The four seeded comments have user_id NULL — nobody signed in to leave
+        // them — so there is no account holding a choice. The placeholder is the
+        // honest rendering, and a join that leaked the reader's own avatar onto
+        // them would look completely normal.
+        mvc.perform(get("/api/recipes/babka-au-chocolat/comments")
+                        .param("locale", "fr")
+                        .with(oauth2Login().oauth2User(user(1, "Camille"))))
+                .andExpect(jsonPath("$[0].author.avatar").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$[1].author.avatar").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test
