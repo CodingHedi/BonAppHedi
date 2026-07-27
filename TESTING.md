@@ -35,7 +35,13 @@ Reserved for logic that is easy to get subtly wrong and cheap to pin down.
   "le mois dernier" instead.
 - **`src/app/shared/text.spec.ts`** — accent and ligature folding for search. A
   French search box that matches `mijoté` but not `mijote` looks broken to
-  everyone typing on a normal keyboard.
+  everyone typing on a normal keyboard. Also the typo-tolerant matcher and its
+  edit-distance budget, where the cases that matter are the ones it must *not*
+  match: `poivron` and `poivre` are two edits apart and both are seeded, so the
+  budget is what keeps a search for one from answering with the other.
+- **`src/app/shared/markdown-input.spec.ts`** — what the comment toolbar does to
+  a selection. Unwrapping rather than nesting, toggling a prefix across several
+  lines, and telling `*italic*` from the inner half of `**bold**`.
 - **`src/app/core/i18n/translations.spec.ts`** — reads the shipped
   `public/i18n/*.json` and checks every locale defines the same keys, no empty
   strings, matching interpolation placeholders, and that the French
@@ -54,7 +60,10 @@ the DOM a visitor actually gets.
 - **`e2e/shell.spec.ts`** — locale redirect, language switching, theme
   persistence across reload, OS dark-mode default, 404 handling.
 - **`e2e/recipe-list.spec.ts`** — search, filtering, sorting, carousel, and
-  locale-correct slugs.
+  locale-correct slugs. Tags are toggle chips rather than a dropdown and combine
+  by narrowing, so the assertions are about `aria-pressed` and falling counts.
+  Also that the header magnifier reaches the search box, and that its focus
+  request does not linger into the next visit.
 - **`e2e/profile.spec.ts`** — the account page: the guard, the picker, saving,
   and that choosing an avatar costs no request to anyone (ADR 7).
 
@@ -110,7 +119,7 @@ Recorded because each one cost time once:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 169 tests
+.\mvnw.cmd test          # 170 tests
 ```
 
 **One assertion cannot live in `AuthApiTest`, and it is worth knowing why.**
