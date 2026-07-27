@@ -133,6 +133,92 @@ test.describe('comments', () => {
     );
   });
 
+  test('the toolbar wraps the selection, and the preview shows the result', async ({ page }) => {
+    await page.goto(BABKA);
+    await signIn(page);
+
+    const editor = page.locator('bah-comment-section textarea');
+    await editor.fill('Une recette parfaite.');
+
+    // Select the word "parfaite" and embolden it.
+    await editor.evaluate((node: HTMLTextAreaElement) => {
+      const at = node.value.indexOf('parfaite');
+      node.setSelectionRange(at, at + 'parfaite'.length);
+    });
+    await page.getByRole('button', { name: 'Gras' }).click();
+
+    await expect(editor).toHaveValue('Une recette **parfaite**.');
+
+    // The round trip that matters: what the toolbar writes has to be what the
+    // renderer understands. A toolbar emitting a syntax the preview does not
+    // render would look broken in exactly the place people check.
+    await page.getByRole('tab', { name: 'Aperçu' }).click();
+    await expect(page.locator('bah-comment-section .preview strong')).toHaveText('parfaite');
+  });
+
+  test('every mark the toolbar offers survives into the posted comment', async ({ page }) => {
+    // Half of the guard against the two renderers drifting apart. This suite
+    // runs on the mocks, where a posted comment is rendered client-side, so what
+    // this proves is that the browser's renderer understands everything the
+    // toolbar emits. The other half — that the server agrees — is
+    // MarkdownRendererTest.rendersEveryMarkTheCommentToolbarCanProduce, and
+    // neither is worth much without the other.
+    await page.goto(BABKA);
+    await signIn(page);
+
+    await page
+      .locator('bah-comment-section textarea')
+      .fill('**gras** et *penché* et ~~barré*~~\n\n> une citation\n\n- une puce');
+
+    await page.getByRole('button', { name: 'Publier' }).click();
+
+    const posted = page.locator('bah-comment-section .comment').first();
+    await expect(posted.locator('strong')).toHaveText('gras');
+    await expect(posted.locator('em')).toHaveText('penché');
+    await expect(posted.locator('del')).toHaveText('barré*');
+    await expect(posted.locator('blockquote')).toContainText('une citation');
+    await expect(posted.locator('li')).toHaveText('une puce');
+  });
+
+  test('Ctrl+B formats, and Ctrl+Z still undoes it', async ({ page }) => {
+    await page.goto(BABKA);
+    await signIn(page);
+
+    const editor = page.locator('bah-comment-section textarea');
+    await editor.fill('Une recette parfaite.');
+    await editor.evaluate((node: HTMLTextAreaElement) => {
+      const at = node.value.indexOf('parfaite');
+      node.setSelectionRange(at, at + 'parfaite'.length);
+    });
+
+    await page.keyboard.press('Control+b');
+    await expect(editor).toHaveValue('Une recette **parfaite**.');
+
+    // The whole reason the component writes through execCommand instead of
+    // assigning the value: assigning wipes the browser's undo stack, so Ctrl+Z
+    // after a toolbar press would throw away everything the visitor had typed.
+    await page.keyboard.press('Control+z');
+    await expect(editor).toHaveValue('Une recette parfaite.');
+  });
+
+  test('the formatting toolbar is one tab stop, with arrow keys inside it', async ({ page }) => {
+    // Six separate tab stops in front of the textarea would make reaching the
+    // box slower for every keyboard user in order to help nobody.
+    await page.goto(BABKA);
+    await signIn(page);
+
+    const tools = page.locator('bah-comment-section .tool');
+    await expect(tools).toHaveCount(6);
+    await expect(tools.nth(0)).toHaveAttribute('tabindex', '0');
+    await expect(tools.nth(1)).toHaveAttribute('tabindex', '-1');
+
+    await tools.nth(0).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(tools.nth(1)).toBeFocused();
+    await expect(tools.nth(1)).toHaveAttribute('tabindex', '0');
+    await expect(tools.nth(0)).toHaveAttribute('tabindex', '-1');
+  });
+
   test('a signed comment shows a chosen avatar and fetches no picture to do it', async ({
     page,
   }) => {

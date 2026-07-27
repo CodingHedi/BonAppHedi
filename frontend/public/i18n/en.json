@@ -81,7 +81,18 @@
     "submit": "Post",
     "delete": "Delete",
     "pending": "Awaiting moderation",
-    "empty": "No comments yet. Be the first!"
+    "empty": "No comments yet. Be the first!",
+    "formatting": "Formatting",
+    "markPlaceholder": "text",
+    "markdownHint": "Markdown is supported. The Preview tab shows how it will look before you post.",
+    "mark": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "strike": "Strikethrough",
+      "link": "Link",
+      "bullet": "Bulleted list",
+      "quote": "Quote"
+    }
   },
   "share": {
     "label": "Share",

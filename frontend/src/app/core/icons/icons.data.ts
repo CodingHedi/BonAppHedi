@@ -82,6 +82,26 @@ export const ICONS = {
   logout: {
     body: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
   },
+  // --- the comment formatting toolbar -----------------------------------------
+  //
+  // Bold, italic and strikethrough are not here: they are letterforms, drawn as
+  // text in the button rather than as stroked paths, because a B built from
+  // 2.75px strokes at 17px is a smudge. That is the convention in every editor
+  // toolbar for the same reason, so the mixture is deliberate.
+  'list-bullet': {
+    body: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.3"/><circle cx="4.5" cy="12" r="1.3"/><circle cx="4.5" cy="18" r="1.3"/>',
+  },
+  // Quotation marks rather than the blockquote convention of a bar beside a few
+  // lines. Drawn that way first, it sat next to list-bullet in the toolbar and
+  // the two were indistinguishable at 15px: both read as "lines with something
+  // down the left".
+  quote: {
+    body:
+      '<path d="M5 6h5.5v6A5.5 5.5 0 0 1 5 17.5V15a3 3 0 0 0 3-3H5z"/>' +
+      '<path d="M13.5 6H19v6a5.5 5.5 0 0 1-5.5 5.5V15a3 3 0 0 0 3-3h-3z"/>',
+    filled: true,
+  },
+
   // --- the avatar selection ---------------------------------------------------
   //
   // The twelve avatars a visitor may choose on the profile page (ADR 7). Drawn

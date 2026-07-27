@@ -81,7 +81,18 @@
     "submit": "Publier",
     "delete": "Supprimer",
     "pending": "En attente de modération",
-    "empty": "Aucun commentaire pour l'instant. Lancez-vous !"
+    "empty": "Aucun commentaire pour l'instant. Lancez-vous !",
+    "formatting": "Mise en forme",
+    "markPlaceholder": "texte",
+    "markdownHint": "Markdown accepté. L'onglet Aperçu montre le rendu avant publication.",
+    "mark": {
+      "bold": "Gras",
+      "italic": "Italique",
+      "strike": "Barré",
+      "link": "Lien",
+      "bullet": "Liste à puces",
+      "quote": "Citation"
+    }
   },
   "share": {
     "label": "Partager",
