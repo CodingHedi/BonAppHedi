@@ -199,3 +199,28 @@ select.input {
 .washed {
   background: color-mix(in srgb, var(--color-surface) 78%, var(--color-bg));
 }
+
+// The hue-rotated wash laid over `.washed`, driven by `--seed-hue`.
+//
+// Global rather than a component style because two components need the identical
+// treatment for different reasons: bah-image derives the hue from the subject's
+// name so six placeholder cards read as six different things, and bah-avatar
+// takes it from the tint the visitor chose (ADR 7). Kept in one place so a
+// change to the wash cannot land in one of them and not the other.
+.tinted {
+  background-image: linear-gradient(
+    135deg,
+    hsl(var(--seed-hue, 30) 24% 74% / 0.55),
+    hsl(calc(var(--seed-hue, 30) + 26) 20% 66% / 0.3)
+  );
+}
+
+// An umber shadow over #241f1a is invisible, and so is this wash: the light
+// ramp's 74% lightness sits above the dark surface, not below it.
+[data-theme='dark'] .tinted {
+  background-image: linear-gradient(
+    135deg,
+    hsl(var(--seed-hue, 30) 14% 26% / 0.7),
+    hsl(calc(var(--seed-hue, 30) + 26) 12% 20% / 0.5)
+  );
+}

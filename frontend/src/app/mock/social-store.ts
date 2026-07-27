@@ -38,7 +38,16 @@ interface CommentRecord {
   id: number;
   recipeKey: string;
   displayName: string;
-  avatarUrl: string | null;
+  /**
+   * The commenter's chosen avatar token.
+   *
+   * Copied onto the record here where the real schema resolves it from the
+   * account, because the mock has no account table to join — a signed-in mock
+   * visitor is a localStorage blob. The observable behaviour is the same for
+   * everything the suites exercise; what it cannot reproduce is an avatar
+   * changing on comments already posted, which needs the live join (ADR 7).
+   */
+  avatar: string | null;
   bodyMarkdown: string;
   createdAt: string;
   status: CommentStatus;
@@ -66,7 +75,10 @@ export class SocialStore {
       id: this.nextId++,
       recipeKey: seed.recipeKey,
       displayName: seed.displayName,
-      avatarUrl: null,
+      // Null to match the seed in V2__seed.sql, where every comment has
+      // user_id NULL: nobody signed in to leave these, so there is no account
+      // holding a choice and the placeholder is the honest rendering.
+      avatar: null,
       bodyMarkdown: seed.bodyMarkdown,
       createdAt: new Date(SEED_NOW.getTime() - seed.daysAgo * 86_400_000).toISOString(),
       status: seed.status ?? 'PUBLISHED',
@@ -138,14 +150,14 @@ export class SocialStore {
 
   addComment(
     key: string,
-    author: { displayName: string; avatarUrl: string | null },
+    author: { displayName: string; avatar: string | null },
     bodyMarkdown: string,
   ): Comment {
     const row: CommentRecord = {
       id: this.nextId++,
       recipeKey: key,
       displayName: author.displayName,
-      avatarUrl: author.avatarUrl,
+      avatar: author.avatar,
       bodyMarkdown,
       createdAt: new Date().toISOString(),
       status: 'PUBLISHED',
@@ -217,7 +229,7 @@ export class SocialStore {
   private toComment(row: CommentRecord): Comment {
     return {
       id: row.id,
-      author: { displayName: row.displayName, avatarUrl: row.avatarUrl },
+      author: { displayName: row.displayName, avatar: row.avatar },
       bodyMarkdown: row.bodyMarkdown,
       // Empty by design in M1, matching bodyHtml on recipes: with no server
       // there is nothing that could have rendered and sanitized it, so the

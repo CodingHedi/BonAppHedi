@@ -82,6 +82,76 @@ export const ICONS = {
   logout: {
     body: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
   },
+  // --- the avatar selection ---------------------------------------------------
+  //
+  // The twelve avatars a visitor may choose on the profile page (ADR 7). Drawn
+  // in the same 24×24 / 2.75-stroke style as everything above, and kept here
+  // rather than in a set of their own so one component renders every icon on the
+  // site and an avatar costs no extra bytes.
+  //
+  // AVATAR_ICONS in core/avatar/avatar-token.ts names these, and those names are
+  // stored in the database against real accounts: a drawing here may be
+  // improved, but a key may never be renamed or pointed at a different subject.
+  // Upright and tapering to a point. Drawn on the diagonal first, where a root
+  // of constant width plus two fronds read unmistakably as a screw.
+  carrot: {
+    body:
+      '<path d="M8 9.5h8l-3.2 10.9a.85.85 0 0 1-1.6 0z"/>' +
+      '<path d="M12 9.5V5.4M12 7.2 9.1 4.7M12 7.2l2.9-2.5"/>',
+  },
+  citrus: {
+    body:
+      '<circle cx="12" cy="12" r="8.5"/>' +
+      '<path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18"/>',
+  },
+  cherry: {
+    body:
+      '<circle cx="8.5" cy="16.5" r="4"/><circle cx="17" cy="15" r="3.2"/>' +
+      '<path d="M8.5 12.5C10 8 13.5 4.5 18 3.5M17 11.8c-.5-3 .4-5.6 2.8-7.6"/>',
+  },
+  herb: {
+    body: '<path d="M4 20c0-8 5-13 16-13 0 8-5 13-16 13z"/><path d="M4 20 15 9"/>',
+  },
+  egg: {
+    body: '<path d="M12 3c3.6 0 6.5 5 6.5 9.6S15.6 21 12 21s-6.5-3.8-6.5-8.4S8.4 3 12 3z"/>',
+  },
+  bread: {
+    body:
+      '<path d="M4 16v-2a8 8 0 0 1 16 0v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>' +
+      '<path d="M9 8.6 7.5 13M13 8.2l-1.5 4.8M16.8 9.4 15.4 13"/>',
+  },
+  // Three frosting bumps, not a dome: a single arc over a tapered wrapper is a
+  // bucket, and nothing about it says cake.
+  cupcake: {
+    body:
+      '<path d="M6.8 11.5a3.1 3.1 0 0 1 1.4-5.3 3.3 3.3 0 0 1 6.1-1.2 3.1 3.1 0 0 1 2.9 6.5z"/>' +
+      '<path d="M6.9 11.5h10.2l-1.2 7.8a1.6 1.6 0 0 1-1.6 1.4H9.7a1.6 1.6 0 0 1-1.6-1.4z"/>',
+  },
+  mushroom: {
+    body: '<path d="M4 11a8 8 0 0 1 16 0z"/><path d="M10 11v6.6a2 2 0 0 0 4 0V11"/>',
+  },
+  pot: {
+    body:
+      '<path d="M4.5 9.5h15V15a4 4 0 0 1-4 4h-7a4 4 0 0 1-4-4z"/>' +
+      '<path d="M2.5 9.5h19M8 6.5h8M12 6.5V4.5"/>',
+  },
+  // The handle is a shape, not a line. A circle with a line coming off it is a
+  // magnifying glass, which is also already an icon on this site.
+  pan: {
+    body: '<circle cx="9.5" cy="12.5" r="6.5"/><rect x="16.2" y="11" width="5.8" height="3" rx="1.5"/>',
+  },
+  // A rolling pin, where a balloon whisk was tried first and failed: an outer
+  // loop plus its inner wires is six strokes crossing inside 12px, and at 2.75
+  // they merge into a filled blob that reads as a tree.
+  'rolling-pin': {
+    body: '<rect x="5.5" y="9" width="13" height="6" rx="3"/><path d="M5.5 12H2M18.5 12H22"/>',
+  },
+  mug: {
+    body:
+      '<path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/>' +
+      '<path d="M17 9.5h1.5a2.5 2.5 0 0 1 0 5H17"/>',
+  },
+
   // --- brand silhouettes, for sharing ----------------------------------------
   //
   // The real marks, drawn as one filled path in `currentColor` rather than in

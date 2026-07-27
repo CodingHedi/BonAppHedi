@@ -34,11 +34,11 @@ import type { ImageRef } from '../../../core/api/models';
         are all illegible at that size and read as a rendering fault, so a
         compact slot shows a single initial instead.
       -->
-      <div class="placeholder placeholder--compact washed" [style.--seed-hue]="hue()">
+      <div class="placeholder placeholder--compact washed tinted" [style.--seed-hue]="hue()">
         <span class="initial">{{ initial() }}</span>
       </div>
     } @else {
-      <div class="placeholder washed" [style.--seed-hue]="hue()">
+      <div class="placeholder washed tinted" [style.--seed-hue]="hue()">
         <bah-icon name="image" [size]="26" [strokeWidth]="1.6" />
         @if (label()) {
           <span class="label">{{ label() }}</span>
@@ -79,24 +79,11 @@ import type { ImageRef } from '../../../core/api/models';
       text-align: center;
       color: var(--color-text);
       opacity: 0.55;
-
       /*
-       * A per-subject hue rotation so six placeholder cards read as six
-       * different things rather than one repeated grey box.
+       * The per-subject hue rotation — so six placeholder cards read as six
+       * different things rather than one repeated grey box — comes from the
+       * global .tinted class, which bah-avatar shares, fed by hue() below.
        */
-      background-image: linear-gradient(
-        135deg,
-        hsl(var(--seed-hue, 30) 24% 74% / 0.55),
-        hsl(calc(var(--seed-hue, 30) + 26) 20% 66% / 0.3)
-      );
-    }
-
-    :host-context([data-theme='dark']) .placeholder {
-      background-image: linear-gradient(
-        135deg,
-        hsl(var(--seed-hue, 30) 14% 26% / 0.7),
-        hsl(calc(var(--seed-hue, 30) + 26) 12% 20% / 0.5)
-      );
     }
 
     .placeholder::after {

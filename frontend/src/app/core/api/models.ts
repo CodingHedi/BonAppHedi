@@ -145,7 +145,15 @@ export interface AuthProvider {
 export interface AuthUser {
   readonly id: string;
   readonly displayName: string;
-  readonly avatarUrl: string | null;
+  /**
+   * The avatar this person chose, as a token — `carrot/3`. Null until they have
+   * chosen one, which renders the initial placeholder.
+   *
+   * Deliberately not a URL. It was one, holding whatever picture the identity
+   * provider returned, and rendering it made every reader's browser call
+   * Google. See ADR 7 and `core/avatar/avatar-token.ts`.
+   */
+  readonly avatar: string | null;
   /** Drives access to the admin area. Asserted server-side too — this is UI only. */
   readonly isAdmin: boolean;
 }
@@ -162,7 +170,13 @@ export type CommentStatus = 'PUBLISHED' | 'PENDING' | 'REJECTED';
 /** Deliberately not `Author`: a commenter has no slug, no bio and no page. */
 export interface CommentAuthor {
   readonly displayName: string;
-  readonly avatarUrl: string | null;
+  /**
+   * An avatar token, resolved from the account rather than copied onto the
+   * comment — so changing it on the profile page updates the comments already
+   * posted, and a deleted account's comments fall back to the placeholder while
+   * keeping the name. ADR 7 records why that trade goes this way.
+   */
+  readonly avatar: string | null;
 }
 
 export interface Comment {

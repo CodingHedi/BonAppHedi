@@ -22,7 +22,7 @@ async function signedInAs(page: Page, role: 'admin' | 'reader') {
         JSON.stringify({
           id: 'e2e',
           displayName: isAdmin ? 'Hédi' : 'Camille',
-          avatarUrl: null,
+          avatar: 'pot/0',
           isAdmin,
         }),
       );

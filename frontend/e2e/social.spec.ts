@@ -3,9 +3,16 @@ import { expect, test } from './fixtures';
 const BABKA = '/fr/recettes/babka-au-chocolat';
 const SHAKSHUKA = '/fr/recettes/chakchouka';
 
-/** Hosts that would mean a third party learned the visitor's IP. */
+/**
+ * Hosts that would mean a third party learned the visitor's IP.
+ *
+ * `googleusercontent.com` is here because it is where commenter avatars used to
+ * be fetched from, and because this list did not catch it: `google\.com` does not
+ * match `lh3.googleusercontent.com`, so the one leak the site actually had went
+ * straight past the guard written to prevent exactly it (ADR 7).
+ */
 const THIRD_PARTY =
-  /facebook\.com|whatsapp\.com|connect\.facebook|twitter\.com|x\.com|pinterest\.com|google\.com|gstatic\.com/i;
+  /facebook\.com|whatsapp\.com|connect\.facebook|twitter\.com|x\.com|pinterest\.com|google\.com|googleusercontent\.com|gstatic\.com/i;
 
 /** Signs in through the provider row inside the comment box. */
 async function signIn(page: import('@playwright/test').Page, provider = 'Google') {
@@ -124,6 +131,35 @@ test.describe('comments', () => {
     await expect(page.locator('bah-comment-section .comment strong').first()).toHaveText(
       'Excellente',
     );
+  });
+
+  test('a signed comment shows a chosen avatar and fetches no picture to do it', async ({
+    page,
+  }) => {
+    // The assertion that would have caught the leak ADR 7 fixes. A commenter's
+    // avatar was the URL the provider returned, so a thread of signed comments
+    // made the reader's browser call Google — and because it renders perfectly,
+    // nothing but a request log shows it.
+    const contacted: string[] = [];
+    page.on('request', (request) => {
+      if (THIRD_PARTY.test(request.url())) contacted.push(request.url());
+    });
+
+    await page.goto(BABKA);
+    await signIn(page);
+    await page.locator('bah-comment-section textarea').fill('Avec un peu de fleur de sel.');
+    await page.getByRole('button', { name: 'Publier' }).click();
+
+    const avatar = page.locator('bah-comment-section .comment').first().locator('bah-avatar');
+
+    // Drawn from the icon registry, on the tint the account chose.
+    await expect(avatar.locator('.disc svg')).toBeVisible();
+
+    // No <img> anywhere in it: an avatar that is an image is an avatar fetched
+    // from somewhere, whoever is hosting it.
+    await expect(avatar.locator('img')).toHaveCount(0);
+
+    expect(contacted, 'a comment thread must cost the reader no third-party request').toEqual([]);
   });
 
   test('posting returns to the write tab with an empty box', async ({ page }) => {

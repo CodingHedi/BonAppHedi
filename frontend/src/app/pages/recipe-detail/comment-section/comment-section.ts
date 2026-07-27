@@ -2,12 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { IconComponent } from '../../../core/icons/icon';
-import { ImageComponent } from '../../../shared/ui/image/image';
+import { AvatarComponent } from '../../../shared/ui/avatar/avatar';
 import { MarkdownComponent } from '../../../shared/ui/markdown/markdown';
 import { SignInRowComponent } from '../../../shared/ui/sign-in-row/sign-in-row';
 import { RelativeTimePipe } from '../../../shared/pipes';
 import { AuthService } from '../../../core/auth/auth.service';
-import type { Comment, ImageRef } from '../../../core/api/models';
+import type { Comment } from '../../../core/api/models';
 
 type CommentTab = 'write' | 'preview';
 
@@ -28,7 +28,7 @@ type CommentTab = 'write' | 'preview';
     TranslocoPipe,
     RelativeTimePipe,
     IconComponent,
-    ImageComponent,
+    AvatarComponent,
     MarkdownComponent,
     SignInRowComponent,
   ],
@@ -111,11 +111,11 @@ type CommentTab = 'write' | 'preview';
         <ul class="thread">
           @for (comment of comments(); track comment.id) {
             <li class="comment" [class.pending]="comment.status === 'PENDING'">
-              <bah-image
+              <bah-avatar
                 class="avatar"
-                [image]="avatarFor(comment)"
-                [label]="comment.author.displayName"
-                [compact]="true"
+                [avatar]="comment.author.avatar"
+                [name]="comment.author.displayName"
+                [size]="40"
               />
 
               <div class="content">
@@ -319,15 +319,6 @@ export class CommentSectionComponent {
   protected readonly draft = signal('');
 
   protected readonly canSubmit = computed(() => this.draft().trim().length > 0 && !this.busy());
-
-  /**
-   * Commenters have no photo yet, so this is an alt text and a null URL — the
-   * same shape recipes use, which gets the initial-in-a-tint placeholder rather
-   * than a broken image.
-   */
-  protected avatarFor(comment: Comment): ImageRef {
-    return { url: comment.author.avatarUrl, alt: comment.author.displayName };
-  }
 
   /** Left/Right move between tabs, as the tablist pattern requires. */
   protected onTabKeydown(event: KeyboardEvent): void {

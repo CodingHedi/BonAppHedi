@@ -100,16 +100,19 @@ describe('SocialStore comments', () => {
 
   it('adds a comment attributed to the signed-in visitor and marked as theirs', () => {
     const store = new SocialStore();
-    const created = store.addComment(BABKA, { displayName: 'Hédi', avatarUrl: null }, 'Testé.');
+    const created = store.addComment(BABKA, { displayName: 'Hédi', avatar: 'pot/0' }, 'Testé.');
 
     expect(created.mine).toBe(true);
     expect(created.author.displayName).toBe('Hédi');
+    // The avatar travels with the attribution, or a signed-in visitor's comment
+    // appears under the placeholder they went to the profile page to replace.
+    expect(created.author.avatar).toBe('pot/0');
     expect(store.commentCountFor(BABKA)).toBe(3);
   });
 
   it('deletes only the comment asked for', () => {
     const store = new SocialStore();
-    const created = store.addComment(BABKA, { displayName: 'Hédi', avatarUrl: null }, 'Testé.');
+    const created = store.addComment(BABKA, { displayName: 'Hédi', avatar: 'pot/0' }, 'Testé.');
     store.deleteComment(created.id);
 
     expect(store.commentCountFor(BABKA)).toBe(2);
