@@ -84,6 +84,31 @@ exactly that: a misconfiguration stops meaning "sign-in is off" and starts
 meaning "anyone is an admin". The failure mode is unbounded, and the thing it
 buys is already covered.
 
+### Amendment, 2026-07-28: re-measured, and reproducible again
+
+**88 of 132 pass, and none of the 44 failures is a contract mismatch.** The
+proportion is almost exactly what it was in July — the suite grew by 36 specs
+across the avatar, comment-toolbar and search work, and the failures grew with
+it in the same three categories rather than in a new one. The scoping decision
+above still holds, unchanged.
+
+Between the two measurements the run was, for a while, impossible. Pinning the
+suite to port 4300 and to `environment.e2e.ts` — the fix that stopped a flipped
+dev loop turning `verify` red — removed the only route to the real backend at the
+same time, and for several features the instructions in `TESTING.md` described
+something that could not happen. `PW_TARGET=real` restores it as a deliberate,
+named act rather than a side effect of what happens to be running.
+
+Two things learned in the re-measurement that the first one did not record:
+
+- **The number is a floor, not a figure.** The specs share one database and are
+  not independent of each other however they are scheduled. Two of the 44 fail
+  on state the run itself created — an earlier spec reacts to the babka, and a
+  later one counts reactions. Even `--workers=1` does not fix that; only a reset
+  between specs would, and that is a bigger change than the number is worth.
+- **`-Fresh` is load-bearing.** Measured twice against a database carrying the
+  previous run's writes, the count moved from 44 failures to 47.
+
 ### If the auth specs are wanted later
 
 Run a real mock OIDC issuer in the test environment and point `bah.oauth.*` at

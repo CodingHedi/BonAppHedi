@@ -183,41 +183,43 @@ install, and `-Fresh` had never deleted the database it claimed to.
 **The milestone-1 e2e suite must pass unmodified against the real backend** —
 that is the acceptance test for the swap, scoped by the amendment in ADR 0001.
 
-**Measured 2026-07-27: 64 of 96 pass, and none of the 32 failures is a contract
-mismatch.** ADR 0001 carries the amendment that scopes the guarantee to the
-specs not requiring a session, and explains why the other 26 cannot pass without
-a live Google. That figure predates the avatar work and the suite is now 115
-specs; it has not been re-measured, because it currently cannot be.
-
-**The reproduction below no longer does what it says, and that is the fix worth
-making next.** It used to work because the suite reused whatever served on 4200.
-Pinning it to its own port and to `environment.e2e.ts` is what stopped a flipped
-dev loop turning `verify` red — and it also removed the only way to point the
-suite at the real backend. `npx playwright test` now starts its own server on
-4300 against the mocks, whatever is running on 4200:
+**Measured 2026-07-28: 88 of 132 pass, and none of the 44 failures is a contract
+mismatch.** ADR 0001 carries the amendment that scopes the guarantee to the specs
+that do not need a session. To reproduce:
 
 ```powershell
-# What the acceptance run used to be. The last line no longer reaches :4200.
-# Flip useMocks to false in environments/environment.development.ts
+# 1. Point the dev loop at the real API
+#    useMocks: false in src/environments/environment.development.ts
 .\scripts\dev.ps1 -Fresh
-npx playwright test
+# 2. Then, in another shell
+cd frontend
+$env:PW_TARGET = 'real'
+npx playwright test --workers=1
 ```
 
-Reaching the real API again needs a deliberate opt-in in `playwright.config.ts`
-— a `PW_TARGET=real` alongside the existing `prod`, setting `baseURL` to 4200 and
-omitting `webServer` — and that is in `Docs/backlog.md`. The `-Fresh` still
-matters when it comes back: a database carrying a previous run's ratings fails
-specs that assert the seeded `4.0 / 5 · 1 avis`, and those failures look exactly
-like backend bugs.
+Both halves of that matter. **`PW_TARGET=real`** is what makes the suite use the
+dev server on 4200 instead of starting its own mocked one on 4300 — without it
+you measure the mocks and learn nothing. **`-Fresh`** is what makes the number
+mean anything: a database carrying a previous run's ratings fails specs asserting
+the seeded `4.0 / 5 · 1 avis`, and those failures look exactly like backend bugs.
+Measured twice without it, the count moved from 44 failures to 47.
 
-What *was* checked against the real API on 2026-07-27, by hand rather than
-through the suite: migrations apply from empty through V6; a plain GET issues
-`XSRF-TOKEN`; `PUT /api/auth/avatar` answers 403 without the token and 401 with
-it while anonymous; the comment endpoint returns `author.avatar` and no
-`author.avatarUrl`; `/fr/profil` redirects an anonymous visitor to sign-in
-carrying `returnTo`; and a recipe page with its seeded thread makes no request to
-any provider. Signing in, choosing an avatar and seeing it against a comment
-needs a person at a browser, because the OAuth round trip does.
+**`--workers=1` and still not enough.** The specs share one database, so they are
+not independent of each other however they are scheduled — two of the 44 fail on
+state the run itself created, not on anything wrong. Read the number as a floor.
+
+The 44, all accounted for:
+
+| Cause | Specs | Why |
+|---|---|---|
+| Needs a session | 40 | 19 admin, 8 profile, 13 comment. Signing in means clicking a provider and coming back, which against the real API navigates to Google and never returns. |
+| Two providers expected | 2 | They assert a row of two buttons; a server holding one set of credentials offers one. |
+| State the run left behind | 2 | `reacting twice` and the English social block both count reactions, and an earlier spec in the same run has already reacted. Each spec gets a fresh browser and therefore a fresh visitor cookie; the server remembers anyway. |
+
+What needs a person at a browser, and is the one thing still unverified: signing
+in for real, choosing an avatar, and seeing it against a comment. Playwright
+cannot fake the OAuth round trip — the token exchange and the userinfo call are
+server-to-server and never touch the browser.
 
 ---
 

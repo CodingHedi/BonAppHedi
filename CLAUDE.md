@@ -85,17 +85,23 @@ against a live database. 33 failed on real comments and ratings, and read
 exactly like regressions in the change under test.
 
 What the suites do **not** cover is backend integration. That is the scoped
-acceptance run in ADR 0001, and **it cannot currently be run**: pinning the suite
-to port 4300 and to `environment.e2e.ts` is what stopped a flipped dev loop
-turning `verify` red, and it also removed the only way to aim the suite at the
-real backend. `npx playwright test` now starts its own mock server whatever is on
-4200. TESTING.md records the last real measurement (64 of 96, before the avatar
-work) and `Docs/backlog.md` has the fix — a `PW_TARGET=real` beside the existing
-`prod`.
+acceptance run in ADR 0001, and it takes two deliberate acts, neither of which
+can happen by accident:
 
-Flipping `environment.development.ts` is still how you point the *dev loop* at
-the real API, and leaving it flipped is harmless. It is a working file rather
-than something to commit.
+```powershell
+# useMocks: false in src/environments/environment.development.ts, then
+.\scripts\dev.ps1 -Fresh
+cd frontend ; $env:PW_TARGET = 'real' ; npx playwright test --workers=1
+```
+
+**88 of 132 as of 2026-07-28**, and every failure accounted for in TESTING.md —
+40 need a session, 2 want a second provider, 2 trip over state the run itself
+left. Without `PW_TARGET=real` the suite serves its own mocked build on 4300 and
+measures nothing; without `-Fresh` the number drifts.
+
+Flipping `environment.development.ts` is how you point the *dev loop* at the real
+API, and leaving it flipped is harmless — `verify` is pinned to the mocks by port
+and by configuration. It is a working file rather than something to commit.
 
 ---
 
