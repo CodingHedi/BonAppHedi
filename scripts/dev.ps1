@@ -24,15 +24,24 @@
     Deletes the SQLite database first, so the next start re-runs every migration
     from empty. The database is a single file; this is the whole reset story.
 
+.PARAMETER Open
+    Opens http://localhost:4200 in the default browser once it actually answers.
+
+    The wait is the point. The Angular dev server holds the port open while it is
+    still compiling, so opening the moment the process starts shows a connection
+    error on a first run and needs a manual reload. What start.bat passes.
+
 .EXAMPLE
     .\scripts\dev.ps1
     .\scripts\dev.ps1 -Mocks
     .\scripts\dev.ps1 -Fresh
+    .\scripts\dev.ps1 -Open
 #>
 [CmdletBinding()]
 param(
     [switch]$Mocks,
-    [switch]$Fresh
+    [switch]$Fresh,
+    [switch]$Open
 )
 
 $ErrorActionPreference = 'Stop'
@@ -78,13 +87,42 @@ function Assert-PortFree {
     throw "Port $Port is already in use by $name, which is where $Who goes. Stop it and try again."
 }
 
+<#
+    Whether something is serving this URL.
+
+    Any answer counts, including 401 and 404: those are a server talking, and
+    what is being asked is "is the port served yet", not "does this endpoint
+    exist". Only a refused connection or a timeout means not yet.
+#>
+function Test-Serving {
+    param([string]$Uri)
+
+    try {
+        Invoke-WebRequest -Uri $Uri -UseBasicParsing -TimeoutSec 2 | Out-Null
+        return $true
+    } catch [System.Net.WebException] {
+        return $null -ne $_.Exception.Response
+    } catch {
+        return $false
+    }
+}
+
+# Each half is tracked with its name attached, so the message printed when one
+# dies says which one. In a double-clicked window that line is the whole
+# diagnosis, and "a process exited" on its own is not one.
+function Add-Half {
+    param([string]$Name, [System.Diagnostics.Process]$Process)
+
+    $script:jobs += [pscustomobject]@{ Name = $Name; Process = $Process }
+}
+
 function Stop-Everything {
     foreach ($job in $script:jobs) {
-        if ($job -and -not $job.HasExited) {
+        if ($job -and -not $job.Process.HasExited) {
             # Kill the whole tree: `npm` and `mvnw` are launchers, and killing
             # only the launcher orphans the Node and JVM processes holding :4200
             # and :8080, which then block the next run.
-            taskkill /PID $job.Id /T /F 2>$null | Out-Null
+            taskkill /PID $job.Process.Id /T /F 2>$null | Out-Null
         }
     }
 }
@@ -124,25 +162,13 @@ try {
 
         Write-Host 'Starting the backend on :8080 ...' -ForegroundColor Cyan
         $mvnw = Join-Path $backend 'mvnw.cmd'
-        $jobs += Start-Process -FilePath $mvnw -ArgumentList 'spring-boot:run' `
-            -WorkingDirectory $backend -NoNewWindow -PassThru
+        Add-Half -Name 'backend' -Process (Start-Process -FilePath $mvnw -ArgumentList 'spring-boot:run' `
+                -WorkingDirectory $backend -NoNewWindow -PassThru)
 
         $deadline = (Get-Date).AddSeconds(120)
         do {
             Start-Sleep -Milliseconds 700
-            $up = $false
-            try {
-                # Any answer means the port is served. A 401 or a 404 is still
-                # the backend talking, so success here is "it responded", not
-                # "it responded 200".
-                Invoke-WebRequest -Uri 'http://localhost:8080/api/auth/providers' `
-                    -UseBasicParsing -TimeoutSec 2 | Out-Null
-                $up = $true
-            } catch [System.Net.WebException] {
-                $up = $null -ne $_.Exception.Response
-            } catch {
-                $up = $false
-            }
+            $up = Test-Serving -Uri 'http://localhost:8080/api/auth/providers'
         } while (-not $up -and (Get-Date) -lt $deadline)
 
         if (-not $up) { throw 'The backend did not come up within 120s.' }
@@ -155,16 +181,39 @@ try {
     Write-Host 'Starting the frontend on :4200 ...' -ForegroundColor Cyan
     Write-Host 'Ctrl+C stops both.' -ForegroundColor DarkGray
 
-    $jobs += Start-Process -FilePath $npm -ArgumentList 'start' `
-        -WorkingDirectory $frontend -NoNewWindow -PassThru
+    Add-Half -Name 'frontend' -Process (Start-Process -FilePath $npm -ArgumentList 'start' `
+            -WorkingDirectory $frontend -NoNewWindow -PassThru)
+
+    # Polled from inside the watch loop below rather than in a wait of its own,
+    # so a frontend that dies while compiling still tears the backend down
+    # instead of leaving this script blocked on a page that will never load.
+    $pending = $Open
+    $openBy = (Get-Date).AddSeconds(180)
 
     # Block here until a child dies or the user interrupts.
     while ($true) {
         Start-Sleep -Seconds 1
         foreach ($job in $jobs) {
-            if ($job.HasExited) {
-                Write-Host "A process exited (code $($job.ExitCode)); shutting the other down." -ForegroundColor Red
+            if ($job.Process.HasExited) {
+                # ExitCode comes back empty when the launcher was killed from
+                # outside rather than exiting on its own - which is exactly what
+                # stop.bat does - so it is only mentioned when there is one.
+                $code = $job.Process.ExitCode
+                $detail = if ($null -ne $code -and $code -ne 0) { " (exit code $code)" } else { '' }
+                Write-Host "The $($job.Name) stopped$detail; shutting the rest down." -ForegroundColor Red
                 return
+            }
+        }
+
+        if ($pending) {
+            if (Test-Serving -Uri 'http://localhost:4200') {
+                Write-Host 'Opening http://localhost:4200 ...' -ForegroundColor Cyan
+                Start-Process 'http://localhost:4200'
+                $pending = $false
+            }
+            elseif ((Get-Date) -gt $openBy) {
+                Write-Host 'The frontend has not answered yet; open http://localhost:4200 yourself when it does.' -ForegroundColor Yellow
+                $pending = $false
             }
         }
     }

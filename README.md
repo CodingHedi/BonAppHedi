@@ -51,6 +51,13 @@ It waits for the backend to answer before starting the frontend, so the first
 page load never races a JVM that is still coming up, and Ctrl+C stops both. If
 either port is already taken it says so up front rather than half-starting.
 
+Or double-click **`start.bat`** in the repo root, which runs the same script and
+opens the browser once the frontend has finished compiling. It takes the same
+arguments (`start.bat -Fresh`). **`stop.bat`** is the way out when Ctrl+C could
+not run — a window closed with the X button, or a leftover from a session you no
+longer have a terminal for; it finds the servers by asking who holds :4200 and
+:8080, and leaves anything that is not node or java alone.
+
 The frontend proxies `/api`, `/oauth2`, `/login`, `/logout` and `/media` to
 `:8080` (`frontend/proxy.conf.json`).
 

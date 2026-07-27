@@ -108,6 +108,8 @@ reuses it (`reuseExistingServer`), so specs need no server started by hand;
 `npm start` will simply fail with "port already in use", which is harmless.
 `scripts/dev.ps1` refuses to start at all when either port is taken, which is
 usually a leftover server rather than anything wrong with the code.
+`.\stop.bat` clears one: it finds the servers by asking who is listening on
+:4200 and :8080, and refuses to kill anything that is not node or java.
 
 **Maven is not installed, by design.** Use the committed wrapper — it downloads
 what it needs on first run:
