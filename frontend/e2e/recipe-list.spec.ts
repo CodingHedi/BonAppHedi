@@ -126,6 +126,37 @@ test.describe('recipe list', () => {
     await expect(page.locator('bah-recipe-card h3').first()).toHaveText('Pain au levain');
   });
 
+  test('the header magnifier reaches the search box from another page', async ({ page }) => {
+    // It was a labelled button that did nothing, on every page, since the
+    // prototype was transcribed.
+    await page.goto('/fr/recettes/babka-au-chocolat');
+    await page.getByRole('button', { name: 'Rechercher' }).click();
+
+    await expect(page).toHaveURL(/\/fr$/);
+    await expect(page.getByRole('searchbox')).toBeFocused();
+  });
+
+  test('and focuses the box when already on the list', async ({ page }) => {
+    await page.getByRole('button', { name: 'Rechercher' }).click();
+    await expect(page.getByRole('searchbox')).toBeFocused();
+  });
+
+  test('the focus request does not linger for the next visit', async ({ page }) => {
+    // A flag left standing would mean that arriving at the home page — at any
+    // point after the magnifier had ever been pressed — moved the cursor into
+    // the search box unasked, which steals the keyboard from someone who came
+    // to read.
+    await page.getByRole('button', { name: 'Rechercher' }).click();
+    await expect(page.getByRole('searchbox')).toBeFocused();
+
+    await page.locator('bah-recipe-card').first().click();
+    await expect(page).toHaveURL(/\/fr\/recettes\//);
+
+    await page.goBack();
+    await expect(page.locator('bah-recipe-card').first()).toBeVisible();
+    await expect(page.getByRole('searchbox')).not.toBeFocused();
+  });
+
   test('sort order flips the grid', async ({ page }) => {
     const titles = () => page.locator('bah-recipe-card h3');
 
