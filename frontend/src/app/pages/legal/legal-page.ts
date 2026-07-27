@@ -11,7 +11,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   selector: 'bah-legal-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="prose">
+    <section class="container prose">
       <h1>Mentions légales</h1>
       <p>À compléter avant la mise en ligne.</p>
     </section>

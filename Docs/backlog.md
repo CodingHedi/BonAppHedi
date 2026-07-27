@@ -33,6 +33,22 @@ systematically, so a new endpoint added without a rule would not fail anything.
 
 ---
 
+## Commenter avatars are fetched from the identity provider
+
+Found while writing the privacy policy, which is the point of writing one:
+`comment.avatar_url` holds whatever URL Google returned, and the page renders it
+directly. So opening a recipe with signed comments makes the visitor's browser
+request `lh3.googleusercontent.com`, disclosing their address to Google.
+
+That is precisely the request the YouTube facade, the self-hosted fonts and the
+plain-link share bar all exist to prevent. It is the one place the site does the
+thing it is otherwise built not to do, and the privacy page now has to admit it.
+
+Two ways out, neither large: fetch the picture once at sign-in and store it
+locally, or drop remote avatars and use the initial-in-a-tint placeholder the
+component already falls back to. The first keeps the design, the second is a
+handful of lines. Worth deciding before the site is public.
+
 ## scripts/verify.ps1
 
 `TESTING.md` referred to it for months; it has never existed. The two halves are

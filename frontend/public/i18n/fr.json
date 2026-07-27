@@ -15,7 +15,9 @@
     "home": "Accueil"
   },
   "footer": {
-    "copyright": "© {{year}}"
+    "copyright": "© {{year}}",
+    "legal": "Mentions légales",
+    "privacy": "Confidentialité"
   },
   "list": {
     "heading": "Toutes les recettes",
@@ -151,6 +153,39 @@
     "statReactions": "Réactions",
     "topRated": "Les mieux notées",
     "noRatingsYet": "Aucune recette n'a encore été notée."
+  },
+  "privacy": {
+    "title": "Confidentialité",
+    "updated": "Dernière mise à jour : 27 juillet 2026",
+    "lead": "Ce site est un carnet de recettes personnel. Il n'y a ni publicité, ni traqueur, ni mesure d'audience, et rien n'est transmis à un tiers. Cette page décrit exactement ce qui est enregistré, à quel moment, et pourquoi.",
+    "nothingTitle": "Ce que ce site ne fait pas",
+    "nothingAnalytics": "Aucune mesure d'audience : ni Google Analytics, ni Matomo, ni équivalent. Les visites ne sont pas comptées.",
+    "nothingAds": "Aucune publicité, aucun profilage, aucune revente ni aucun partage de données.",
+    "nothingWidgets": "Aucun widget de réseau social. Les boutons de partage sont de simples liens : rien n'est chargé depuis Facebook, X, Pinterest ou WhatsApp tant que vous ne cliquez pas.",
+    "nothingFonts": "Les polices de caractères sont hébergées ici et non sur un CDN, donc votre adresse IP n'est pas communiquée à Google au chargement de la page.",
+    "readingTitle": "Lire une recette",
+    "readingBody": "Rien n'est enregistré et aucun cookie n'est déposé. Tant que vous vous contentez de lire, ce site ne sait rien de vous.",
+    "ratingTitle": "Noter une recette ou y réagir",
+    "ratingCookie": "Au premier vote, et pas avant, un cookie « bah-visitor » est déposé. Il contient un identifiant aléatoire sans rapport avec votre identité, valable un an. Il ne sert qu'à une chose : que votre note reste la vôtre, et qu'une même personne ne note pas deux fois la même recette.",
+    "ratingFingerprint": "Un cookie s'efface d'une touche. Pour limiter le bourrage d'urnes, une empreinte est calculée à partir de votre adresse IP et de votre navigateur (HMAC-SHA256 sous une clé secrète). L'adresse IP elle-même n'est jamais enregistrée, l'empreinte n'est pas réversible, et personne ne peut la recalculer sans la clé.",
+    "ratingConsent": "Ce cookie est strictement fonctionnel : il ne vous suit pas d'un site à l'autre et ne sert à aucune mesure. C'est pour cela que ce site n'affiche pas de bandeau de consentement — il n'a rien à vous faire accepter.",
+    "commentTitle": "Laisser un commentaire",
+    "commentIdentity": "Commenter demande de s'identifier auprès d'un fournisseur. Sont alors enregistrés votre nom d'affichage, votre adresse e-mail, l'identifiant de votre compte chez ce fournisseur et l'adresse de votre photo de profil.",
+    "commentEmail": "L'adresse e-mail sert à reconnaître votre compte d'une visite à l'autre et à vérifier s'il s'agit d'un administrateur du site. Elle n'est jamais affichée publiquement et ne sert jamais à vous écrire.",
+    "commentPublic": "Sont visibles de tous : votre nom d'affichage, votre photo et le texte de votre commentaire.",
+    "commentAvatar": "La photo reste hébergée chez votre fournisseur : l'afficher sous un commentaire suppose donc une requête de votre navigateur vers ses serveurs.",
+    "commentCookies": "Deux cookies accompagnent la session. « SESSION » vous garde identifié pendant trente jours et n'est pas lisible par le code de la page. « XSRF-TOKEN » protège vos envois contre les requêtes forgées depuis un autre site.",
+    "videoTitle": "Les vidéos",
+    "videoBody": "Aucune requête n'est envoyée à YouTube tant que vous n'avez pas appuyé sur Lire : l'image affichée avant le clic est hébergée ici. Au clic, le lecteur est chargé depuis youtube-nocookie.com, et ce sont alors les règles de Google qui s'appliquent.",
+    "localTitle": "Vos préférences d'affichage",
+    "localBody": "Le thème clair ou sombre et la langue choisie sont conservés dans votre navigateur, sous « bah-organic-theme » et « bah-locale ». Ils ne sont jamais envoyés au serveur.",
+    "storageTitle": "Où sont les données",
+    "storageBody": "Tout est stocké dans une seule base de données, sur le serveur qui héberge ce site. L'hébergeur est indiqué dans les mentions légales. Rien n'est copié ailleurs et aucun sous-traitant n'y a accès.",
+    "storageRetention": "Les notes et les réactions sont conservées tant que la recette existe. Les commentaires le sont jusqu'à ce que vous les supprimiez.",
+    "rightsTitle": "Vos droits",
+    "rightsBody": "Vous pouvez supprimer vous-même vos commentaires, depuis la recette où vous les avez publiés. Effacer les cookies de votre navigateur suffit à détacher de vous les notes déjà données.",
+    "rightsContact": "Pour toute demande d'accès, de rectification ou d'effacement, écrivez à l'adresse indiquée dans les mentions légales.",
+    "rightsLink": "Mentions légales"
   },
   "units": {
     "g": "g",

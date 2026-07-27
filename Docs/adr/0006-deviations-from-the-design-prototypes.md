@@ -87,6 +87,19 @@ never asked to read a recipe. That is precisely what the YouTube facade above it
 exists to prevent, and a share button is a far weaker reason to give it up than a
 video is.
 
+### Added: the legal notices in the footer
+
+The prototype's footer holds a tagline and `© 2026` and nothing else. It now also
+links to the mentions légales and the privacy policy.
+
+Not a design preference. Both notices are legally required of a French site, and
+a notice reachable only by typing its URL is not published in any sense that
+counts — which is exactly what they were, routed since milestone 1 with nothing
+anywhere on the site pointing at them.
+
+The footer is the conventional place and the only one that appears on every
+page. The prototype simply predates there being anything to link to.
+
 ### Added: a fourth header control
 
 The header gains a language switcher alongside search, account and theme. It
