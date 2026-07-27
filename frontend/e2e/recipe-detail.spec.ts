@@ -17,6 +17,32 @@ test.describe('recipe detail', () => {
     await expect(page.locator('bah-ingredient-panel li')).toHaveCount(7);
   });
 
+  test('rendered markdown is actually styled, not just present', async ({ page }) => {
+    // Measured, because this is the failure mode this suite is worst at. The
+    // markdown component injects its HTML with [innerHTML], so Angular's
+    // emulated encapsulation never stamps those elements — and every `.prose *`
+    // rule, which lived in that component, compiled to a selector matching
+    // nothing. Blockquotes had no bar, headings were browser-default sizes,
+    // inline code had no background. Every existing assertion about markdown
+    // checks that an element exists, and all of them passed throughout.
+    await page.goto(BABKA);
+
+    const body = page.locator('bah-markdown .prose').first();
+    await expect(body.locator('p').first()).toBeVisible();
+
+    // The last block of prose carries no trailing margin, which is a rule only
+    // this stylesheet has — the browser default is 1em, so an unstyled
+    // paragraph reads as a number rather than as zero. Asserted on the last
+    // child because that is the one rule whose correct value cannot be reached
+    // by accident.
+    const trailing = await body
+      .locator('p')
+      .last()
+      .evaluate((node) => getComputedStyle(node).marginBottom);
+
+    expect(trailing, 'prose is falling back to browser default spacing').toBe('0px');
+  });
+
   test('quick facts show prep, cook and difficulty', async ({ page }) => {
     await page.goto(BABKA);
 
