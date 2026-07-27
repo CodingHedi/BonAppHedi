@@ -3,11 +3,12 @@ import {
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
   input,
   model,
+  signal,
   viewChild,
-  type ElementRef,
 } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { IconComponent } from '../../../core/icons/icon';
@@ -21,20 +22,27 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
  * filtering. With a personal blog's worth of recipes, filtering in the browser
  * is instant and avoids a round trip per keystroke.
  *
- * Tags are chips rather than the prototype's third `<select>`, because they are
- * the one filter that is genuinely multiple: "vegetarian *and* dessert" is an
- * ordinary thing to want, and a single-select cannot express it. Chips also make
- * every active tag visible at once and removable on its own, which a
- * multi-select listbox does neither of.
+ * Tags keep the prototype's dropdown shape but hold a list of checkboxes rather
+ * than one choice, because they are the one filter that is genuinely multiple:
+ * "vegetarian *and* dessert" is an ordinary thing to want and a single-select
+ * cannot express it. The trade a dropdown makes is that the active tags are not
+ * visible while it is shut, which is why the trigger carries a count.
  *
- * Everything clears two ways, deliberately: each control on its own, and all of
- * them together. Only offering "clear all" makes removing one tag a matter of
- * rebuilding the whole query.
+ * Everything clears two ways, deliberately: each control on its own — the x in
+ * the search box, a checkbox unticked — and all of them together. Only offering
+ * "clear all" makes removing one tag a matter of rebuilding the whole query.
  */
 @Component({
   selector: 'bah-filter-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent, TranslocoPipe],
+  host: {
+    // Closing on an outside press and on Escape are what make a dropdown feel
+    // like one. Bound on the document because the press that should close it is
+    // by definition not on this component.
+    '(document:pointerdown)': 'onDocumentPress($event)',
+    '(document:keydown.escape)': 'closeTagMenu(true)',
+  },
   template: `
     <section class="filters">
       <div class="search">
@@ -60,30 +68,6 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
         }
       </div>
 
-      <!--
-        A group rather than a listbox: each chip is an independent on/off, and
-        aria-pressed says so on the control itself. Screen readers then announce
-        the state without the visitor having to open anything.
-      -->
-      @if (tags().length) {
-        <div class="tag-row" role="group" [attr.aria-label]="'list.filterByTag' | transloco">
-          @for (item of tags(); track item.slug) {
-            <button
-              type="button"
-              class="tag tag--{{ item.colorVariant }} chip"
-              [class.on]="isSelected(item.slug)"
-              [attr.aria-pressed]="isSelected(item.slug)"
-              (click)="toggleTag(item.slug)"
-            >
-              {{ item.label }}
-              @if (isSelected(item.slug)) {
-                <bah-icon name="x" [size]="11" />
-              }
-            </button>
-          }
-        </div>
-      }
-
       <div class="selects">
         <label class="select-wrap">
           <span class="visually-hidden">{{ 'list.filterByAuthor' | transloco }}</span>
@@ -94,6 +78,56 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
             }
           </select>
         </label>
+
+        @if (tags().length) {
+          <!--
+            A disclosure button over a list of real checkboxes, rather than the
+            listbox pattern. Native checkboxes bring their own keyboard handling,
+            their own announcement of checked state, and their own behaviour on
+            a touch screen; the listbox pattern would mean reimplementing all
+            three by hand and getting one of them subtly wrong.
+          -->
+          <div class="tag-filter">
+            <button
+              #tagTrigger
+              type="button"
+              class="input trigger"
+              [attr.aria-expanded]="tagsOpen()"
+              [attr.aria-label]="'list.filterByTag' | transloco"
+              (click)="toggleTagMenu()"
+            >
+              <span>
+                {{ 'list.filterByTag' | transloco }}
+                @if (selectedTags().length) {
+                  <span class="count-badge">{{ selectedTags().length }}</span>
+                }
+              </span>
+              <bah-icon name="chevron-down" [size]="15" />
+            </button>
+
+            @if (tagsOpen()) {
+              <!--
+                A real <ul>, so it is announced as a list of four rather than as
+                four loose controls, and the count on the trigger says how many
+                are on without the list having to be opened to find out.
+              -->
+              <ul class="tag-menu card elev-sm" [attr.aria-label]="'list.filterByTag' | transloco">
+                @for (item of tags(); track item.slug) {
+                  <li>
+                    <label class="tag-option">
+                      <input
+                        type="checkbox"
+                        [checked]="isSelected(item.slug)"
+                        (change)="toggleTag(item.slug)"
+                      />
+                      <span class="tag tag--{{ item.colorVariant }}">{{ item.label }}</span>
+                    </label>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
 
         <label class="select-wrap">
           <span class="visually-hidden">{{ 'list.filterByDate' | transloco }}</span>
@@ -110,7 +144,7 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
           always been there.
         -->
         @if (anyActive()) {
-          <button type="button" class="btn btn-secondary clear-all" (click)="clearAll()">
+          <button type="button" class="btn clear-all" (click)="clearAll()">
             <bah-icon name="x" [size]="14" />
             {{ 'list.clearAll' | transloco }}
           </button>
@@ -173,52 +207,126 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
       background: color-mix(in srgb, var(--color-text) 10%, transparent);
     }
 
-    .tag-row {
+    /* A row rather than a grid of equal columns, so the clear button can sit at
+       its own width instead of being stretched to match a dropdown. */
+    .selects {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .chip {
-      gap: 5px;
-      border: 1px solid transparent;
-      cursor: pointer;
-      font-family: var(--font-body);
-      /* The tag palette is a tint, so unselected chips read as quiet until one
-         is chosen and the others recede further. */
-      opacity: 0.75;
-    }
-
-    .chip:hover {
-      opacity: 1;
-    }
-
-    .chip.on {
-      opacity: 1;
-      border-color: currentColor;
-    }
-
-    .chip:focus-visible {
-      outline: 2px solid var(--color-accent);
-      outline-offset: 2px;
-    }
-
-    .selects {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 12px;
+    }
+
+    .select-wrap,
+    .tag-filter {
+      flex: 1 1 180px;
+      min-width: 180px;
     }
 
     .select-wrap {
       display: block;
     }
 
+    .tag-filter {
+      position: relative;
+    }
+
+    .trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      text-align: left;
+      font-weight: 400;
+    }
+
+    .trigger bah-icon {
+      opacity: 0.55;
+      flex: none;
+    }
+
+    .count-badge {
+      display: inline-grid;
+      place-items: center;
+      min-width: 18px;
+      height: 18px;
+      margin-left: 6px;
+      padding: 0 5px;
+      border-radius: var(--radius-pill);
+      background: var(--color-accent-2);
+      color: var(--on-photo);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .tag-menu {
+      position: absolute;
+      z-index: 20;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      margin: 0;
+      padding: 8px;
+      list-style: none;
+      display: grid;
+      gap: 2px;
+    }
+
+    .tag-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 8px;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+    }
+
+    .tag-option:hover {
+      background: color-mix(in srgb, var(--color-text) 6%, transparent);
+    }
+
+    .tag-option input {
+      accent-color: var(--color-accent-2);
+      width: 15px;
+      height: 15px;
+      flex: none;
+      cursor: pointer;
+    }
+
+    /* Teal rather than the neutral secondary, so the one control that undoes
+       everything is not the same shape and colour as the ones that set it. The
+       palette's second accent, not a new colour: red would be the convention
+       for something destructive, and this deletes nothing. */
     .clear-all {
+      flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
       gap: 7px;
+      padding: 9px 16px;
+      font-size: 13px;
       white-space: nowrap;
+      color: var(--color-accent-2);
+      background: transparent;
+      border-color: color-mix(in srgb, var(--color-accent-2) 45%, transparent);
+    }
+
+    .clear-all:hover {
+      background: var(--color-accent-2);
+      border-color: var(--color-accent-2);
+      color: var(--on-photo);
+    }
+
+    :host-context([data-theme='dark']) .clear-all {
+      /* accent-2-500 on #241f1a is too dark to read; the ramp's lighter end is
+         what carries on the dark surface, exactly as the avatar discs do. */
+      color: var(--color-accent-2-300);
+      border-color: color-mix(in srgb, var(--color-accent-2-300) 40%, transparent);
+    }
+
+    :host-context([data-theme='dark']) .clear-all:hover {
+      background: var(--color-accent-2-300);
+      border-color: var(--color-accent-2-300);
+      color: var(--color-accent-2-900);
     }
   `,
 })
@@ -238,7 +346,11 @@ export class FilterBarComponent {
     () => this.query().length > 0 || this.author() !== null || this.selectedTags().length > 0,
   );
 
+  protected readonly tagsOpen = signal(false);
+
   private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
+  private readonly tagTrigger = viewChild<ElementRef<HTMLButtonElement>>('tagTrigger');
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   constructor() {
     // Serves a request left by the header's magnifier, whether it was made on
@@ -257,6 +369,28 @@ export class FilterBarComponent {
       field.scrollIntoView({ block: 'center' });
       field.focus({ preventScroll: true });
     });
+  }
+
+  protected toggleTagMenu(): void {
+    this.tagsOpen.update((open) => !open);
+  }
+
+  /**
+   * `restoreFocus` is true for Escape and false for an outside press: dismissing
+   * with the keyboard has to put the cursor back on the trigger, or focus is
+   * left on an element that no longer exists and the next Tab starts from the
+   * top of the document. A press has already moved focus wherever it was aimed.
+   */
+  protected closeTagMenu(restoreFocus = false): void {
+    if (!this.tagsOpen()) return;
+
+    this.tagsOpen.set(false);
+    if (restoreFocus) this.tagTrigger()?.nativeElement.focus();
+  }
+
+  protected onDocumentPress(event: Event): void {
+    if (!this.tagsOpen()) return;
+    if (!this.host.nativeElement.contains(event.target as Node)) this.closeTagMenu();
   }
 
   protected isSelected(slug: string): boolean {

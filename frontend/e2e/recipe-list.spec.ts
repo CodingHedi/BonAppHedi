@@ -1,4 +1,18 @@
 import { expect, test } from './fixtures';
+// The type only — the `test` runtime always comes from the fixture.
+import type { Page } from '@playwright/test';
+
+/** Opens the tag dropdown, unless it is already open. */
+async function openTags(page: Page) {
+  const trigger = page.getByRole('button', { name: 'Trier par tags' });
+  if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click();
+}
+
+/** Ticks or unticks one tag, opening the dropdown first if it is shut. */
+async function toggleTag(page: Page, label: string) {
+  await openTags(page);
+  await page.getByRole('checkbox', { name: label }).click();
+}
 
 test.describe('recipe list', () => {
   test.beforeEach(async ({ page }) => {
@@ -58,32 +72,56 @@ test.describe('recipe list', () => {
   });
 
   test('tags narrow the grid, and combine', async ({ page }) => {
-    const dessert = page.getByRole('button', { name: 'dessert' });
-    await dessert.click();
-    await expect(dessert).toHaveAttribute('aria-pressed', 'true');
+    await toggleTag(page, 'dessert');
+    await expect(page.getByRole('checkbox', { name: 'dessert' })).toBeChecked();
     await expect(page.locator('bah-recipe-card')).toHaveCount(2);
 
     // A second tag narrows further rather than adding to the results: picking
     // two filters asks for both, and a filter that grows the grid reads as
     // broken.
-    await page.getByRole('button', { name: 'chocolat' }).click();
+    await toggleTag(page, 'chocolat');
     await expect(page.locator('bah-recipe-card')).toHaveCount(1);
     // Scoped to the grid: the carousel carries the same title above it.
     await expect(page.locator('bah-recipe-card h3')).toHaveText('Babka au chocolat');
   });
 
+  test('the trigger counts what is on, so a shut list still says so', async ({ page }) => {
+    // The one thing a dropdown costs over chips is that the active tags are
+    // invisible while it is closed. The count is what buys that back.
+    const trigger = page.getByRole('button', { name: 'Trier par tags' });
+    await expect(trigger).not.toContainText('1');
+
+    await toggleTag(page, 'dessert');
+    await page.keyboard.press('Escape');
+
+    await expect(page.getByRole('checkbox', { name: 'dessert' })).toHaveCount(0);
+    await expect(trigger).toContainText('1');
+  });
+
   test('a tag is removed on its own, without rebuilding the query', async ({ page }) => {
-    await page.getByRole('button', { name: 'dessert' }).click();
-    await page.getByRole('button', { name: 'chocolat' }).click();
+    await toggleTag(page, 'dessert');
+    await toggleTag(page, 'chocolat');
     await expect(page.locator('bah-recipe-card')).toHaveCount(1);
 
-    // Pressing it again lets go of that one tag and keeps the rest.
-    await page.getByRole('button', { name: 'chocolat' }).click();
+    // Unticking one lets go of that tag and keeps the rest.
+    await toggleTag(page, 'chocolat');
     await expect(page.locator('bah-recipe-card')).toHaveCount(2);
-    await expect(page.getByRole('button', { name: 'dessert' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    await expect(page.getByRole('checkbox', { name: 'dessert' })).toBeChecked();
+  });
+
+  test('the tag list closes on Escape and on a press outside it', async ({ page }) => {
+    await openTags(page);
+    await expect(page.getByRole('checkbox', { name: 'dessert' })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('checkbox', { name: 'dessert' })).toHaveCount(0);
+    // Escape has to hand focus back, or the next Tab starts from the top of the
+    // document because the element it was on has gone.
+    await expect(page.getByRole('button', { name: 'Trier par tags' })).toBeFocused();
+
+    await openTags(page);
+    await page.locator('h2').first().click();
+    await expect(page.getByRole('checkbox', { name: 'dessert' })).toHaveCount(0);
   });
 
   test('the search box clears on its own', async ({ page }) => {
@@ -101,15 +139,13 @@ test.describe('recipe list', () => {
     await expect(clearAll).toHaveCount(0);
 
     await page.getByRole('searchbox').fill('babka');
-    await page.getByRole('button', { name: 'dessert' }).click();
+    await toggleTag(page, 'dessert');
+    await page.keyboard.press('Escape');
     await expect(clearAll).toBeVisible();
 
     await clearAll.click();
     await expect(page.getByRole('searchbox')).toHaveValue('');
-    await expect(page.getByRole('button', { name: 'dessert' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
+    await expect(page.getByRole('button', { name: 'Trier par tags' })).not.toContainText('1');
     await expect(page.locator('bah-recipe-card')).toHaveCount(5);
     await expect(clearAll).toHaveCount(0);
   });
