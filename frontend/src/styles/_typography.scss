@@ -30,3 +30,82 @@ strong {
   background: var(--color-accent-200);
   color: var(--color-accent-900);
 }
+
+// --- Rendered markdown --------------------------------------------------------
+//
+// Recipe bodies, comments, and both live previews. Global rather than scoped to
+// `bah-markdown`, and that is the whole point rather than a matter of taste.
+//
+// The component injects HTML with `[innerHTML]`, and Angular's emulated
+// encapsulation only stamps its `_ngcontent-*` attribute on elements the
+// template creates. Injected markup carries no such attribute, so a scoped rule
+// compiled to `.prose blockquote[_ngcontent-x]` matches nothing. Every rule here
+// lived in that component and none of them had ever applied: blockquotes had no
+// left bar, headings sat at browser default sizes, inline code had no
+// background, and paragraph spacing was whatever the user agent chose.
+//
+// The alternatives are ::ng-deep, which is deprecated and pierces encapsulation
+// anyway, or ViewEncapsulation.None, which leaks every rule in the component
+// globally with none of the intent visible. Putting content styles in the
+// content stylesheet says what is meant.
+.prose {
+  :first-child {
+    margin-top: 0;
+  }
+
+  :last-child {
+    margin-bottom: 0;
+  }
+
+  p {
+    margin: 0 0 0.9em;
+  }
+
+  h2,
+  h3,
+  h4 {
+    margin: 1.4em 0 0.5em;
+  }
+
+  h2 {
+    font-size: 1.25em;
+  }
+
+  h3 {
+    font-size: 1.1em;
+  }
+
+  ul,
+  ol {
+    margin: 0 0 0.9em;
+    // The reset zeroes list padding site-wide, because most lists here are
+    // layout — steps, ingredients, nav. Prose is the exception where a list is
+    // a list, so the indent comes back and `revert` undoes any component that
+    // has taken the markers away.
+    padding-left: 1.3em;
+    list-style: revert;
+  }
+
+  li {
+    margin-bottom: 0.3em;
+  }
+
+  blockquote {
+    margin: 0 0 0.9em;
+    padding-left: 14px;
+    border-left: 2px solid var(--color-accent-300);
+    opacity: 0.85;
+  }
+
+  code {
+    font-size: 0.9em;
+    background: color-mix(in srgb, var(--color-text) 8%, transparent);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+  }
+
+  img {
+    max-width: 100%;
+    border-radius: var(--radius-lg);
+  }
+}

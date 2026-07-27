@@ -23,66 +23,19 @@ import { marked } from 'marked';
   selector: 'bah-markdown',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<div class="prose" [innerHTML]="rendered()"></div>`,
+  /*
+   * Only the wrapper is styled here, because only the wrapper exists in this
+   * template. Everything inside it arrives through [innerHTML] and therefore
+   * carries no `_ngcontent-*` attribute, so a scoped rule for it compiles to a
+   * selector that matches nothing — which is exactly what happened: the whole
+   * `.prose *` block lived here and had never once applied.
+   *
+   * The rules for the rendered markup are in `styles/_typography.scss`.
+   */
   styles: `
     .prose {
       font-size: inherit;
       line-height: inherit;
-    }
-
-    .prose :first-child {
-      margin-top: 0;
-    }
-
-    .prose :last-child {
-      margin-bottom: 0;
-    }
-
-    .prose p {
-      margin: 0 0 0.9em;
-    }
-
-    .prose h2,
-    .prose h3,
-    .prose h4 {
-      margin: 1.4em 0 0.5em;
-    }
-
-    .prose h2 {
-      font-size: 1.25em;
-    }
-
-    .prose h3 {
-      font-size: 1.1em;
-    }
-
-    .prose ul,
-    .prose ol {
-      margin: 0 0 0.9em;
-      padding-left: 1.3em;
-      list-style: revert;
-    }
-
-    .prose li {
-      margin-bottom: 0.3em;
-    }
-
-    .prose blockquote {
-      margin: 0 0 0.9em;
-      padding-left: 14px;
-      border-left: 2px solid var(--color-accent-300);
-      opacity: 0.85;
-    }
-
-    .prose code {
-      font-size: 0.9em;
-      background: color-mix(in srgb, var(--color-text) 8%, transparent);
-      padding: 0.1em 0.35em;
-      border-radius: 4px;
-    }
-
-    .prose img {
-      max-width: 100%;
-      border-radius: var(--radius-lg);
     }
   `,
 })

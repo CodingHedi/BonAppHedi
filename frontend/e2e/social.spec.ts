@@ -201,6 +201,29 @@ test.describe('comments', () => {
     await expect(editor).toHaveValue('Une recette parfaite.');
   });
 
+  test('the preview styles a quote as a quote, not just as an element', async ({ page }) => {
+    // The other half of the same defect: the Preview tab is the one place a
+    // person deliberately looks at formatting before committing to it, so a
+    // blockquote rendering with no bar and browser-default indent is exactly
+    // where it would mislead.
+    await page.goto(BABKA);
+    await signIn(page);
+
+    await page.locator('bah-comment-section textarea').fill('> une citation');
+    await page.getByRole('tab', { name: 'Aperçu' }).click();
+
+    const quote = page.locator('bah-comment-section .preview blockquote');
+    await expect(quote).toBeVisible();
+
+    const style = await quote.evaluate((node) => {
+      const computed = getComputedStyle(node);
+      return { border: computed.borderLeftWidth, padding: computed.paddingLeft };
+    });
+
+    expect(style.border, 'the blockquote has no accent bar').toBe('2px');
+    expect(style.padding, 'the blockquote is not indented by its own rule').toBe('14px');
+  });
+
   test('the formatting toolbar is one tab stop, with arrow keys inside it', async ({ page }) => {
     // Six separate tab stops in front of the textarea would make reaching the
     // box slower for every keyboard user in order to help nobody.
