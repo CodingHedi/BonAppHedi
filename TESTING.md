@@ -60,10 +60,13 @@ the DOM a visitor actually gets.
 - **`e2e/shell.spec.ts`** — locale redirect, language switching, theme
   persistence across reload, OS dark-mode default, 404 handling.
 - **`e2e/recipe-list.spec.ts`** — search, filtering, sorting, carousel, and
-  locale-correct slugs. Tags are toggle chips rather than a dropdown and combine
-  by narrowing, so the assertions are about `aria-pressed` and falling counts.
-  Also that the header magnifier reaches the search box, and that its focus
-  request does not linger into the next visit.
+  locale-correct slugs. Tags are a dropdown over a list of checkboxes and combine
+  by narrowing, so the assertions are about checked state and falling counts —
+  use the `toggleTag` helper at the top of the file rather than clicking, since
+  the list has to be opened first. Also that the trigger's count reports what is
+  on while the list is shut, that Escape closes it and hands focus back, that the
+  header magnifier reaches the search box, and that its focus request does not
+  linger into the next visit.
 - **`e2e/profile.spec.ts`** — the account page: the guard, the picker, saving,
   and that choosing an avatar costs no request to anyone (ADR 7).
 
