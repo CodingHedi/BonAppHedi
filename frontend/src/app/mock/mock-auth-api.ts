@@ -21,10 +21,17 @@ const CONFIGURED_PROVIDERS: readonly AuthProvider[] = [
   { id: 'facebook', label: 'Facebook' },
 ];
 
-/** Who you become on the mock. A real profile arrives from the provider in M2. */
+/**
+ * Who you become on the mock. A real profile arrives from the provider in M2.
+ *
+ * Both carry a chosen avatar token, where they used to carry `avatarUrl: null` —
+ * a provider picture is no longer part of a profile at all (ADR 7). Two
+ * different ones, because one repeated avatar in a thread would hide exactly the
+ * bug where every comment renders the signed-in visitor's choice.
+ */
 const MOCK_USERS: Record<ProviderId, AuthUser> = {
-  google: { id: 'mock-google-1', displayName: 'Hédi', avatarUrl: null, isAdmin: true },
-  facebook: { id: 'mock-facebook-1', displayName: 'Camille', avatarUrl: null, isAdmin: false },
+  google: { id: 'mock-google-1', displayName: 'Hédi', avatar: 'pot/0', isAdmin: true },
+  facebook: { id: 'mock-facebook-1', displayName: 'Camille', avatar: 'citrus/4', isAdmin: false },
 };
 
 /**

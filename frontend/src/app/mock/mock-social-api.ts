@@ -56,7 +56,7 @@ export class MockSocialApi implements SocialApi {
 
     return this.store.addComment(
       this.require(slug, locale),
-      { displayName: user.displayName, avatarUrl: user.avatarUrl },
+      { displayName: user.displayName, avatar: user.avatar },
       body,
     );
   }
