@@ -82,6 +82,14 @@ class MigrationsFromEmptyTest {
                 .single();
 
         assertThat(comment).contains("avatar_url");
+
+        // V6 does the same to app_user, and is the column an avatar is now read
+        // from (ADR 7).
+        String appUser = jdbc.sql("SELECT sql FROM sqlite_master WHERE name = 'app_user'")
+                .query(String.class)
+                .single();
+
+        assertThat(appUser).contains("avatar");
     }
 
     @Test

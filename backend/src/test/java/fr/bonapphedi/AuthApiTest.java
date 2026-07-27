@@ -7,6 +7,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -17,10 +18,12 @@ import fr.bonapphedi.auth.AppUserPrincipal;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
@@ -55,9 +58,31 @@ class AuthApiTest {
     @Autowired
     private JdbcIndexedSessionRepository sessions;
 
+    @Autowired
+    private JdbcClient jdbc;
+
     private static AppUserPrincipal signedIn(boolean admin) {
-        return new AppUserPrincipal(
-                new AppUser(7, "google", "112233", "Hédi", "hedi@example.com", null, admin));
+        return new AppUserPrincipal(new AppUser(7, "google", "112233", "Hédi", "hedi@example.com", admin));
+    }
+
+    /**
+     * The account the principal above refers to.
+     *
+     * <p>{@code oauth2Login()} invents a principal in front of the request without
+     * touching the database, which is fine for everything that only reads the
+     * session. Choosing an avatar writes to {@code app_user}, so for that the row
+     * has to exist — and it is the same gap CLAUDE.md warns about, where a test
+     * exercises real logic against wiring that is not there.
+     */
+    @BeforeEach
+    void standUpTheAccount() {
+        jdbc.sql("DELETE FROM app_user WHERE id = 7").update();
+        jdbc.sql(
+                        """
+                        INSERT INTO app_user (id, provider, provider_user_id, display_name, email, is_admin, created_at)
+                        VALUES (7, 'google', '112233', 'Hédi', 'hedi@example.com', 1, '2026-07-01T00:00:00Z')
+                        """)
+                .update();
     }
 
     // --- what stays anonymous ---------------------------------------------
@@ -163,22 +188,78 @@ class AuthApiTest {
                 // integer, so it is serialized as one rather than left to drift.
                 .andExpect(jsonPath("$.id").value("7"))
                 .andExpect(jsonPath("$.displayName").value("Hédi"))
-                .andExpect(jsonPath("$.avatarUrl").value(nullValue()))
+                // A chosen-avatar token, null until one has been chosen — never a
+                // URL, and no longer a field called avatarUrl (ADR 7).
+                .andExpect(jsonPath("$.avatar").value(nullValue()))
+                .andExpect(jsonPath("$.avatarUrl").doesNotExist())
                 .andExpect(jsonPath("$.isAdmin").value(true))
                 // The address is nobody's business but the server's; it decides
                 // admin and is never needed by the UI.
                 .andExpect(jsonPath("$.email").doesNotExist());
     }
 
-    // --- CSRF -------------------------------------------------------------
+    // --- choosing an avatar -----------------------------------------------
 
     @Test
-    void issuesTheCsrfCookieOnAnOrdinaryGet() throws Exception {
-        // Spring Security 6 defers token generation, so without the filter that
-        // forces it the cookie is never written and the SPA's first POST is
-        // rejected forever (ADR 0003). Angular reads XSRF-TOKEN by name.
-        mvc.perform(get("/api/auth/session")).andExpect(cookie().exists("XSRF-TOKEN"));
+    void storesTheAvatarTheVisitorChose() throws Exception {
+        mvc.perform(chooseAvatar("carrot/3").with(oauth2Login().oauth2User(signedIn(false))).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatar").value("carrot/3"));
+
+        // Read back through the session endpoint rather than from the row, because
+        // that is where the frontend will look for it — and because the principal
+        // in the session was built before the choice was made. If the session
+        // answered from its own copy, the avatar would appear to revert until the
+        // next sign-in.
+        mvc.perform(get("/api/auth/session").with(oauth2Login().oauth2User(signedIn(false))))
+                .andExpect(jsonPath("$.avatar").value("carrot/3"));
     }
+
+    @Test
+    void replacesAnEarlierChoiceRatherThanAccumulating() throws Exception {
+        mvc.perform(chooseAvatar("carrot/3").with(oauth2Login().oauth2User(signedIn(false))).with(csrf()))
+                .andExpect(status().isOk());
+        mvc.perform(chooseAvatar("mug/5").with(oauth2Login().oauth2User(signedIn(false))).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatar").value("mug/5"));
+    }
+
+    @Test
+    void refusesAnAvatarThatIsNotOneOfTheOnesOffered() throws Exception {
+        // The set is closed and enforced here, not in the browser. Without this the
+        // column takes any string of any length from any signed-in visitor.
+        for (String rejected : new String[] {"pineapple/2", "carrot/9", "carrot", "", "  "}) {
+            mvc.perform(chooseAvatar(rejected)
+                            .with(oauth2Login().oauth2User(signedIn(false)))
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
+    void refusesToChooseAnAvatarForAVisitorWithNoSession() throws Exception {
+        mvc.perform(chooseAvatar("carrot/3").with(csrf())).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void refusesAnAvatarChoiceThatCarriesNoCsrfToken() throws Exception {
+        mvc.perform(chooseAvatar("carrot/3").with(oauth2Login().oauth2User(signedIn(false))))
+                .andExpect(status().isForbidden());
+    }
+
+    private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder chooseAvatar(
+            String token) {
+        return put("/api/auth/avatar")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"avatar\":\"" + token + "\"}");
+    }
+
+    // --- CSRF -------------------------------------------------------------
+
+    // That XSRF-TOKEN is written at all is asserted in CsrfCookieTest, which
+    // exists because it cannot be asserted here: `csrf()` below replaces the
+    // token repository for the whole servlet context, so any such assertion in
+    // this class passes or fails on JUnit's method order.
 
     @Test
     void refusesAWriteThatCarriesNoCsrfToken() throws Exception {

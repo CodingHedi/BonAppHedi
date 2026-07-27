@@ -64,11 +64,11 @@ class AdminApiTest {
     }
 
     private static AppUserPrincipal admin() {
-        return new AppUserPrincipal(new AppUser(1, "google", "g-1", "Hédi", "hedi@example.com", null, true));
+        return new AppUserPrincipal(new AppUser(1, "google", "g-1", "Hédi", "hedi@example.com", true));
     }
 
     private static AppUserPrincipal ordinary() {
-        return new AppUserPrincipal(new AppUser(2, "google", "g-2", "Sam", "sam@example.com", null, false));
+        return new AppUserPrincipal(new AppUser(2, "google", "g-2", "Sam", "sam@example.com", false));
     }
 
     // --- who may be here at all -------------------------------------------

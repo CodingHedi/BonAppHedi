@@ -152,11 +152,14 @@ public class SocialDao {
     public List<Dto.Comment> commentsFor(long recipeId, Long userId) {
         return jdbc.sql(
                         """
-                        SELECT id, user_id, display_name, avatar_url, body_markdown, body_html, status, created_at
-                        FROM comment
-                        WHERE recipe_id = :recipe
-                          AND (status = 'PUBLISHED' OR (status = 'PENDING' AND user_id IS NOT NULL AND user_id = :user))
-                        ORDER BY created_at DESC, id DESC
+                        SELECT c.id, c.user_id, c.display_name, u.avatar,
+                               c.body_markdown, c.body_html, c.status, c.created_at
+                        FROM comment c
+                        LEFT JOIN app_user u ON u.id = c.user_id
+                        WHERE c.recipe_id = :recipe
+                          AND (c.status = 'PUBLISHED'
+                               OR (c.status = 'PENDING' AND c.user_id IS NOT NULL AND c.user_id = :user))
+                        ORDER BY c.created_at DESC, c.id DESC
                         """)
                 .param("recipe", recipeId)
                 .param("user", userId)
@@ -173,6 +176,12 @@ public class SocialDao {
      * answer a question about the display name and quietly attribute every
      * anonymous comment to whoever happens to be reading. The same mistake has
      * already been made once in this codebase, on the ingredient mapper.
+     *
+     * <p>{@code avatar} arrives from the joined account rather than from the
+     * comment, so a comment whose author deleted their account, and every seeded
+     * comment, has none - and the frontend draws its placeholder. That is the
+     * trade ADR 7 takes on purpose: the name is copied because it attributes the
+     * comment, the avatar is not because a chosen one has to be able to change.
      */
     private static Dto.Comment toComment(java.sql.ResultSet rs, Long userId) throws java.sql.SQLException {
         long author = rs.getLong("user_id");
@@ -180,7 +189,7 @@ public class SocialDao {
 
         return new Dto.Comment(
                 rs.getLong("id"),
-                new Dto.CommentAuthor(rs.getString("display_name"), rs.getString("avatar_url")),
+                new Dto.CommentAuthor(rs.getString("display_name"), rs.getString("avatar")),
                 rs.getString("body_markdown"),
                 rs.getString("body_html"),
                 rs.getString("created_at"),
@@ -202,19 +211,25 @@ public class SocialDao {
                 .single();
     }
 
-    public long addComment(
-            long recipeId, long userId, String displayName, String avatarUrl, String markdown, String html) {
+    /**
+     * No avatar argument, and the omission is deliberate (ADR 7).
+     *
+     * <p>{@code display_name} is still copied onto the row, because a comment
+     * outlives the account and something has to attribute it. The avatar is read
+     * through {@code user_id} instead, so that changing it on the profile page
+     * changes the comments already posted.
+     */
+    public long addComment(long recipeId, long userId, String displayName, String markdown, String html) {
 
         jdbc.sql(
                         """
                         INSERT INTO comment (
-                            recipe_id, user_id, display_name, avatar_url, body_markdown, body_html, status, created_at)
-                        VALUES (:recipe, :user, :name, :avatar, :markdown, :html, 'PUBLISHED', :now)
+                            recipe_id, user_id, display_name, body_markdown, body_html, status, created_at)
+                        VALUES (:recipe, :user, :name, :markdown, :html, 'PUBLISHED', :now)
                         """)
                 .param("recipe", recipeId)
                 .param("user", userId)
                 .param("name", displayName)
-                .param("avatar", avatarUrl)
                 .param("markdown", markdown)
                 .param("html", html)
                 .param("now", Instant.now().toString())
@@ -226,8 +241,11 @@ public class SocialDao {
     public Optional<Dto.Comment> commentById(long id, Long userId) {
         return jdbc.sql(
                         """
-                        SELECT id, user_id, display_name, avatar_url, body_markdown, body_html, status, created_at
-                        FROM comment WHERE id = :id
+                        SELECT c.id, c.user_id, c.display_name, u.avatar,
+                               c.body_markdown, c.body_html, c.status, c.created_at
+                        FROM comment c
+                        LEFT JOIN app_user u ON u.id = c.user_id
+                        WHERE c.id = :id
                         """)
                 .param("id", id)
                 .query((rs, row) -> toComment(rs, userId))

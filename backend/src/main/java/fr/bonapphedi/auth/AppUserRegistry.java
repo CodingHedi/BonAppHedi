@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  * Turns a sign-in into an {@code app_user} row.
  *
  * <p>An upsert rather than an insert, and the difference is the whole design:
- * the provider owns the name and the avatar, so both are refreshed on every
+ * the provider owns the name and the address, so both are refreshed on every
  * login instead of being frozen at first contact. The identity that must not
  * move is the primary key, because {@code comment.user_id} points at it - a
  * second row for the same person would orphan everything they had written.
@@ -20,6 +20,11 @@ import org.springframework.stereotype.Component;
  * <p>Admin is recomputed here, at the same moment, from the configured
  * allowlist. That is what makes deleting an address from the configuration an
  * actual demotion rather than a note of intent (ADR 0003).
+ *
+ * <p>{@code avatar} is the one column the upsert leaves alone. The provider used
+ * to own it too and no longer does: it is chosen on this site (ADR 7), so listing
+ * it in the {@code ON CONFLICT} clause would silently reset the choice on the
+ * next sign-in and read exactly like the profile page having failed to save.
  */
 @Component
 public class AppUserRegistry {
@@ -45,26 +50,24 @@ public class AppUserRegistry {
         jdbc.sql(
                         """
                         INSERT INTO app_user (
-                            provider, provider_user_id, display_name, email, avatar_url, is_admin, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                            provider, provider_user_id, display_name, email, is_admin, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
                         ON CONFLICT (provider, provider_user_id) DO UPDATE SET
                             display_name = excluded.display_name,
                             email        = excluded.email,
-                            avatar_url   = excluded.avatar_url,
                             is_admin     = excluded.is_admin
                         """)
                 .param(profile.provider())
                 .param(profile.providerUserId())
                 .param(profile.displayName())
                 .param(profile.email())
-                .param(profile.avatarUrl())
                 .param(admin ? 1 : 0)
                 .param(Instant.now().toString())
                 .update();
 
         return jdbc.sql(
                         """
-                        SELECT id, provider, provider_user_id, display_name, email, avatar_url, is_admin
+                        SELECT id, provider, provider_user_id, display_name, email, is_admin
                         FROM app_user
                         WHERE provider = ? AND provider_user_id = ?
                         """)
@@ -76,9 +79,39 @@ public class AppUserRegistry {
                         rs.getString("provider_user_id"),
                         rs.getString("display_name"),
                         rs.getString("email"),
-                        rs.getString("avatar_url"),
                         rs.getInt("is_admin") == 1))
                 .single();
+    }
+
+    /**
+     * Records the avatar this account chose.
+     *
+     * <p>Validated by the caller, which is the controller: reaching the column
+     * with an unchecked string would put anything a signed-in browser sends into
+     * the row. This method trusts its argument and says so.
+     */
+    public void chooseAvatar(long userId, String token) {
+        jdbc.sql("UPDATE app_user SET avatar = ? WHERE id = ?")
+                .param(token)
+                .param(userId)
+                .update();
+    }
+
+    /**
+     * The avatar this account currently holds, or null if it has never chosen one.
+     *
+     * <p>Read on demand rather than carried in the session, so that changing it
+     * takes effect at once — including on the comments already posted, which is
+     * the behaviour a profile page has to have to make any sense. Empty rather
+     * than throwing for an id with no row: {@code oauth2Login()} in the test
+     * suites stands up principals that were never inserted.
+     */
+    public String avatarOf(long userId) {
+        return jdbc.sql("SELECT avatar FROM app_user WHERE id = ?")
+                .param(userId)
+                .query(String.class)
+                .optional()
+                .orElse(null);
     }
 
     /**

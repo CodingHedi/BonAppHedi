@@ -99,8 +99,15 @@ public final class Dto {
     /** {@code id} is what {@code /oauth2/authorization/{id}} takes; the label is a brand name. */
     public record AuthProvider(String id, String label) {}
 
-    /** Deliberately not {@link Author}: a commenter has no slug, no bio and no page. */
-    public record CommentAuthor(String displayName, String avatarUrl) {}
+    /**
+     * Deliberately not {@link Author}: a commenter has no slug, no bio and no page.
+     *
+     * <p>{@code avatar} is a chosen-avatar token such as {@code carrot/3}, read
+     * through {@code comment.user_id} rather than copied onto the comment, and
+     * never a URL. It was a URL, and rendering it made reading a recipe disclose
+     * the reader's address to Google (ADR 7).
+     */
+    public record CommentAuthor(String displayName, String avatar) {}
 
     /**
      * {@code status} is PUBLISHED, PENDING or REJECTED, and {@code mine} is
@@ -121,7 +128,10 @@ public final class Dto {
      * is the server's business; sending it to the browser would put an address on
      * the wire for no feature that needs it.
      */
-    public record AuthUser(String id, String displayName, String avatarUrl, boolean isAdmin) {}
+    public record AuthUser(String id, String displayName, String avatar, boolean isAdmin) {}
+
+    /** The body of {@code PUT /api/auth/avatar}. One field, and it is required. */
+    public record AvatarChoice(String avatar) {}
 
     public record Page<T>(List<T> items, int page, int size, int total) {}
 

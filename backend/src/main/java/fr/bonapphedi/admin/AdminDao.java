@@ -495,16 +495,21 @@ public class AdminDao {
     public List<Dto.ModerationItem> pending(String locale) {
         record Row(long id, long recipeId, String name, String avatar, String markdown, String html, String created) {}
 
+        // The avatar comes from the joined account, not the comment row (ADR 7),
+        // so the queue shows the moderator the same avatar the thread will.
         List<Row> rows = jdbc.sql(
                         """
-                        SELECT id, recipe_id, display_name, avatar_url, body_markdown, body_html, created_at
-                        FROM comment WHERE status = 'PENDING' ORDER BY created_at, id
+                        SELECT c.id, c.recipe_id, c.display_name, u.avatar,
+                               c.body_markdown, c.body_html, c.created_at
+                        FROM comment c
+                        LEFT JOIN app_user u ON u.id = c.user_id
+                        WHERE c.status = 'PENDING' ORDER BY c.created_at, c.id
                         """)
                 .query((rs, n) -> new Row(
                         rs.getLong("id"),
                         rs.getLong("recipe_id"),
                         rs.getString("display_name"),
-                        rs.getString("avatar_url"),
+                        rs.getString("avatar"),
                         rs.getString("body_markdown"),
                         rs.getString("body_html"),
                         rs.getString("created_at")))

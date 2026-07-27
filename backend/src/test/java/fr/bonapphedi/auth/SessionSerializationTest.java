@@ -50,8 +50,8 @@ class SessionSerializationTest {
 
     @Test
     void keepsAnAdminAnAdminAcrossTheSessionStore() {
-        AppUserPrincipal principal = new AppUserPrincipal(
-                new AppUser(7, "google", "112233", "Hédi", "hedi@example.com", null, true));
+        AppUserPrincipal principal =
+                new AppUserPrincipal(new AppUser(7, "google", "112233", "Hédi", "hedi@example.com", true));
 
         AppUserPrincipal restored = (AppUserPrincipal) roundTrip(principal);
 
@@ -66,13 +66,16 @@ class SessionSerializationTest {
 
     @Test
     void keepsAnOrdinaryUserOrdinary() {
-        AppUserPrincipal principal = new AppUserPrincipal(
-                new AppUser(8, "facebook", "998877", "Camille", null, "https://example.com/a.png", false));
+        // No email: Facebook withholds it until app review passes, and a null
+        // field is one of the ways serialization goes wrong.
+        AppUserPrincipal principal =
+                new AppUserPrincipal(new AppUser(8, "facebook", "998877", "Camille", null, false));
 
         AppUserPrincipal restored = (AppUserPrincipal) roundTrip(principal);
 
         assertThat(restored.user().admin()).isFalse();
-        assertThat(restored.user().avatarUrl()).isEqualTo("https://example.com/a.png");
+        assertThat(restored.user().displayName()).isEqualTo("Camille");
+        assertThat(restored.user().email()).isNull();
         assertThat(restored.getAuthorities()).extracting(Object::toString).doesNotContain("ROLE_ADMIN");
     }
 
@@ -82,7 +85,7 @@ class SessionSerializationTest {
         // people will actually have. It carries an OidcIdToken, which is one more
         // object that has to be serializable for a Google login to work at all.
         AppUserOidcPrincipal principal = new AppUserOidcPrincipal(
-                new AppUser(9, "google", "445566", "Sam", "sam@example.com", null, false),
+                new AppUser(9, "google", "445566", "Sam", "sam@example.com", false),
                 new OidcIdToken(
                         "a-token-value",
                         Instant.parse("2026-07-26T10:00:00Z"),
