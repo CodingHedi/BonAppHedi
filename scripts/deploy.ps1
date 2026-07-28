@@ -32,7 +32,17 @@ param(
     [string]$TargetHost = 'ubuntu@141.95.86.140'
 )
 
-$ErrorActionPreference = 'Stop'
+# Deliberately NOT 'Stop'.
+#
+# In Windows PowerShell 5.1, ErrorActionPreference=Stop turns anything a native
+# command writes to *stderr* into a terminating error. npm, ng, playwright and
+# maven all write ordinary progress and warnings there - the first real run of
+# this script died on Playwright's "the NO_COLOR env is ignored" notice, before
+# building anything, and reported it as a NativeCommandError from node.exe.
+#
+# Every external call below is therefore followed by an explicit $LASTEXITCODE
+# check, which is the only reliable way to know whether a native command failed.
+$ErrorActionPreference = 'Continue'
 $repo = Split-Path $PSScriptRoot -Parent
 
 function Step($text) { Write-Host "`n==> $text" -ForegroundColor Cyan }
@@ -90,6 +100,7 @@ Step 'Checking the jar'
 # braces: one careless edit to the pom would start shipping a live Google
 # secret to a server, and nothing else would say so.
 $entries = & "$env:JAVA_HOME\bin\jar.exe" tf $jar.FullName
+if ($LASTEXITCODE -ne 0) { Die "Could not read the jar with $env:JAVA_HOME\bin\jar.exe" }
 if ($entries -match 'application-local\.yml$') {
     Die 'The jar contains application-local.yml - it would carry live credentials. Fix the maven-jar-plugin excludes before deploying.'
 }
