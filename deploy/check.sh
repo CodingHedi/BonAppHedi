@@ -3,7 +3,11 @@
 # Read-only. Tells you what state the VPS is actually in — run it before
 # provisioning, after provisioning, and whenever something is wrong.
 #
-#   ssh root@141.95.86.140 'bash -s' < deploy/check.sh
+#   Get-Content deploy\check.sh | ssh ubuntu@141.95.86.140 "sudo bash -s"
+#
+# Piped, not redirected: Windows PowerShell 5.1 has no `<` operator, and cmd.exe
+# does not strip single quotes, so the `ssh host 'bash -s' < file` form found
+# everywhere online fails in both.
 #
 # Changes nothing, so it is safe on a box you are unsure about.
 

@@ -2,8 +2,10 @@
 #
 # First-time setup for the Bon App' Hédi VPS. Run once, as root:
 #
-#   scp deploy/provision.sh root@141.95.86.140:/tmp/
-#   ssh root@141.95.86.140 'bash /tmp/provision.sh'
+#   scp deploy/* ubuntu@141.95.86.140:/tmp/
+#   ssh ubuntu@141.95.86.140 "cd /tmp && sudo bash provision.sh"
+#
+# As `ubuntu` with sudo, because the OVH image has no root login.
 #
 # Idempotent: running it again is safe and is the intended way to apply a change
 # to any of the files it writes.
