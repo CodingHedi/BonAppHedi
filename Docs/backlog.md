@@ -10,6 +10,28 @@ is probably not wanted — say so and remove it rather than letting the list rot
 
 ---
 
+## Every list-page request is made twice on first load
+
+Measured against the live site on 2026-07-28, six loads in fresh contexts. Each
+one fetches `recipes`, `recipes/featured`, `tags` and `authors`, cancels most of
+them, and immediately issues them again. The page is correct every time — hero,
+cards and both filters rendered in 6 of 6 — so this costs bandwidth and log
+noise rather than behaviour.
+
+The cause is the locale signal settling after the resources have already fired.
+`routesFor` applies the locale in a `canActivate`, that writes to
+`LocaleService.locale`, and every `resource()` on the page has `locale` in its
+`params` — so Angular aborts the in-flight request and starts a new one. The
+browser reports the first as `net::ERR_ABORTED`.
+
+Invisible in every suite, and will stay invisible: the mocks do not use
+`HttpClient`, so there is no request for the e2e fixture to see fail. It only
+appears against the real API.
+
+Not urgent — nobody sees a wrong page. Worth doing when the list page is next
+opened up: resolve the locale before the resources are created rather than
+alongside them, so the first attempt is the only attempt.
+
 ## What would actually force search server-side
 
 `RecipeListPage` fetches the catalogue once per locale and every filter — the
