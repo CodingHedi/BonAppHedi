@@ -127,11 +127,27 @@ public final class Dto {
      * Deliberately less than {@code app_user} holds. The email decides admin and
      * is the server's business; sending it to the browser would put an address on
      * the wire for no feature that needs it.
+     *
+     * <p>{@code displayName} is what to show — the chosen name if there is one,
+     * the provider's otherwise — and {@code chosenName} is the choice itself, null
+     * when none has been made. Both, because the profile page needs to tell the two
+     * apart: it fills its field from the choice and shows the provider's name as the
+     * placeholder, so an empty field means "use what the provider said" rather than
+     * "your name is about to be blanked".
      */
-    public record AuthUser(String id, String displayName, String avatar, boolean isAdmin) {}
+    public record AuthUser(String id, String displayName, String chosenName, String avatar, boolean isAdmin) {}
 
     /** The body of {@code PUT /api/auth/avatar}. One field, and it is required. */
     public record AvatarChoice(String avatar) {}
+
+    /**
+     * The body of {@code PUT /api/auth/name}.
+     *
+     * <p>Null or blank is meaningful and is not an error: it clears the choice and
+     * goes back to the provider's name. So there is no "delete the name" endpoint,
+     * because sending an empty one already says it.
+     */
+    public record NameChoice(String displayName) {}
 
     public record Page<T>(List<T> items, int page, int size, int total) {}
 

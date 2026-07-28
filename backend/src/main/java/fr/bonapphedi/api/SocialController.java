@@ -1,6 +1,7 @@
 package fr.bonapphedi.api;
 
 import fr.bonapphedi.auth.AppUserPrincipal;
+import fr.bonapphedi.auth.AppUserRegistry;
 import fr.bonapphedi.content.MarkdownRenderer;
 import fr.bonapphedi.social.SocialDao;
 import fr.bonapphedi.social.VisitorIdentity;
@@ -44,11 +45,14 @@ public class SocialController {
     private final SocialDao dao;
     private final VisitorIdentity visitors;
     private final MarkdownRenderer markdown;
+    private final AppUserRegistry users;
 
-    public SocialController(SocialDao dao, VisitorIdentity visitors, MarkdownRenderer markdown) {
+    public SocialController(
+            SocialDao dao, VisitorIdentity visitors, MarkdownRenderer markdown, AppUserRegistry users) {
         this.dao = dao;
         this.visitors = visitors;
         this.markdown = markdown;
+        this.users = users;
     }
 
     public record RatingRequest(Integer stars) {}
@@ -133,10 +137,15 @@ public class SocialController {
         // Rendered and sanitized here, on the way in, so the database only ever
         // holds HTML that has already been through the policy - a comment body is
         // untrusted input from a stranger and this is the boundary.
+        // The name the account is *shown* as, not the provider's. Copying the
+        // provider's here would put the real name on the row of somebody who had
+        // already chosen a pseudonym, and the rewrite that hides it only runs when
+        // the choice changes - so this comment would keep the real name until they
+        // happened to change their mind twice.
         long id = dao.addComment(
                 recipeId,
                 principal.user().id(),
-                principal.user().displayName(),
+                users.shownNameOf(principal.user()),
                 markdownBody,
                 markdown.render(markdownBody));
 

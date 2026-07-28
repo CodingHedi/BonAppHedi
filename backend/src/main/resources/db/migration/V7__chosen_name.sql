@@ -1,0 +1,31 @@
+-- A name chosen on this site, for people who do not want their real one public.
+--
+-- The provider tells us a legal-ish full name and that is what a byline has shown
+-- until now. Some people will not want that beside a comment about a cake, so an
+-- account may choose what it is displayed as.
+--
+-- Separate from display_name rather than overwriting it, for the reason avatar is
+-- separate: AppUserRegistry.login() refreshes display_name from the provider on
+-- every sign-in, so a chosen name written there would survive exactly until the
+-- next login and then silently revert. A column the upsert does not mention
+-- cannot be clobbered by it.
+--
+-- NULL is the norm and means "show what the provider said".
+
+ALTER TABLE app_user ADD COLUMN nickname TEXT;
+
+-- Nothing to backfill: no account has chosen a name yet, and NULL already means
+-- the provider's. The reason this file has no UPDATE is worth stating, because
+-- the *other* half of the change does have one and it is not here.
+--
+-- comment.display_name holds a copy of the name as it was when the comment was
+-- posted (V5), so choosing a name has to rewrite those copies or the full name
+-- stays on every comment already published. That rewrite lives in the code, in
+-- DisplayNameService, because it has to happen on every future rename and not
+-- only once at migration time.
+--
+-- Copying, and then rewriting the copies, rather than resolving the name through
+-- a join at read time: a comment outlives its account (user_id is ON DELETE SET
+-- NULL), and a join would fall back to the copy the moment an account went away
+-- -- resurrecting the very name the person had chosen to hide. The copy has to be
+-- correct, not merely overridden.

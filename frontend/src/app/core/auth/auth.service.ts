@@ -82,4 +82,21 @@ export class AuthService {
     const user = await this.api.chooseAvatar(avatar);
     this.current.set({ status: 'resolved', user });
   }
+
+  /**
+   * Chooses the name this account is shown under, or clears it with `null`.
+   *
+   * Set from the response for the same reason as the avatar: the server
+   * normalises the name — trimming it and collapsing its whitespace — so the
+   * signal has to hold what was stored, not what was typed, or the profile field
+   * disagrees with every byline the moment it is saved.
+   *
+   * Unlike the avatar, the server also rewrites the name on comments already
+   * posted, so a thread reloaded after this shows the new one throughout rather
+   * than only on what comes next.
+   */
+  async chooseName(displayName: string | null): Promise<void> {
+    const user = await this.api.chooseName(displayName);
+    this.current.set({ status: 'resolved', user });
+  }
 }

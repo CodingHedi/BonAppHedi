@@ -92,6 +92,11 @@ export class HttpAuthApi implements AuthApi {
     return firstValueFrom(this.http.put<AuthUser>('/api/auth/avatar', { avatar }));
   }
 
+  /** Same shape and the same reasoning as the avatar one directly above. */
+  async chooseName(displayName: string | null): Promise<AuthUser> {
+    return firstValueFrom(this.http.put<AuthUser>('/api/auth/name', { displayName }));
+  }
+
   private returnTarget(view: Window): string {
     const explicit = new URLSearchParams(view.location.search).get('returnTo');
     if (explicit) return explicit;

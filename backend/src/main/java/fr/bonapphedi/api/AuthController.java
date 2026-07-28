@@ -4,6 +4,7 @@ import fr.bonapphedi.auth.AppUser;
 import fr.bonapphedi.auth.AppUserPrincipal;
 import fr.bonapphedi.auth.AppUserRegistry;
 import fr.bonapphedi.auth.Avatar;
+import fr.bonapphedi.auth.DisplayName;
 import fr.bonapphedi.config.ConfiguredProviders;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -32,10 +33,12 @@ public class AuthController {
 
     private final ConfiguredProviders providers;
     private final AppUserRegistry users;
+    private final DisplayNameService names;
 
-    public AuthController(ConfiguredProviders providers, AppUserRegistry users) {
+    public AuthController(ConfiguredProviders providers, AppUserRegistry users, DisplayNameService names) {
         this.providers = providers;
         this.users = users;
+        this.names = names;
     }
 
     /**
@@ -105,17 +108,57 @@ public class AuthController {
     }
 
     /**
+     * Records the name this visitor chose to be shown under, or clears it.
+     *
+     * <p>PUT, and idempotent, for the same reason the avatar is: choosing again
+     * replaces the choice.
+     *
+     * <p>An empty body, or a blank name, is not a bad request — it clears the choice
+     * and the byline goes back to what the provider said. That is why the check
+     * below distinguishes blank from invalid: {@code "  "} is a clear and
+     * {@code "x"} is a refusal, and answering 400 to the first would leave somebody
+     * unable to undo a pseudonym.
+     */
+    @PutMapping("/name")
+    public ResponseEntity<Dto.AuthUser> chooseName(
+            @RequestBody Dto.NameChoice choice, @AuthenticationPrincipal AppUserPrincipal principal) {
+
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+
+        String raw = choice.displayName();
+        String chosen = null;
+
+        if (raw != null && !raw.isBlank()) {
+            chosen = DisplayName.normalise(raw)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "not a name this site accepts"));
+        }
+
+        names.choose(principal.user(), chosen);
+
+        return ResponseEntity.ok(describe(principal.user()));
+    }
+
+    /**
      * The signed-in user as the contract declares them.
      *
-     * <p>The avatar is read from {@code app_user} on every call rather than taken
-     * from the principal. The principal is a snapshot held in the session for as
-     * long as it lasts, so a copy would show the old avatar until the next sign-in
-     * — in the very session that had just changed it.
+     * <p>The avatar and the chosen name are read from {@code app_user} on every call
+     * rather than taken from the principal. The principal is a snapshot held in the
+     * session for as long as it lasts, so a copy would show the old value until the
+     * next sign-in — in the very session that had just changed it.
      */
     private Dto.AuthUser describe(AppUser user) {
+        String chosen = users.nicknameOf(user.id());
+
         return new Dto.AuthUser(
                 // A string on the wire because models.ts says so, even though the
                 // column is an integer.
-                String.valueOf(user.id()), user.displayName(), users.avatarOf(user.id()), user.admin());
+                String.valueOf(user.id()),
+                chosen == null ? user.displayName() : chosen,
+                chosen,
+                users.avatarOf(user.id()),
+                user.admin());
     }
 }

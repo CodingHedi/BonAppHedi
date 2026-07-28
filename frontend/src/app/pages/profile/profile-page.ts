@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../core/auth/auth.service';
@@ -41,7 +42,7 @@ import {
 @Component({
   selector: 'bah-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslocoPipe, AvatarComponent, IconComponent],
+  imports: [FormsModule, TranslocoPipe, AvatarComponent, IconComponent],
   template: `
     <section class="container page">
       <h1>{{ 'profile.title' | transloco }}</h1>
@@ -49,21 +50,85 @@ import {
         {{ 'account.signedInAs' | transloco: { name: auth.user()?.displayName } }}
       </p>
 
+      <!--
+        Two labelled regions, and the page now has a real heading hierarchy: h1,
+        then one h2 per thing that can be changed, then h3 for the three parts of
+        the avatar. That is worth having for its own sake, and it also gives each
+        half an accessible name — without which "the Save button" and "the status
+        message" are ambiguous to a screen reader and to a test alike, there being
+        two of each on this page.
+
+        The name comes first because it is the consequential choice of the two: it
+        is what a byline actually says, and somebody arriving here to stop their
+        real name being public should not have to scroll past a colour picker.
+      -->
+      <section class="block" aria-labelledby="name-heading">
+        <h2 id="name-heading">{{ 'profile.pickName' | transloco }}</h2>
+        <p class="section-lead">{{ 'profile.nameLead' | transloco }}</p>
+
+        <!--
+          A real label, hidden, rather than leaning on the placeholder. The
+          placeholder is the provider's name — what an empty field falls back to —
+          and a placeholder doing that job as well as naming the field leaves a
+          screen reader with nothing once anything is typed.
+        -->
+        <div class="name-row">
+          <label class="visually-hidden" for="chosen-name">
+            {{ 'profile.pickName' | transloco }}
+          </label>
+          <input
+            id="chosen-name"
+            class="input"
+            type="text"
+            autocomplete="nickname"
+            [attr.placeholder]="providerName()"
+            [attr.maxlength]="NAME_MAX"
+            aria-describedby="chosen-name-hint"
+            [ngModel]="draftName()"
+            (ngModelChange)="draftName.set($event)"
+            [disabled]="busy()"
+          />
+
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="!canSaveName()"
+            (click)="saveName()"
+          >
+            {{ 'profile.save' | transloco }}
+          </button>
+        </div>
+
+        <p id="chosen-name-hint" class="hint">
+          {{ 'profile.nameHint' | transloco: { max: NAME_MAX } }}
+        </p>
+
+        <p class="status" role="status" aria-live="polite">
+          @if (nameSaved()) {
+            {{ 'profile.nameSaved' | transloco }}
+          } @else if (nameFailed()) {
+            {{ 'profile.nameFailed' | transloco }}
+          }
+        </p>
+      </section>
+
+      <section class="block" aria-labelledby="avatar-heading">
+      <h2 id="avatar-heading">{{ 'profile.avatarTitle' | transloco }}</h2>
+
       <div class="card elev-sm preview">
         <div class="slot">
           <bah-avatar
             [avatar]="token()"
-            [name]="auth.user()?.displayName ?? ''"
+            [name]="shownName()"
             [size]="88"
           />
         </div>
         <div class="preview-text">
-          <b>{{ 'profile.avatarTitle' | transloco }}</b>
           <p>{{ 'profile.avatarLead' | transloco }}</p>
         </div>
       </div>
 
-      <h2>{{ 'profile.pickSubject' | transloco }}</h2>
+      <h3>{{ 'profile.pickSubject' | transloco }}</h3>
       <!--
         A radiogroup rather than a row of buttons: this is one choice among
         twelve, and a screen reader has to be told that. Arrow keys come free
@@ -87,7 +152,7 @@ import {
         }
       </div>
 
-      <h2>{{ 'profile.pickTint' | transloco }}</h2>
+      <h3>{{ 'profile.pickTint' | transloco }}</h3>
       <div class="grid tints" role="radiogroup" [attr.aria-label]="'profile.pickTint' | transloco">
         @for (hue of TINTS; track $index) {
           <button
@@ -106,7 +171,7 @@ import {
         }
       </div>
 
-      <h2>{{ 'profile.pickInk' | transloco }}</h2>
+      <h3>{{ 'profile.pickInk' | transloco }}</h3>
       <!--
         Each swatch is the motif and tint currently chosen, drawn in that ink,
         rather than a bare colour chip. The question being asked is "how does my
@@ -144,13 +209,6 @@ import {
         <button type="button" class="btn btn-secondary" [disabled]="busy()" (click)="shuffle()">
           {{ 'profile.shuffle' | transloco }}
         </button>
-
-        <!-- Politely, on the right. Signing out used to be a single unlabelled
-             click in the header with nothing to confirm it (ADR 7). -->
-        <button type="button" class="btn btn-secondary sign-out" [disabled]="busy()" (click)="signOut()">
-          <bah-icon name="logout" [size]="15" />
-          {{ 'account.signOut' | transloco }}
-        </button>
       </div>
 
       <!-- aria-live, so the confirmation is announced and not only seen. -->
@@ -161,6 +219,18 @@ import {
           {{ 'profile.failed' | transloco }}
         }
       </p>
+      </section>
+
+      <!-- Outside both sections: signing out is not part of choosing an avatar,
+           and it sat inside that block only because there was nothing else here.
+           Politely at the end, rather than the single unlabelled click in the
+           header it used to be (ADR 7). -->
+      <div class="actions sign-out-row">
+        <button type="button" class="btn btn-secondary" [disabled]="busy()" (click)="signOut()">
+          <bah-icon name="logout" [size]="15" />
+          {{ 'account.signOut' | transloco }}
+        </button>
+      </div>
     </section>
   `,
   styles: `
@@ -173,15 +243,67 @@ import {
       margin: 0 0 12px;
     }
 
+    /* One per changeable thing, so they carry a little more weight than the
+       sub-headings inside the avatar block. */
     h2 {
+      font-size: 17px;
+      margin: 0 0 10px;
+    }
+
+    h3 {
       font-size: 15px;
+      font-weight: 600;
       margin: 32px 0 14px;
+    }
+
+    /* The divider does the separating, so the sections do not need a large gap as
+       well — two blocks 60px apart with a rule between them reads as two pages. */
+    .block + .block {
+      margin-top: 40px;
+      padding-top: 34px;
+      border-top: 1px solid var(--color-divider);
     }
 
     .lead {
       margin: 0 0 24px;
       line-height: 1.55;
       opacity: 0.75;
+    }
+
+    .section-lead {
+      margin: 0 0 14px;
+      font-size: 13.8px;
+      line-height: 1.55;
+      opacity: 0.7;
+      max-width: 52ch;
+    }
+
+    .name-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      max-width: 460px;
+    }
+
+    /* The field takes the room; the button stays the width of its label. Without
+       the basis the input collapses to its content on Safari. */
+    .name-row .input {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .name-row .btn {
+      flex: none;
+    }
+
+    /* Same treatment as the composer's markdown hint, so the two read as the same
+       kind of remark rather than as two different weights of small print. */
+    .hint {
+      margin: 8px 0 0;
+      font-size: 12px;
+      opacity: 0.5;
+      max-width: 52ch;
+      line-height: 1.5;
     }
 
     .preview {
@@ -281,12 +403,16 @@ import {
       margin-top: 34px;
     }
 
-    .sign-out {
+    .sign-out-row {
+      margin-top: 40px;
+      padding-top: 28px;
+      border-top: 1px solid var(--color-divider);
+    }
+
+    .sign-out-row .btn {
       display: inline-flex;
       align-items: center;
       gap: 7px;
-      /* Pushed away from Save, which is the button this page is for. */
-      margin-left: auto;
     }
 
     .status {
@@ -319,6 +445,47 @@ export class ProfilePage {
   protected readonly saved = signal(false);
   protected readonly failed = signal(false);
 
+  /**
+   * Thirty, the same limit `DisplayName.MAX` enforces server-side.
+   *
+   * Duplicated rather than fetched, and the duplication is the point of the
+   * `maxlength` attribute: the field stops accepting characters at the limit
+   * instead of letting somebody type a paragraph and then answering 400. The
+   * server is still the authority — this is a courtesy, not a check.
+   */
+  protected readonly NAME_MAX = 30;
+
+  protected readonly draftName = signal('');
+  protected readonly nameSaved = signal(false);
+  protected readonly nameFailed = signal(false);
+
+  /** What the byline says now: the chosen name, or the provider's. */
+  protected readonly shownName = computed(() => this.auth.user()?.displayName ?? '');
+
+  /**
+   * The provider's name, used as the field's placeholder.
+   *
+   * Derived rather than stored: when no choice has been made, `displayName` *is*
+   * what the provider said. Once one has, the placeholder no longer matters —
+   * the field is filled, so nothing shows it.
+   */
+  protected readonly providerName = computed(() => {
+    const user = this.auth.user();
+    return user?.chosenName ?? user?.displayName ?? '';
+  });
+
+  /** The stored choice, as the field would spell it: empty means "no choice". */
+  private readonly storedName = computed(() => this.auth.user()?.chosenName ?? '');
+
+  /**
+   * Trimmed on both sides of the comparison, so pressing Save after adding a
+   * trailing space is inert rather than a write the server normalises back to
+   * exactly what was already there.
+   */
+  protected readonly canSaveName = computed(
+    () => !this.busy() && this.draftName().trim() !== this.storedName().trim(),
+  );
+
   protected readonly token = computed(() => formatAvatar(this.choice()));
 
   /** The saved avatar, so Save can be inert when there is nothing to save. */
@@ -334,6 +501,14 @@ export class ProfilePage {
     effect(() => {
       const current = parseAvatar(this.stored());
       if (current) this.choice.set(current);
+    });
+
+    // The name field, on the same terms. Written unconditionally rather than only
+    // when non-empty: clearing the choice has to empty the field too, and an
+    // `if (name)` here would leave the pseudonym sitting in it after it was
+    // deliberately removed.
+    effect(() => {
+      this.draftName.set(this.storedName());
     });
   }
 
@@ -390,6 +565,32 @@ export class ProfilePage {
     }
   }
 
+  /**
+   * Saves the chosen name, or clears it when the field has been emptied.
+   *
+   * An empty field sends `null`, which is a clear rather than a blank name —
+   * the byline goes back to what the provider said, and so do the comments already
+   * posted. That symmetry is why there is no separate "remove" button.
+   */
+  protected async saveName(): Promise<void> {
+    if (!this.canSaveName()) return;
+
+    this.busy.set(true);
+    this.clearNameStatus();
+    try {
+      const wanted = this.draftName().trim();
+      await this.auth.chooseName(wanted === '' ? null : wanted);
+      this.nameSaved.set(true);
+    } catch {
+      // Said out loud. The server refuses a name that is too short, too long or
+      // carries formatting characters, and a silent failure here would look like
+      // a save that worked until the next page load contradicted it.
+      this.nameFailed.set(true);
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
   protected async signOut(): Promise<void> {
     await this.auth.signOut();
     // Nowhere to be once there is no account: this page is behind the guard, so
@@ -400,5 +601,10 @@ export class ProfilePage {
   private clearStatus(): void {
     this.saved.set(false);
     this.failed.set(false);
+  }
+
+  private clearNameStatus(): void {
+    this.nameSaved.set(false);
+    this.nameFailed.set(false);
   }
 }

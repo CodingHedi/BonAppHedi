@@ -52,6 +52,21 @@ export interface AuthApi {
    * from what was stored instead of from what it hoped would be.
    */
   chooseAvatar(avatar: string): Promise<AuthUser>;
+
+  /**
+   * Records the name chosen on the profile page, or clears it.
+   *
+   * `null` — or a blank string — clears the choice, after which the byline shows
+   * the provider's name again. So there is no separate "forget my name" call:
+   * sending nothing already says it, and the server treats blank as a clear
+   * rather than as a bad request precisely so a pseudonym can be undone.
+   *
+   * The server also rewrites the name on comments already posted. That is not
+   * cosmetic and is the reason this exists: somebody setting a pseudonym because
+   * they do not want their real name public would otherwise keep it on
+   * everything they had already written.
+   */
+  chooseName(displayName: string | null): Promise<AuthUser>;
 }
 
 export const AUTH_API = new InjectionToken<AuthApi>('AuthApi');

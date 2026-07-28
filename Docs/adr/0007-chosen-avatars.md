@@ -98,6 +98,25 @@ still has to be copied — `display_name` is `NOT NULL` and it is what attribute
 the comment — but the avatar is decoration, and losing decoration when the
 account goes is the more defensible half of the trade, not the worse one.
 
+### The chosen name is copied *and rewritten*, which is not the same trade
+
+`V7__chosen_name.sql` lets an account choose the name it is shown under, and the
+obvious move — resolve it through the join, as the avatar now is — is wrong here.
+
+A join falls back to the copy the moment `user_id` goes `NULL`. For an avatar that
+means losing decoration. For a name it means **resurrecting the real name the
+person chose to hide**, at exactly the moment they are least able to do anything
+about it. A privacy feature whose guarantee expires on account deletion is not one.
+
+So the copy stays and is kept correct instead: choosing a name rewrites
+`comment.display_name` on every comment the account has posted, and clearing it
+rewrites them back to the provider's. `DisplayNameService` does both writes in one
+transaction, because half of it is worse than neither — an account claiming a
+pseudonym while its published comments still carry the real name.
+
+The rule the two sections add up to: **copy what attributes, join what decorates,
+and rewrite the copies when the thing they attribute is allowed to change.**
+
 ### The provider picture is not read, not stored, and not kept
 
 `ProviderProfile` stops mapping `picture` (and Facebook's

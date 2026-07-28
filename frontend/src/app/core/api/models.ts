@@ -144,7 +144,20 @@ export interface AuthProvider {
 
 export interface AuthUser {
   readonly id: string;
+  /**
+   * What to show: the name this person chose if they have chosen one, and the
+   * one the identity provider gave otherwise.
+   */
   readonly displayName: string;
+  /**
+   * The choice itself, or null if none has been made.
+   *
+   * Separate from `displayName` because the profile page has to tell the two
+   * apart: it fills its field from this and shows the provider's name as the
+   * placeholder, so an empty field reads as "use what the provider said" rather
+   * than as a name about to be blanked.
+   */
+  readonly chosenName: string | null;
   /**
    * The avatar this person chose, as a token — `carrot/3`. Null until they have
    * chosen one, which renders the initial placeholder.

@@ -16,6 +16,19 @@ const BABKA = '/fr/recettes/babka-au-chocolat';
 const REMOTE_IMAGE = /googleusercontent\.com|graph\.facebook\.com|gravatar/i;
 
 /**
+ * The page's two halves, each a landmark named by its own heading.
+ *
+ * Scoped rather than reached for globally, because there are two Save buttons and
+ * two status regions on this page and `getByRole('button', { name: 'Enregistrer' })`
+ * is ambiguous between them. Positional (`.first()`) would work today and break the
+ * first time the sections are reordered — which is exactly the kind of change that
+ * should not need the tests edited.
+ */
+const nameBlock = (page: Page) => page.getByRole('region', { name: /Nom affiché|Display name/ });
+const avatarBlock = (page: Page) =>
+  page.getByRole('region', { name: /Votre vignette|Your avatar/ });
+
+/**
  * Signs in by planting the mock's session, as the admin specs do.
  *
  * Only when there is not one already, which matters here and nowhere else: an
@@ -103,8 +116,8 @@ test.describe('choosing an avatar', () => {
     await page.locator('[role="radiogroup"]').first().getByRole('radio').nth(7).click();
     await page.locator('[role="radiogroup"]').nth(1).getByRole('radio').nth(3).click();
 
-    await page.getByRole('button', { name: 'Enregistrer' }).click();
-    await expect(page.getByRole('status')).toHaveText('Vignette enregistrée.');
+    await avatarBlock(page).getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(avatarBlock(page).getByRole('status')).toHaveText('Vignette enregistrée.');
 
     // Reloaded, because the interesting question is whether it was stored rather
     // than whether a signal was set.
@@ -158,8 +171,8 @@ test.describe('choosing an avatar', () => {
     // ink the picker writes and the server rejects would show as a save that
     // reported success and then came back changed.
     await page.locator('[role="radiogroup"]').nth(2).getByRole('radio').nth(4).click();
-    await page.getByRole('button', { name: 'Enregistrer' }).click();
-    await expect(page.getByRole('status')).toHaveText('Vignette enregistrée.');
+    await avatarBlock(page).getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(avatarBlock(page).getByRole('status')).toHaveText('Vignette enregistrée.');
 
     await page.reload();
     await expect(
@@ -319,10 +332,10 @@ test.describe('choosing an avatar', () => {
 
     // Opening the page and pressing Save should not be a write. The button says
     // so rather than accepting the click and doing nothing.
-    await expect(page.getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
+    await expect(avatarBlock(page).getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
 
     await page.locator('[role="radiogroup"]').nth(1).getByRole('radio').nth(2).click();
-    await expect(page.getByRole('button', { name: 'Enregistrer' })).toBeEnabled();
+    await expect(avatarBlock(page).getByRole('button', { name: 'Enregistrer' })).toBeEnabled();
   });
 
   test('the shuffle button always changes the selection', async ({ page }) => {
@@ -348,8 +361,8 @@ test.describe('choosing an avatar', () => {
     await page.goto(PROFILE);
 
     await page.locator('[role="radiogroup"]').first().getByRole('radio').nth(4).click();
-    await page.getByRole('button', { name: 'Enregistrer' }).click();
-    await expect(page.getByRole('status')).toHaveText('Vignette enregistrée.');
+    await avatarBlock(page).getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(avatarBlock(page).getByRole('status')).toHaveText('Vignette enregistrée.');
 
     await page.goto(BABKA);
     await page.locator('bah-comment-section textarea').fill('Testée et approuvée.');
@@ -369,6 +382,145 @@ test.describe('choosing an avatar', () => {
     // The subjects are the accessible name of each swatch, so leaving them
     // untranslated would leave the grid unusable by anyone not reading French.
     await expect(page.getByRole('radio', { name: 'Rolling pin' })).toBeVisible();
+  });
+});
+
+test.describe('choosing a display name', () => {
+  const nameField = (page: Page) => nameBlock(page).getByRole('textbox');
+  const nameStatus = (page: Page) => nameBlock(page).getByRole('status');
+
+  test('offers the account name as the placeholder, and an empty field', async ({ page }) => {
+    await signedIn(page);
+    await page.goto(PROFILE);
+
+    // Empty means "no choice", and the placeholder shows what that falls back to.
+    // A field pre-filled with the provider's name would make the two states
+    // indistinguishable and every save a write.
+    await expect(nameField(page)).toHaveValue('');
+    await expect(nameField(page)).toHaveAttribute('placeholder', 'Hédi');
+    await expect(nameBlock(page).getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
+  });
+
+  test('saves a pseudonym and shows it in the header', async ({ page }) => {
+    await signedIn(page);
+    await page.goto(PROFILE);
+
+    await nameField(page).fill('Chef H');
+    await nameBlock(page).getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(nameStatus(page)).toHaveText('Nom enregistré.');
+
+    // Reloaded, because the question is whether it was stored rather than whether
+    // a signal was set.
+    await page.reload();
+    await expect(nameField(page)).toHaveValue('Chef H');
+    await expect(page.locator('.lead')).toContainText('Chef H');
+  });
+
+  /**
+   * The rename of comments *already posted* is not asserted here, and the reason
+   * is worth writing down rather than leaving as a gap.
+   *
+   * The mock's `SocialStore` holds comments in memory, so a comment posted before
+   * navigating to the profile page is gone by the time this suite could come back
+   * and look at it. Reshaping the mock to persist them — purely so a test could
+   * cross a navigation — would give this one assertion a blast radius across the
+   * whole e2e suite, to re-cover something already covered where it actually
+   * happens.
+   *
+   * So it is covered twice, at the levels that can see it:
+   * `AuthApiTest.rewritesTheNameOnCommentsAlreadyPosted` against the real database
+   * (confirmed to fail when the rewrite is removed), and
+   * `social-store.spec.ts` against the mock's own modelling of it.
+   *
+   * What this file asserts is the half a browser can see: that the choice survives
+   * a reload and that a comment written afterwards carries it.
+   */
+  test('a comment posted afterwards carries the pseudonym, and others keep theirs', async ({
+    page,
+  }) => {
+    await signedIn(page);
+    await page.goto(PROFILE);
+
+    await nameField(page).fill('Le Gourmand');
+    await nameBlock(page).getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(nameStatus(page)).toHaveText('Nom enregistré.');
+
+    // The session persists across the navigation, so the name does too — which is
+    // the thing being checked as much as the byline itself.
+    await page.goto(BABKA);
+    await page.locator('bah-comment-section textarea').fill('Excellente recette.');
+    await page.getByRole('button', { name: 'Publier' }).click();
+
+    const own = page.locator('bah-comment-section .comment').first();
+    await expect(own).toContainText('Le Gourmand');
+    await expect(own).not.toContainText('Hédi');
+
+    // Camille is seeded and belongs to nobody, so a rename that reached beyond
+    // this account would show up here.
+    const thread = page.locator('bah-comment-section .comment');
+    await expect(thread.filter({ hasText: 'Camille' })).toHaveCount(1);
+  });
+
+  test('clearing the field goes back to the account name', async ({ page }) => {
+    await signedIn(page);
+    await page.goto(PROFILE);
+
+    await nameField(page).fill('Le Gourmand');
+    await nameBlock(page).getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(nameStatus(page)).toHaveText('Nom enregistré.');
+
+    // Emptying it is a clear, not a blank name — otherwise a pseudonym could be
+    // set and never undone.
+    await nameField(page).fill('');
+    await expect(nameBlock(page).getByRole('button', { name: 'Enregistrer' })).toBeEnabled();
+    await nameBlock(page).getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(nameStatus(page)).toHaveText('Nom enregistré.');
+
+    await expect(nameField(page)).toHaveValue('');
+    await expect(page.locator('.lead')).toContainText('Hédi');
+
+    await page.goto(BABKA);
+    await page.locator('bah-comment-section textarea').fill('Un mot.');
+    await page.getByRole('button', { name: 'Publier' }).click();
+    await expect(page.locator('bah-comment-section .comment').first()).toContainText('Hédi');
+  });
+
+  test('Save is inert until the name has actually changed', async ({ page }) => {
+    await signedIn(page);
+    await page.goto(PROFILE);
+
+    const save = nameBlock(page).getByRole('button', { name: 'Enregistrer' });
+    await expect(save).toBeDisabled();
+
+    await nameField(page).fill('Chef H');
+    await expect(save).toBeEnabled();
+
+    // Back to empty, which is what was stored, so there is nothing to save again.
+    await nameField(page).fill('');
+    await expect(save).toBeDisabled();
+  });
+
+  test('the field stops at the length the server accepts', async ({ page }) => {
+    await signedIn(page);
+    await page.goto(PROFILE);
+
+    // maxlength is a courtesy, not the check — but a field that let somebody type
+    // a paragraph and then answered 400 would be a worse way to learn the limit.
+    await expect(nameField(page)).toHaveAttribute('maxlength', '30');
+    await nameField(page).fill('x'.repeat(40));
+    await expect(nameField(page)).toHaveValue('x'.repeat(30));
+  });
+
+  test('is translated, label and all', async ({ page }) => {
+    await signedIn(page);
+    await page.goto('/en/profile');
+
+    // The heading names the region and the hidden label names the field, so both
+    // have to be translated — and `getByRole('region', ...)` resolving at all is
+    // the assertion that the heading was.
+    await expect(nameBlock(page)).toBeVisible();
+    await expect(nameBlock(page).getByRole('textbox')).toHaveAttribute('placeholder', 'Hédi');
+    await expect(nameBlock(page).getByRole('button', { name: 'Save' })).toBeVisible();
   });
 
   test('switching language stays on the profile rather than 404ing', async ({ page }) => {

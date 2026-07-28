@@ -172,6 +172,23 @@ export class SocialStore {
     this.comments = this.comments.filter((row) => row.id !== id);
   }
 
+  /**
+   * Rewrites the byline on the comments this visitor has posted.
+   *
+   * Modelled here rather than left to the server, because it is the behaviour the
+   * feature is *for*: choosing a name has to cover what has already been written
+   * or somebody hiding their real name keeps it on every earlier comment. A mock
+   * that only renamed future comments would let the e2e suite pass while the one
+   * assertion worth making went untested.
+   *
+   * `mine` is the mock's stand-in for `user_id = :me`. Scoped to it for the same
+   * reason the SQL is: renaming the whole thread would look identical in a test
+   * that only ever checks its own comment.
+   */
+  renameAuthor(displayName: string): void {
+    this.comments = this.comments.map((row) => (row.mine ? { ...row, displayName } : row));
+  }
+
   // --- admin ------------------------------------------------------------------
 
   /**
