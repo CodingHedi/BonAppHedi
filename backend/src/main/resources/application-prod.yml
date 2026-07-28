@@ -58,6 +58,13 @@ spring:
     # Beside the jar, on a disk that gets backed up — not in the working
     # directory, which for a systemd unit is wherever WorkingDirectory happens
     # to point and is nobody's idea of where a database lives.
+    #
+    # The systemd unit sets BAH_DB to this same path, and that is not redundant.
+    # BackendApplication.main creates the parent directory *before* Spring
+    # starts — Flyway runs too early for a bean to do it — and that code reads
+    # the environment variable directly, knowing nothing about profiles. Left to
+    # itself it uses ./data, and the service dies on a read-only filesystem.
+    # Change one of these two and change the other.
     url: jdbc:sqlite:file:${BAH_DB:/var/lib/bonapphedi/bonapphedi.db}?foreign_keys=on&busy_timeout=5000
 
   session:
