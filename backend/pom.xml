@@ -28,6 +28,12 @@
     <sqlite.version>3.50.3.0</sqlite.version>
     <commonmark.version>0.29.0</commonmark.version>
     <owasp.sanitizer.version>20260313.1</owasp.sanitizer.version>
+    <!--
+      Where `ng build` leaves the application. Angular writes a `browser`
+      subdirectory under the project's outputPath; the jar wants its contents at
+      the root of static/, not the directory itself.
+    -->
+    <angular.dist>${project.basedir}/../frontend/dist/frontend/browser</angular.dist>
   </properties>
 
   <dependencies>
@@ -155,4 +161,95 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!--
+      The deployable artefact: one jar with the Angular build inside it, served
+      by SpaResourceConfig. Off by default, so `mvnw test` and
+      `mvnw spring-boot:run` stay a backend-only concern and need no Node.
+
+      This copies a build rather than running one. The alternative,
+      frontend-maven-plugin, would download its own Node and invoke npm from
+      Maven — which sounds tidier and is worse here: it silently builds the
+      frontend with a Node other than the one .nvmrc pins, and it hides the
+      Angular output behind Maven logging at the moment you most want to read
+      it. `npm run verify:prod` is already the gate before a deploy (README),
+      and it has produced dist/ by the time this runs.
+
+      If dist/ is missing the build fails with a message saying so, rather than
+      producing a jar that answers every page with a 404 — which is what an
+      empty static/ directory would do, and it would not be noticed until the
+      thing was running on the server.
+    -->
+    <profile>
+      <id>web</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-angular-build</id>
+                <phase>process-resources</phase>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <configuration>
+                  <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${angular.dist}</directory>
+                      <!-- Hashed bundles and images must not be filtered: Maven
+                           would try to interpolate ${...} inside them. -->
+                      <filtering>false</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!--
+            The guard checks what landed in the jar rather than what was on disk
+            beforehand, which is both the stronger question and the one that can
+            be asked with an absolute path. Pointed at frontend/dist it has to
+            reach through `..`, and the enforcer does not resolve that — it
+            reports a file as missing while the file is plainly there, which
+            cost a confused ten minutes.
+
+            Bound to prepare-package so it runs after the copy above.
+          -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>the-jar-must-contain-the-app</id>
+                <phase>prepare-package</phase>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireFilesExist>
+                      <files>
+                        <file>${project.build.outputDirectory}/static/index.html</file>
+                      </files>
+                      <message>
+                        No index.html in the jar's static/. Run `npm run build` (or the whole
+                        `npm run verify:prod`) in frontend/ before packaging with -Pweb —
+                        otherwise this produces a jar that answers every page with a 404, and
+                        nothing says so until it is running on the server.
+                      </message>
+                    </requireFilesExist>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
