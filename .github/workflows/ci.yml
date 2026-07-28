@@ -1,7 +1,13 @@
 name: CI
 
-# Same chain as `npm run verify` locally, so a green local run means a green CI
-# run. See TESTING.md at the repo root.
+# Both halves, matching what is run locally: `npm run verify` in frontend/ and
+# `.\mvnw.cmd test` in backend/. A green local run of both means a green CI run.
+# See TESTING.md at the repo root.
+#
+# The two jobs are deliberately independent rather than one after the other.
+# Neither can break the other — the frontend suites are pinned to the mocks and
+# never reach a JVM — so running them in sequence would only mean waiting longer
+# to find out that both are broken.
 on:
   push:
     branches: [main]
@@ -48,4 +54,40 @@ jobs:
         with:
           name: playwright-report
           path: frontend/playwright-report/
+          retention-days: 7
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          # Corretto 25, matching the JDK the project is developed against and
+          # the <java.version> the pom compiles for.
+          distribution: corretto
+          java-version: '25'
+          cache: maven
+
+      # The committed wrapper, not a Maven the runner happens to provide, so CI
+      # builds the version the repo pins — and it is the only Maven anybody here
+      # has, since nothing installs one locally either. `mvnw` was mode 644 until
+      # this job needed it; the executable bit is now set in git rather than
+      # chmod'd on every run, which also helps whoever first deploys from Linux.
+      #
+      # `test` rather than the Maven lifecycle's `verify`, which would also
+      # package the jar and prove nothing a deploy step is not going to do
+      # anyway. Unrelated to `npm run verify`, which is the frontend's whole
+      # chain and has no Maven equivalent here.
+      - run: ./mvnw --batch-mode test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: surefire-reports
+          path: backend/target/surefire-reports/
           retention-days: 7
