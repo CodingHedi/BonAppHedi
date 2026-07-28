@@ -143,6 +143,12 @@ sudo systemctl is-active --quiet bonapphedi && echo "service is active" || {
   exit 1
 }
 '@
+# Stripped of carriage returns before it is sent. .gitattributes checks .ps1
+# files out as CRLF, so a here-string in this file carries \r on every line, and
+# bash receives `set -euo pipefail\r` - which fails with "pipefail: invalid
+# option name" and reads as though the remote shell were not bash. Every line
+# after it would be just as broken, more quietly.
+$remote = $remote -replace "`r", ''
 ssh $TargetHost $remote
 if ($LASTEXITCODE -ne 0) {
     Die "The service did not come back. The previous jar is at /opt/bonapphedi/bonapphedi.jar.previous - to roll back:`n    ssh $TargetHost 'cd /opt/bonapphedi && mv bonapphedi.jar.previous bonapphedi.jar && systemctl restart bonapphedi'"
