@@ -36,6 +36,34 @@ bonapphedi.fr {
 		# Nothing here uses a camera, a microphone or a location.
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
 
+		# Content-Security-Policy, arrived at by testing it against the running
+		# application rather than by reasoning about it. Every term below is
+		# here because removing it broke something specific, and the first
+		# attempt at this - deployed straight to production without that testing
+		# - took the site down.
+		#
+		# script-src
+		#   'sha256-...'   the one inline script in index.html: the anti-FOUC theme
+		#                bootstrap. Hashed rather than 'unsafe-inline', and
+		#                deploy.ps1 refuses to ship if the script changes and the
+		#                hash goes stale.
+		#   'unsafe-eval' transloco-messageformat compiles ICU plurals with
+		#                new Function. Without it `{count, plural, ...}` renders
+		#                empty - the recipe count and the comment heading both
+		#                vanish. Removing the dependency would remove this; see
+		#                Docs/backlog.md.
+		#   youtube.com  the video facade loads the IFrame Player API script on
+		#                click. Nothing is fetched from Google until then, which
+		#                is what ADR 6 is about - the facade is the consent.
+		#
+		# style-src needs 'unsafe-inline' and there is no way around it in
+		# Angular: runtime style bindings are how the avatar tints and the image
+		# placeholders get their hue.
+		#
+		# frame-src carries both hosts: the player iframe is youtube-nocookie,
+		# the API script's own frames are youtube.com.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-JC8YccYQVdSh9R3jSxk4CHhlXnmoZup7ymWUhGZQO9g=' 'unsafe-eval' https://www.youtube.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self'; frame-src https://www.youtube-nocookie.com https://www.youtube.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
 		# Caddy announces itself by default.
 		-Server
 	}
@@ -63,12 +91,7 @@ www.bonapphedi.fr {
 	redir https://bonapphedi.fr{uri} permanent
 }
 
-# A Content-Security-Policy belongs here and is deliberately left out until it
-# can be verified against the running site rather than reasoned about.
-#
-# The shape it wants: default-src 'self'; frame-src https://www.youtube-nocookie.com
-# (the video facade); style-src 'self' 'unsafe-inline' (Angular injects component
-# styles at runtime); img-src 'self' data:.
-#
-# Shipping that untested is how the video player breaks silently on the one page
-# nobody reloads. Add it, then load a recipe with a video and watch the console.
+# The Content-Security-Policy is on the site block above. It was developed
+# against a local `java -jar` with the header injected by Playwright, iterating
+# until the console was clean, and only then deployed - which is the method to
+# repeat if it ever needs changing. The harness is described in DEPLOY.md.

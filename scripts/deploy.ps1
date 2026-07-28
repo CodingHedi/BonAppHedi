@@ -113,6 +113,34 @@ if (-not ($entries -match 'BOOT-INF/classes/static/index\.html$')) {
 }
 Ok 'the Angular build is inside'
 
+# The CSP allows the one inline script in index.html by hash rather than by
+# 'unsafe-inline'. Edit that script - the anti-FOUC theme bootstrap - and the
+# hash goes stale, the browser refuses to run it, and the site loads with a
+# flash of the wrong theme. Quiet enough to survive a long time unnoticed.
+$builtIndex = Get-Content "$repo\frontend\dist\frontend\browser\index.html" -Raw
+$inline = [regex]::Match($builtIndex, '<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>')
+if (-not $inline.Success) {
+    Die 'No inline script in index.html. If the bootstrap was removed, drop its hash from the CSP in deploy/Caddyfile.'
+}
+$sha = [Convert]::ToBase64String(
+    [Security.Cryptography.SHA256]::Create().ComputeHash(
+        [Text.Encoding]::UTF8.GetBytes($inline.Groups[1].Value)))
+if ((Get-Content "$repo\deploy\Caddyfile" -Raw) -notmatch [regex]::Escape("sha256-$sha")) {
+    Die "The inline script changed and the CSP would now block it.`n    Put this in script-src in deploy/Caddyfile, then re-run provision.sh:`n      'sha256-$sha'"
+}
+Ok 'the CSP hash matches the inline script'
+
+# A second inline script, or an inline event handler, would also be blocked -
+# and both appear from build settings rather than from anything anyone wrote.
+# inlineCritical produced exactly that until it was turned off in angular.json.
+if (([regex]::Matches($builtIndex, '<script(?![^>]*\bsrc=)')).Count -gt 1) {
+    Die 'index.html now has more than one inline script. The CSP hashes exactly one; check angular.json optimization settings.'
+}
+if ($builtIndex -match '\son[a-z]+="') {
+    Die 'index.html contains an inline event handler, which the CSP blocks. This is what optimization.styles.inlineCritical adds - check angular.json.'
+}
+Ok 'no unexpected inline scripts or handlers'
+
 # --- 4. ship ----------------------------------------------------------------
 
 Step "Uploading to $TargetHost"

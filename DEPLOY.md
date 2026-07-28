@@ -122,6 +122,45 @@ step in the whole list that cannot be done from a terminal.
 
 ---
 
+## Changing the Content-Security-Policy
+
+**Test it against a running jar before it goes anywhere near the server.** The
+first attempt at a CSP here was reasoned about rather than measured, applied
+straight to production, and took the site down. `scripts/csp-lab.mjs` exists so
+that cannot happen twice: it starts a browser, injects the policy on every
+response the site serves, and reports what the browser refused.
+
+```powershell
+cd backend ; .\mvnw.cmd -Pweb -DskipTests package
+java -jar backend\target\bonapphedi-0.0.1-SNAPSHOT.jar
+# in another shell, with the policy copied out of deploy/Caddyfile:
+node scripts\csp-lab.mjs "default-src 'self'; script-src ..."
+```
+
+It checks the five things a CSP breaks here — the cards render, the theme
+bootstrap ran, component styles applied, the ICU plural resolved, the video
+iframe loaded — and exits nonzero on any violation. Confirm a change by removing
+a term and watching the right check go red; a run that cannot fail is not
+evidence.
+
+Then edit `deploy/Caddyfile`, re-run `provision.sh`, or copy it up by hand:
+
+```powershell
+scp deploy\Caddyfile ubuntu@141.95.86.140:/tmp/
+ssh ubuntu@141.95.86.140 "sudo install -o root -g root -m 644 /tmp/Caddyfile /etc/caddy/Caddyfile && sudo -u caddy caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy"
+```
+
+`validate` runs **as the `caddy` user** deliberately, and the file is copied
+rather than piped — both for reasons written up under "When something is wrong".
+
+Two terms in the current policy are weaker than they look and are deliberate:
+`'unsafe-eval'` is there because messageformat compiles ICU plurals with
+`new Function` (see `Docs/backlog.md`), and `style-src 'unsafe-inline'` because
+Angular sets styles at runtime. The inline theme script is allowed by **hash**,
+and `deploy.ps1` refuses to ship if that hash goes stale.
+
+---
+
 ## When something is wrong
 
 ```powershell
