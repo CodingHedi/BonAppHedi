@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# First-time setup for the Bon App' Hédi VPS. Run once, as root:
+# First-time setup for the Bon App' Hedi VPS. Run once, as root:
 #
 #   scp deploy/* ubuntu@141.95.86.140:/tmp/
 #   ssh ubuntu@141.95.86.140 "cd /tmp && sudo bash provision.sh"
@@ -46,7 +46,7 @@ apt-get install -y -qq ca-certificates curl gnupg sqlite3 ufw unattended-upgrade
 
 say "Java runtime"
 # Ubuntu 26.04 carries OpenJDK 25. If a future image does not, fall back to
-# Amazon Corretto, which is what the workstation and CI both use — the jar is
+# Amazon Corretto, which is what the workstation and CI both use - the jar is
 # compiled for 25 and will not start on anything older.
 if java -version 2>&1 | grep -qE '"2[5-9]|"[3-9][0-9]'; then
   echo "    already present: $(java -version 2>&1 | head -1)"
@@ -86,7 +86,7 @@ install -d -o root      -g root      -m 700 "$BACKUP_DIR"
 
 say "Secrets file"
 # Root-owned, group-readable by the service, and never in the repository. The
-# jar carries no credentials — that is enforced in the build — so this file is
+# jar carries no credentials - that is enforced in the build - so this file is
 # the only place they exist on this machine.
 if [[ ! -f "$ETC_DIR/bonapphedi.env" ]]; then
   cat >"$ETC_DIR/bonapphedi.env" <<'ENVFILE'
@@ -109,7 +109,7 @@ BAH_FINGERPRINT_SALT=
 ENVFILE
   chown root:"$APP_USER" "$ETC_DIR/bonapphedi.env"
   chmod 640 "$ETC_DIR/bonapphedi.env"
-  warn "Created $ETC_DIR/bonapphedi.env — fill it in before expecting sign-in to work"
+  warn "Created $ETC_DIR/bonapphedi.env - fill it in before expecting sign-in to work"
 else
   echo "    keeping the existing $ETC_DIR/bonapphedi.env"
 fi
@@ -145,7 +145,7 @@ dpkg-reconfigure -f noninteractive unattended-upgrades
 say "SSH hardening"
 # Guarded, because getting this wrong locks you out of a machine whose only door
 # this is. Password auth is disabled only when a key is already installed and
-# proven to work — which it has, since this script arrived over SSH.
+# proven to work - which it has, since this script arrived over SSH.
 KEYS=$(find /root/.ssh /home/*/.ssh -name authorized_keys -size +0 2>/dev/null | head -1 || true)
 if [[ -n "$KEYS" ]]; then
   cat >/etc/ssh/sshd_config.d/99-bonapphedi.conf <<'SSHCONF'
@@ -156,7 +156,7 @@ SSHCONF
   sshd -t && systemctl reload ssh
   echo "    password authentication disabled; keys only"
 else
-  warn "No authorized_keys found — leaving password auth ON rather than locking you out"
+  warn "No authorized_keys found - leaving password auth ON rather than locking you out"
 fi
 
 say "Done"
