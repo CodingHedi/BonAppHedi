@@ -78,11 +78,14 @@ test.describe('choosing an avatar', () => {
     await signedIn(page);
     await page.goto(PROFILE, { waitUntil: 'networkidle' });
 
-    // Twelve subjects and six tints. Asserted by count rather than by name so
-    // this does not have to be edited every time a drawing is added — but a
-    // grid that silently rendered half of itself would still fail.
+    // Twelve subjects, six tints and seven inks — six hues plus the default,
+    // which is a choice in the row rather than an absence of one. Asserted by
+    // count rather than by name so this does not have to be edited every time a
+    // drawing is added, but a grid that silently rendered half of itself would
+    // still fail.
     await expect(page.locator('[role="radiogroup"]').first().getByRole('radio')).toHaveCount(12);
     await expect(page.locator('[role="radiogroup"]').nth(1).getByRole('radio')).toHaveCount(6);
+    await expect(page.locator('[role="radiogroup"]').nth(2).getByRole('radio')).toHaveCount(7);
 
     // Every swatch is drawn, not fetched. This is the assertion the feature
     // exists for.
@@ -116,6 +119,199 @@ test.describe('choosing an avatar', () => {
       'true',
     );
   });
+
+  /**
+   * Measured rather than inferred from the click.
+   *
+   * The suite's standing weakness is asserting calls instead of appearance — a
+   * green run has already coexisted with a visibly broken video player. An ink
+   * that is stored, selected and reported correctly while the icon stays the
+   * colour it always was would pass every other assertion here, so this one
+   * reads the colour the browser actually computed.
+   */
+  test('the ink changes the colour the icon is actually drawn in', async ({ page }) => {
+    await signedIn(page, 'carrot/0');
+    await page.goto(PROFILE);
+
+    const disc = page.locator('.preview bah-avatar .disc');
+    const colour = () => disc.evaluate((el) => getComputedStyle(el).color);
+
+    const withDefaultInk = await colour();
+    expect(withDefaultInk, 'the disc should have a resolved colour to begin with').toMatch(/^rgb/);
+
+    // The far end of the ramp, as far from the accent as the ink goes, so a
+    // binding that quietly did nothing could not pass by coincidence.
+    await page.locator('[role="radiogroup"]').nth(2).getByRole('radio').last().click();
+    await expect.poll(colour).not.toBe(withDefaultInk);
+
+    // And back to the default, which is what makes it a choice in the row rather
+    // than the absence of one.
+    await page.locator('[role="radiogroup"]').nth(2).getByRole('radio').first().click();
+    await expect.poll(colour).toBe(withDefaultInk);
+  });
+
+  test('saves the ink, not only the subject and the tint', async ({ page }) => {
+    await signedIn(page, 'carrot/0');
+    await page.goto(PROFILE);
+
+    // The token gains a third segment here, and the round trip is the point: an
+    // ink the picker writes and the server rejects would show as a save that
+    // reported success and then came back changed.
+    await page.locator('[role="radiogroup"]').nth(2).getByRole('radio').nth(4).click();
+    await page.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(page.getByRole('status')).toHaveText('Vignette enregistrée.');
+
+    await page.reload();
+    await expect(
+      page.locator('[role="radiogroup"]').nth(2).getByRole('radio').nth(4),
+    ).toHaveAttribute('aria-checked', 'true');
+  });
+
+  /**
+   * The promise the picker is built on, measured rather than asserted.
+   *
+   * Offering a background colour and an icon colour separately is normally how
+   * you get an invisible avatar. The design avoids it by storing only hues and
+   * fixing both lightnesses in the stylesheet, per theme — so the claim is that
+   * *no* pair of choices is illegible, and a claim like that is worth a number.
+   *
+   * Every combination is measured, in both themes, by cloning a real disc so the
+   * component's own scoped styles apply. 3:1 is the WCAG 1.4.11 bar for non-text
+   * contrast, which is what an icon is.
+   */
+  for (const theme of ['light', 'dark'] as const) {
+    test(`every background and ink pair stays legible in the ${theme} theme`, async ({ page }) => {
+      await signedIn(page);
+      await page.goto(PROFILE);
+
+      // Waited for, because evaluate does not retry: without this the measurement
+      // races Angular's first render and reads an empty page, which fails as a
+      // TypeError rather than as a contrast problem.
+      await expect(page.locator('[role="radiogroup"]')).toHaveCount(3);
+      await expect(page.locator('.preview .disc')).toBeVisible();
+
+      if (theme === 'dark') {
+        await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+      }
+
+      const worst = await page.evaluate(() => {
+        // The ramp is read off the swatches rather than hardcoded here, so adding
+        // a hue to the ramp extends this measurement instead of escaping it.
+        const swatches = [...document.querySelectorAll('[role="radiogroup"]')][1];
+        const hues = [...swatches.querySelectorAll<HTMLElement>('.disc')].map((el) =>
+          el.style.getPropertyValue('--seed-hue').trim(),
+        );
+
+        // The whole component, not just the disc. The dark-theme rule is written
+        // `:host-context([data-theme='dark']) .disc`, which Angular compiles to a
+        // selector requiring the host element in the ancestor chain — so a bare
+        // cloned disc silently keeps the light-theme colour and the dark theme
+        // measures nothing at all.
+        const source = document.querySelector<HTMLElement>('.preview bah-avatar');
+        if (!source || hues.length === 0) return { ratio: -1, where: 'no avatar or no hues found' };
+
+        const stage = document.createElement('div');
+        document.body.append(stage);
+
+        // Chrome reports some of these as `color(srgb 0.89 0.84 0.75)` — floats,
+        // not 0-255 — and others as `rgba(227, 215, 192, 0.55)`. Reading the
+        // first form as though it were the second makes every backdrop come out
+        // near-black, which reads as a contrast failure in the design rather
+        // than a units bug here.
+        const parse = (colour: string): [number, number, number, number] => {
+          const parts = colour.match(/[\d.]+/g)!.map(Number);
+          const scale = colour.trimStart().startsWith('color(') ? 255 : 1;
+          const [r, g, b] = parts.map((v) => v * scale);
+          return [r, g, b, parts[3] ?? 1];
+        };
+
+        // srgb over an opaque backdrop.
+        const over = (
+          top: [number, number, number, number],
+          base: [number, number, number, number],
+        ): [number, number, number, number] => [
+          top[0] * top[3] + base[0] * (1 - top[3]),
+          top[1] * top[3] + base[1] * (1 - top[3]),
+          top[2] * top[3] + base[2] * (1 - top[3]),
+          1,
+        ];
+
+        const luminance = ([r, g, b]: [number, number, number, number]) => {
+          const channel = (v: number) => {
+            const c = v / 255;
+            return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+          };
+          return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+        };
+
+        const contrast = (
+          a: [number, number, number, number],
+          b: [number, number, number, number],
+        ) => {
+          const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+          return (hi + 0.05) / (lo + 0.05);
+        };
+
+        let ratio = Infinity;
+        let where = '';
+
+        // null is the default ink, which takes no class and no --ink-hue.
+        const inks: (string | null)[] = [null, ...hues];
+
+        for (const seed of hues) {
+          for (const ink of inks) {
+            const clone = source.cloneNode(true) as HTMLElement;
+            stage.append(clone);
+
+            const disc = clone.querySelector<HTMLElement>('.disc');
+            if (!disc) {
+              stage.remove();
+              return { ratio: -1, where: 'the cloned avatar has no disc' };
+            }
+
+            disc.style.setProperty('--seed-hue', seed);
+            disc.classList.toggle('inked', ink !== null);
+            if (ink !== null) disc.style.setProperty('--ink-hue', ink);
+
+            const style = getComputedStyle(disc);
+            const base = parse(style.backgroundColor);
+            const icon = parse(style.color);
+
+            // .tinted lays a two-stop gradient over .washed, so the disc's real
+            // colour is each stop composited over the solid base. Both stops are
+            // measured and the worse one kept: an icon only has to be legible
+            // against the part of the disc it actually sits on, and it sits on
+            // all of it.
+            const stops = style.backgroundImage.match(/(?:rgba?|color|hsla?)\([^)]*\)/g) ?? [];
+            const backdrops = stops.length
+              ? stops.map((stop) => over(parse(stop), base))
+              : [base];
+
+            for (const backdrop of backdrops) {
+              const value = contrast(icon, backdrop);
+              if (value < ratio) {
+                ratio = value;
+                where =
+                  `background hue ${seed} with ink ${ink ?? 'default'}` +
+                  ` — icon ${style.color} on rgb(${backdrop.slice(0, 3).map(Math.round).join(', ')})`;
+              }
+            }
+
+            clone.remove();
+          }
+        }
+
+        stage.remove();
+        return { ratio, where };
+      });
+
+      expect(worst.ratio, `nothing was measured (${worst.where})`).toBeGreaterThan(0);
+      expect(
+        worst.ratio,
+        `the worst pair is ${worst.where} at ${worst.ratio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(3);
+    });
+  }
 
   test('Save is inert until something has actually changed', async ({ page }) => {
     await signedIn(page, 'carrot/0');
@@ -188,10 +384,11 @@ test.describe('choosing an avatar', () => {
   });
 });
 
-/** Which subject and tint are currently selected, as two indices. */
+/** Which subject, tint and ink are currently selected, as three labels. */
 async function selection(page: Page): Promise<string> {
   const groups = page.locator('[role="radiogroup"]');
   const subject = await groups.first().locator('[aria-checked="true"]').getAttribute('aria-label');
   const tint = await groups.nth(1).locator('[aria-checked="true"]').getAttribute('aria-label');
-  return `${subject}/${tint}`;
+  const ink = await groups.nth(2).locator('[aria-checked="true"]').getAttribute('aria-label');
+  return `${subject}/${tint}/${ink}`;
 }

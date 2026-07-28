@@ -30,9 +30,17 @@ class AvatarTest {
         // choice is invisible until somebody clicks that one avatar.
         for (String icon : Avatar.ICONS) {
             for (int tint = 0; tint < Avatar.TINTS; tint++) {
+                // Two segments: the neutral ink, and the spelling of every
+                // avatar chosen before an ink could be chosen at all.
                 assertThat(Avatar.isValid(icon + "/" + tint))
                         .as(icon + "/" + tint + " is offered but refused")
                         .isTrue();
+
+                for (int ink = 0; ink < Avatar.TINTS; ink++) {
+                    assertThat(Avatar.isValid(icon + "/" + tint + "/" + ink))
+                            .as(icon + "/" + tint + "/" + ink + " is offered but refused")
+                            .isTrue();
+                }
             }
         }
     }
@@ -46,12 +54,19 @@ class AvatarTest {
                 "carrot/-1",
                 "carrot", // no tint
                 "carrot/", // empty tint
-                "carrot/2/x", // a third segment
                 "carrot/x",
                 "carrot/ 1", // Integer.parseInt is lenient about neither, but String.split is
                 "carrot/01",
                 "/0",
                 "   ",
+                // The ink, on the same terms as the tint one segment over.
+                "carrot/2/x",
+                "carrot/2/", // empty ink is not a neutral ink written oddly
+                "carrot/2/6", // one past the end of the ramp
+                "carrot/2/-1",
+                "carrot/2/01",
+                "carrot/2/ 1",
+                "carrot/2/3/4", // a fourth segment
                 // The thing this replaced. Nothing about it should be storable in
                 // the column that used to hold exactly this.
                 "https://lh3.googleusercontent.com/a/abc"

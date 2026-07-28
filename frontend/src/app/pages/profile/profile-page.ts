@@ -7,6 +7,7 @@ import { AvatarComponent } from '../../shared/ui/avatar/avatar';
 import { IconComponent } from '../../core/icons/icon';
 import {
   AVATAR_ICONS,
+  AVATAR_INKS,
   AVATAR_TINT_HUES,
   formatAvatar,
   parseAvatar,
@@ -21,10 +22,16 @@ import {
  * the author, and a deviation from the prototypes rather than a rendering of one
  * — ADR 7, which is also where the reasoning for the avatars themselves is.
  *
- * The whole page is one choice made twice: a subject from the grid and a tint
- * from the swatch row. `Surprise me` rolls both, so the generator is a button
- * over the same closed set rather than a second system, and every state it can
- * produce is one the grid can also reach.
+ * The whole page is one choice made three times: a subject from the grid, a tint
+ * for the disc, and an ink for the icon. `Surprise me` rolls all three, so the
+ * generator is a button over the same closed set rather than a second system, and
+ * every state it can produce is one the grid can also reach.
+ *
+ * The ink is offered as swatches rather than as a colour picker on purpose. Only
+ * hues are stored — the lightness of both the disc and the icon comes from the
+ * theme — so no combination the rows can express is illegible. A free picker
+ * would need a contrast check to promise that, and a contrast check is a curated
+ * palette arrived at the hard way.
  *
  * Nothing is saved until Save is pressed. Persisting on every tap would be
  * simpler to write and worse to use: choosing an avatar means trying several,
@@ -95,6 +102,36 @@ import {
             (click)="pickTint($index)"
           >
             <bah-avatar [avatar]="tintToken($index)" [size]="52" />
+          </button>
+        }
+      </div>
+
+      <h2>{{ 'profile.pickInk' | transloco }}</h2>
+      <!--
+        Each swatch is the motif and tint currently chosen, drawn in that ink,
+        rather than a bare colour chip. The question being asked is "how does my
+        avatar look in this colour", and a row of circles of pure hue answers a
+        different one — the wash and the fixed lightness mean the ink on the disc
+        is never the colour the chip would show.
+      -->
+      <div class="grid inks" role="radiogroup" [attr.aria-label]="'profile.pickInk' | transloco">
+        @for (ink of INKS; track $index) {
+          <button
+            type="button"
+            role="radio"
+            class="choice"
+            [class.selected]="choice().ink === ink"
+            [attr.aria-checked]="choice().ink === ink"
+            [attr.aria-label]="
+              ink === null
+                ? ('profile.inkDefault' | transloco)
+                : ('profile.ink' | transloco: { number: ink + 1 })
+            "
+            [tabindex]="choice().ink === ink ? 0 : -1"
+            [disabled]="busy()"
+            (click)="pickInk(ink)"
+          >
+            <bah-avatar [avatar]="inkToken(ink)" [size]="52" />
           </button>
         }
       </div>
@@ -193,6 +230,15 @@ import {
       grid-template-columns: repeat(6, 1fr);
     }
 
+    .inks {
+      max-width: 490px;
+      /* Seven, because the default ink is a choice in the row rather than an
+         absence of one. Same reasoning as the tints for keeping them on one
+         line: 6 + 1 would read as a scale plus an afterthought, which is
+         precisely backwards — the default is what most accounts have. */
+      grid-template-columns: repeat(7, 1fr);
+    }
+
     .choice {
       aspect-ratio: 1;
       padding: 6px;
@@ -258,15 +304,16 @@ export class ProfilePage {
 
   protected readonly ICONS = AVATAR_ICONS;
   protected readonly TINTS = AVATAR_TINT_HUES;
+  protected readonly INKS = AVATAR_INKS;
 
   /**
    * What is selected but not yet saved.
    *
    * Starts from whatever the account holds; from the first icon on the first
-   * tint for somebody who has never chosen, so the page opens on a real avatar
-   * rather than on nothing selected.
+   * tint in the default ink for somebody who has never chosen, so the page opens
+   * on a real avatar rather than on nothing selected.
    */
-  protected readonly choice = signal<Avatar>({ icon: AVATAR_ICONS[0], tint: 0 });
+  protected readonly choice = signal<Avatar>({ icon: AVATAR_ICONS[0], tint: 0, ink: null });
 
   protected readonly busy = signal(false);
   protected readonly saved = signal(false);
@@ -292,12 +339,17 @@ export class ProfilePage {
 
   /** The grid's own swatches: each subject drawn on the tint currently chosen. */
   protected tokenFor(icon: (typeof AVATAR_ICONS)[number]): string {
-    return formatAvatar({ icon, tint: this.choice().tint });
+    return formatAvatar({ ...this.choice(), icon });
   }
 
   /** And the tint row: each tint drawn under the subject currently chosen. */
   protected tintToken(tint: number): string {
-    return formatAvatar({ icon: this.choice().icon, tint });
+    return formatAvatar({ ...this.choice(), tint });
+  }
+
+  /** And the ink row, likewise: the chosen avatar in each ink it could take. */
+  protected inkToken(ink: number | null): string {
+    return formatAvatar({ ...this.choice(), ink });
   }
 
   protected pickIcon(icon: (typeof AVATAR_ICONS)[number]): void {
@@ -307,6 +359,11 @@ export class ProfilePage {
 
   protected pickTint(tint: number): void {
     this.choice.update((current) => ({ ...current, tint }));
+    this.clearStatus();
+  }
+
+  protected pickInk(ink: number | null): void {
+    this.choice.update((current) => ({ ...current, ink }));
     this.clearStatus();
   }
 

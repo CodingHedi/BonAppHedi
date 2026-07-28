@@ -24,7 +24,12 @@ import { AVATAR_TINT_HUES, parseAvatar } from '../../../core/avatar/avatar-token
   imports: [IconComponent, ImageComponent],
   template: `
     @if (chosen(); as avatar) {
-      <div class="disc washed tinted" [style.--seed-hue]="hue()">
+      <div
+        class="disc washed tinted"
+        [class.inked]="inkHue() !== null"
+        [style.--seed-hue]="hue()"
+        [style.--ink-hue]="inkHue()"
+      >
         <bah-icon [name]="avatar.icon" [size]="iconSize()" />
       </div>
     } @else {
@@ -57,6 +62,20 @@ import { AVATAR_TINT_HUES, parseAvatar } from '../../../core/avatar/avatar-token
     :host-context([data-theme='dark']) .disc {
       color: var(--color-accent-200);
     }
+
+    /* A chosen ink. Only the hue comes from the token: the lightness is fixed
+       here, per theme, at the far end from the disc's own — 26% against the
+       wash's 74%, and 80% against the dark theme's 26%. That is what makes the
+       picker safe to open up, because no pair of choices the visitor can make
+       puts a dark icon on a dark disc. Saturation sits a little under the
+       accent's so a green or a teal icon reads as ink rather than as paint. */
+    .disc.inked {
+      color: hsl(var(--ink-hue) 48% 26%);
+    }
+
+    :host-context([data-theme='dark']) .disc.inked {
+      color: hsl(var(--ink-hue) 52% 80%);
+    }
   `,
 })
 export class AvatarComponent {
@@ -80,4 +99,16 @@ export class AvatarComponent {
   protected readonly iconSize = computed(() => Math.round(this.size() * 0.55));
 
   protected readonly hue = computed(() => AVATAR_TINT_HUES[this.chosen()?.tint ?? 0]);
+
+  /**
+   * The ink's hue, or null for the accent every token written before this one
+   * carries. Null rather than a fallback hue, because the class that reads it is
+   * bound off the same condition — an `--ink-hue` set on a disc that is not
+   * `.inked` would be a variable nothing reads, and a hue with no class would be
+   * an icon that silently stopped taking the accent.
+   */
+  protected readonly inkHue = computed(() => {
+    const ink = this.chosen()?.ink;
+    return ink === null || ink === undefined ? null : AVATAR_TINT_HUES[ink];
+  });
 }

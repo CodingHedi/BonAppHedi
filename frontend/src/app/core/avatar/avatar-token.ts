@@ -1,6 +1,6 @@
 /**
- * The avatar vocabulary: an icon name and a tint slot, stored as one short
- * string such as `carrot/3`.
+ * The avatar vocabulary: an icon name, a tint slot and optionally an ink slot,
+ * stored as one short string such as `carrot/3` or `carrot/3/5`.
  *
  * ADR 7 is the reasoning. The short version: a commenter's avatar used to be
  * the URL Google returned, which made reading a recipe disclose the visitor's
@@ -13,6 +13,13 @@
  * or reused for a different drawing. An unknown one is not an error: `parse`
  * returns null and the caller falls back to the initial-in-a-tint placeholder,
  * so a token written by a later build degrades in an older one.
+ *
+ * **Only hues are stored — never a lightness.** That is what makes the picker
+ * safe to open up: the disc's lightness comes from the theme and the ink's comes
+ * from the theme, so no pair of choices can produce a dark icon on a dark
+ * background. A free colour picker would have to be contrast-checked to promise
+ * the same thing, and a contrast check is only a curated palette arrived at the
+ * hard way.
  */
 
 import type { IconName } from '../icons/icons.data';
@@ -57,28 +64,57 @@ export const AVATAR_TINT_HUES = [20, 42, 68, 104, 140, 171] as const;
 
 export const AVATAR_TINTS = AVATAR_TINT_HUES.length;
 
+/**
+ * What the icon itself may be coloured, as slots into the same ramp.
+ *
+ * `null` is the original ink — the accent, dark on the light theme and light on
+ * the dark one — and it is first because it is what every account chosen before
+ * this existed already has. Keeping it a real choice rather than an absence
+ * means the look those accounts have is still reachable from the picker.
+ *
+ * The ramp is reused rather than a second one invented: the disc and the icon
+ * drawn from one set of hues is what stops an avatar becoming two unrelated
+ * colours stuck together.
+ */
+export const AVATAR_INKS = [null, ...AVATAR_TINT_HUES.map((_, slot) => slot)] as const;
+
 export interface Avatar {
   readonly icon: AvatarIcon;
   readonly tint: number;
-}
-
-/** `{ icon: 'carrot', tint: 3 }` → `'carrot/3'`. */
-export function formatAvatar(avatar: Avatar): string {
-  return `${avatar.icon}/${avatar.tint}`;
+  /** A slot in the hue ramp, or null for the accent ink every older token has. */
+  readonly ink: number | null;
 }
 
 /**
- * `'carrot/3'` → `{ icon: 'carrot', tint: 3 }`, and anything else → null.
+ * `{ icon: 'carrot', tint: 3, ink: null }` → `'carrot/3'`, and
+ * `{ icon: 'carrot', tint: 3, ink: 5 }` → `'carrot/3/5'`.
+ *
+ * The neutral ink writes two segments rather than a third meaning "default", so
+ * every state has exactly one spelling. Two ways to write the same avatar is how
+ * rows start round-tripping differently than they arrived.
+ */
+export function formatAvatar(avatar: Avatar): string {
+  const base = `${avatar.icon}/${avatar.tint}`;
+  return avatar.ink === null ? base : `${base}/${avatar.ink}`;
+}
+
+/**
+ * `'carrot/3'` → `{ icon: 'carrot', tint: 3, ink: null }`, `'carrot/3/5'` →
+ * `{ …, ink: 5 }`, and anything else → null.
  *
  * Deliberately total: null for absent, for malformed, for an icon this build
- * does not know and for a tint outside the ramp. Every one of those has the same
+ * does not know and for a slot outside the ramp. Every one of those has the same
  * right answer on screen — the placeholder — and a parser that threw would turn
  * one stale row into a broken comment thread.
+ *
+ * A two-segment token is not legacy-with-a-shim, it is the neutral ink spelled
+ * the only way it is spelled. Accounts that chose an avatar before the ink
+ * existed therefore keep rendering exactly as they did.
  */
 export function parseAvatar(token: string | null | undefined): Avatar | null {
   if (!token) return null;
 
-  const [icon, slot, ...rest] = token.split('/');
+  const [icon, slot, inkSlot, ...rest] = token.split('/');
   if (rest.length > 0) return null;
 
   if (!(AVATAR_ICONS as readonly string[]).includes(icon)) return null;
@@ -92,7 +128,17 @@ export function parseAvatar(token: string | null | undefined): Avatar | null {
   const tint = Number(slot);
   if (tint >= AVATAR_TINTS) return null;
 
-  return { icon: icon as AvatarIcon, tint };
+  let ink: number | null = null;
+  if (inkSlot !== undefined) {
+    // Same strictness as the tint, and for the same reason. `carrot/3/` is not
+    // a neutral ink written oddly; it is a token the picker cannot produce.
+    if (!/^\d$/.test(inkSlot)) return null;
+
+    ink = Number(inkSlot);
+    if (ink >= AVATAR_TINTS) return null;
+  }
+
+  return { icon: icon as AvatarIcon, tint, ink };
 }
 
 /**
@@ -102,12 +148,12 @@ export function parseAvatar(token: string | null | undefined): Avatar | null {
  *
  * `not` is the current choice, excluded so a press always visibly changes
  * something. A shuffle that can land on what you already had reads as a dead
- * button, and with 72 combinations it would happen about one press in seventy —
- * often enough to be noticed and rare enough to look like an intermittent bug.
+ * button, and with 504 combinations it would happen about one press in five
+ * hundred — rare enough to look like an intermittent bug rather than a rule.
  */
 export function randomAvatar(not?: Avatar | null): Avatar {
-  const combinations = AVATAR_ICONS.length * AVATAR_TINTS;
-  const excluded = not ? AVATAR_ICONS.indexOf(not.icon) * AVATAR_TINTS + not.tint : -1;
+  const combinations = AVATAR_ICONS.length * AVATAR_TINTS * AVATAR_INKS.length;
+  const excluded = not ? indexOfAvatar(not) : -1;
 
   // Drawn from the combinations *other than* the current one, rather than
   // re-rolled until it differs: one call to Math.random, and no loop that is
@@ -115,8 +161,24 @@ export function randomAvatar(not?: Avatar | null): Avatar {
   let index = Math.floor(Math.random() * (excluded >= 0 ? combinations - 1 : combinations));
   if (excluded >= 0 && index >= excluded) index++;
 
+  const ink = AVATAR_INKS[index % AVATAR_INKS.length];
+  const rest = Math.floor(index / AVATAR_INKS.length);
+
   return {
-    icon: AVATAR_ICONS[Math.floor(index / AVATAR_TINTS)],
-    tint: index % AVATAR_TINTS,
+    icon: AVATAR_ICONS[Math.floor(rest / AVATAR_TINTS)],
+    tint: rest % AVATAR_TINTS,
+    ink,
   };
+}
+
+/**
+ * The inverse of the arithmetic in `randomAvatar`, and the reason the exclusion
+ * works: an avatar the roll can produce has to map back to the index that
+ * produces it, or "not this one" excludes some other one.
+ */
+function indexOfAvatar(avatar: Avatar): number {
+  const inkSlot = AVATAR_INKS.indexOf(avatar.ink as (typeof AVATAR_INKS)[number]);
+  if (inkSlot < 0) return -1;
+
+  return (AVATAR_ICONS.indexOf(avatar.icon) * AVATAR_TINTS + avatar.tint) * AVATAR_INKS.length + inkSlot;
 }
