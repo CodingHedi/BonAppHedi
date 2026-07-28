@@ -1,0 +1,86 @@
+# The deployed profile: `java -jar backend.jar --spring.profiles.active=prod`.
+#
+# Nothing secret is here. Credentials come from the environment, which on the
+# VPS means the systemd unit's EnvironmentFile — a root-owned 600 file rather
+# than anything on the classpath, so a copy of the jar carries no secrets.
+#
+# Everything below is a difference from running locally, and each one has a
+# failure mode attached. There is nothing in this file that is merely tidy.
+
+server:
+  # Loopback only. Caddy terminates TLS and proxies to it, so the application
+  # itself must never be reachable from the internet: bound to 0.0.0.0 it would
+  # answer on http://<vps-ip>:8080 in plaintext, bypassing both the certificate
+  # and everything Caddy adds on top.
+  address: 127.0.0.1
+  port: 8080
+
+  # Without this, every redirect Spring builds is http:// and on the wrong host.
+  # It reads X-Forwarded-Proto and X-Forwarded-Host, which Caddy sets. The
+  # visible symptom is an OAuth round trip that dies on the way back with a
+  # redirect_uri mismatch, and it looks like Google's fault rather than ours.
+  forward-headers-strategy: framework
+
+  error:
+    include-message: never
+    include-stacktrace: never
+
+  tomcat:
+    remoteip:
+      remote-ip-header: X-Forwarded-For
+      protocol-header: X-Forwarded-Proto
+
+  shutdown: graceful
+
+  servlet:
+    session:
+      cookie:
+        # The three that matter once there is real TLS in front.
+        #
+        # secure: the session cookie never travels in plaintext. Without it one
+        #   http:// request leaks a live session id.
+        # http-only: JavaScript cannot read it, so an XSS getting past the
+        #   sanitizer still cannot walk off with somebody's session.
+        # same-site lax rather than strict: strict drops the cookie on the
+        #   return leg from Google, and sign-in then appears to succeed without
+        #   having done so.
+        secure: true
+        http-only: true
+        same-site: lax
+
+spring:
+  # systemd stops the service by signal; this lets in-flight requests finish
+  # rather than having a deploy drop whoever was mid-comment.
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+  datasource:
+    # Beside the jar, on a disk that gets backed up — not in the working
+    # directory, which for a systemd unit is wherever WorkingDirectory happens
+    # to point and is nobody's idea of where a database lives.
+    url: jdbc:sqlite:file:${BAH_DB:/var/lib/bonapphedi/bonapphedi.db}?foreign_keys=on&busy_timeout=5000
+
+  session:
+    jdbc:
+      initialize-schema: never
+    timeout: 30d
+
+logging:
+  level:
+    root: info
+    fr.bonapphedi: info
+    # Quiet by default. The two below are what to turn up when something is
+    # wrong, and they are named here so that nobody has to guess:
+    #   org.springframework.security: debug   — a sign-in that will not complete
+    #   org.springframework.jdbc.core: debug  — SQL, including Flyway's
+    org.springframework.security: warn
+    org.springframework.jdbc.core: warn
+  file:
+    # journalctl has the same lines; this is what survives a `journalctl --vacuum`
+    # and what gets attached to a bug report.
+    name: /var/log/bonapphedi/application.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 14
+      total-size-cap: 200MB
