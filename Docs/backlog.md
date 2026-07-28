@@ -48,12 +48,3 @@ to keep in step with the first.
 Until then, leave it. Moving it early makes the search *slower*: a round trip per
 keystroke where there is now none. `RecipeQueryDao` already understands `query`,
 `tag`, `author` and `sort` and will still be there.
-
-## scripts/verify.ps1
-
-`TESTING.md` referred to it for months; it has never existed. The two halves are
-verified separately, which works and is what everyone actually types.
-
-Worth it only if CI or a deploy step needs one command. If that day does not
-come, delete this entry rather than writing the script to make an old sentence
-true.

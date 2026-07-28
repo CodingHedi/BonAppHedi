@@ -233,6 +233,24 @@ server-to-server and never touch the browser.
 
 ## CI
 
-`.github/workflows/ci.yml` runs the same chain on every push and pull request.
-Green locally means green in CI; if it does not, the workflow and the `verify`
-script have drifted apart and one of them is wrong.
+`.github/workflows/ci.yml` runs **both halves** on every push and pull request,
+as two independent jobs:
+
+| Job | Runs | Matching local command |
+|---|---|---|
+| `frontend` | lint → typecheck → unit → build → e2e | `cd frontend ; npm run verify` |
+| `backend` | the 185 JVM tests | `cd backend ; .\mvnw.cmd test` |
+
+Green locally on both means green in CI; if it does not, the workflow and the
+local commands have drifted and one of them is wrong.
+
+**The backend job is new, and its absence is worth recording.** For the whole of
+milestone 2 and everything after it, CI ran the frontend only — this file said
+"the same chain" and meant one half of it. Every backend test, including the
+migration and security ones written specifically to catch what review would not,
+ran only when somebody remembered to type the command. Nothing was found broken
+when the job was added, which is luck rather than vindication.
+
+The jobs are independent rather than sequential on purpose. Neither can break the
+other — the frontend suites are pinned to the mocks and never reach a JVM — so
+chaining them would only delay finding out that both are broken.
