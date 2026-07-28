@@ -39,10 +39,16 @@ photographic content on the page regardless.
 
 ### An avatar is a token, not an image
 
-`app_user.avatar` stores a short string such as `carrot/3`: an icon name from a
-fixed set, and a palette slot. Rendering it is a lookup in a registry the
+`app_user.avatar` stores a short string such as `carrot/3` or `carrot/3/5`: an
+icon name from a fixed set, a palette slot for the disc, and optionally a second
+slot for the ink the icon is drawn in. Rendering it is a lookup in a registry the
 frontend already has, so an avatar costs the width of the string over the wire
 and nothing else.
+
+The two-segment form is not a legacy spelling awaiting migration — it *is* how
+the default ink is written, and `formatAvatar` emits exactly one of the two forms
+for any given choice. One state, one spelling, so the column never holds two
+strings meaning the same avatar.
 
 This is the whole reason the feature is small. There is no upload, so there is
 no file storage, no size limit, no content-type sniffing, no malware surface, and
@@ -53,9 +59,25 @@ value this build has never heard of degrades instead of breaking.
 ### The selection and the generator are the same mechanism
 
 Both halves of what was asked for fall out of one representation: the
-*selection* is the grid of icon × palette, and the *generator* is a button that
-rolls a random pair. So there is one renderer and one stored form, not two
-parallel systems that both have to be maintained and tested.
+*selection* is the grid of icon × palette × ink, and the *generator* is a button
+that rolls a random combination. So there is one renderer and one stored form,
+not two parallel systems that both have to be maintained and tested.
+
+### Only hues are stored, which is why the ink can be offered at all
+
+Letting somebody choose the background *and* the icon colour is the ordinary way
+to end up with an invisible avatar — dark on dark. This design cannot produce
+one, because a token carries only hues: the disc's lightness comes from the
+`.tinted` wash and the ink's from the avatar component, both fixed per theme.
+
+So the picker is swatches rather than a colour wheel, and that is a consequence
+rather than a restriction. A free picker would need a contrast check to make the
+same promise, and a contrast check is a curated palette arrived at the hard way —
+with the added cost that it has to reject choices the visitor has already made.
+
+`profile.spec.ts` measures every background × ink pair in both themes and fails
+below 3:1, the WCAG 1.4.11 bar for non-text contrast. The worst pair as built is
+3.93:1 in the light theme and 6.29:1 in the dark one.
 
 ### Comments resolve the avatar live, and no longer copy it
 

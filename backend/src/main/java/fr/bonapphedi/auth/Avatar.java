@@ -53,6 +53,14 @@ public final class Avatar {
     /**
      * Whether this is a token the site could have written.
      *
+     * <p>Two forms, both current: {@code carrot/3} is the disc tint with the
+     * accent ink, and {@code carrot/3/5} adds a chosen ink. The two-segment form
+     * is not a legacy spelling to be migrated — it is how the neutral ink is
+     * written, and every avatar chosen before inks existed is already spelled
+     * that way. The frontend's {@code formatAvatar} writes exactly one of the two
+     * for any given choice, so the column never holds two spellings of one
+     * avatar.
+     *
      * <p>Strict about the spelling as well as the values, because the column is
      * compared as text and read back by a parser that is equally strict: accepting
      * {@code carrot/01} would store a row that renders as no avatar at all.
@@ -62,18 +70,32 @@ public final class Avatar {
             return false;
         }
 
-        int slash = token.indexOf('/');
-        if (slash < 0 || token.indexOf('/', slash + 1) >= 0) {
+        int firstSlash = token.indexOf('/');
+        if (firstSlash < 0 || !KNOWN.contains(token.substring(0, firstSlash))) {
             return false;
         }
 
-        String tint = token.substring(slash + 1);
-        // Exactly one digit, so a leading zero, a sign, a space or an exponent is
-        // rejected before the value is ever looked at.
-        if (tint.length() != 1 || tint.charAt(0) < '0' || tint.charAt(0) >= '0' + TINTS) {
+        int secondSlash = token.indexOf('/', firstSlash + 1);
+        if (secondSlash < 0) {
+            return isSlot(token.substring(firstSlash + 1));
+        }
+
+        // A fourth segment is not something the picker can produce.
+        if (token.indexOf('/', secondSlash + 1) >= 0) {
             return false;
         }
 
-        return KNOWN.contains(token.substring(0, slash));
+        return isSlot(token.substring(firstSlash + 1, secondSlash)) && isSlot(token.substring(secondSlash + 1));
+    }
+
+    /**
+     * Exactly one digit inside the ramp.
+     *
+     * <p>The length check is what rejects a leading zero, a sign, a space and an
+     * exponent, all before the value is looked at — {@code Integer.parseInt} would
+     * accept several of them and store a row the frontend then renders as nothing.
+     */
+    private static boolean isSlot(String slot) {
+        return slot.length() == 1 && slot.charAt(0) >= '0' && slot.charAt(0) < '0' + TINTS;
     }
 }
