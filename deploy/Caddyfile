@@ -46,12 +46,15 @@ bonapphedi.fr {
 	@immutable path *.js *.css *.woff2 *.woff *.svg *.png *.jpg *.webp *.avif *.ico
 	header @immutable Cache-Control "public, max-age=31536000, immutable"
 
-	log {
-		output file /var/log/caddy/bonapphedi.log {
-			roll_size 10MB
-			roll_keep 14
-		}
-	}
+	# Access logs go to journald, which is Caddy's default and is where
+	# DEPLOY.md already sends you: journalctl -u caddy.
+	#
+	# There was a `log { output file ... }` block here and it broke the service.
+	# provision.sh runs `caddy validate` as root, validate opens the log file,
+	# and the file was therefore created root:root 0600 - after which the caddy
+	# user could not write to it and the unit died at startup with "permission
+	# denied" on a directory it plainly owns. Fixable by chowning after every
+	# validate; not worth a file nobody was going to read separately.
 }
 
 # One canonical hostname. Both are in DNS, and without this the site would exist
