@@ -9,8 +9,8 @@ Type=simple
 User=bonapphedi
 Group=bonapphedi
 
-# Credentials only. The jar deliberately contains none — that is enforced in the
-# build — so this file is the single place they exist on the machine.
+# Credentials only. The jar deliberately contains none - that is enforced in the
+# build - so this file is the single place they exist on the machine.
 EnvironmentFile=/etc/bonapphedi/bonapphedi.env
 
 WorkingDirectory=/opt/bonapphedi

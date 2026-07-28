@@ -125,16 +125,25 @@ step in the whole list that cannot be done from a terminal.
 ## When something is wrong
 
 ```powershell
-Get-Content deploy\check.sh | ssh ubuntu@141.95.86.140 "sudo bash -s"
+scp deploy\check.sh ubuntu@141.95.86.140:/tmp/
+ssh ubuntu@141.95.86.140 "sudo bash /tmp/check.sh"
 ```
 
-Piped rather than redirected: **Windows PowerShell 5.1 has no `<` operator**, so
-the `ssh host 'bash -s' < file` form found everywhere online fails there. In
-`cmd.exe` the redirect works but single quotes do not — it passes them through
-and the remote shell looks for a command literally named `bash -s`. The pipe
-above is the form that works in the shell this project is actually used from.
+Read-only, and safe on a box you do not trust.
 
-Read-only, and safe on a box you do not trust. It reports the OS, the runtimes,
+**Copy the file, do not stream it.** Every one-liner for this online is a
+variation of `ssh host 'bash -s' < script.sh`, and on Windows all of them fail:
+
+- PowerShell 5.1 has **no `<` operator** at all — it is a parser error.
+- `cmd.exe` honours the redirect but does not strip single quotes, so the remote
+  shell hunts for a command literally named `bash -s`.
+- `Get-Content script.sh | ssh ...` gets past both and then fails differently:
+  PowerShell splits the file into lines and re-emits them **CRLF**, so every
+  line arrives with a trailing `\r` and bash reports `$'\r': command not found`
+  on a script that is LF-clean in the repository.
+
+`scp` copies bytes verbatim. Nothing translates, nothing re-encodes. That is why
+these instructions transfer files and then run them, rather than piping. It reports the OS, the runtimes,
 whether each file and unit is where it should be, which environment variables
 are still empty, what is listening, the firewall, what DNS looks like from the
 box, whether the site answers both locally and over TLS, and the last dozen log

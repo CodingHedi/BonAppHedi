@@ -1,5 +1,5 @@
 # Caddy in front of the fat jar. Installed to /etc/caddy/Caddyfile by
-# deploy/provision.sh — edit it here and re-run that, so the repository stays
+# deploy/provision.sh - edit it here and re-run that, so the repository stays
 # the source of truth rather than the server.
 #
 # Caddy gets and renews the certificate itself over ACME. Nothing here mentions
@@ -10,7 +10,7 @@ bonapphedi.fr {
 
 	# The application binds 127.0.0.1 (application-prod.yml), so this is the
 	# only route in. Caddy sets X-Forwarded-Proto and X-Forwarded-Host, which
-	# Spring reads because of server.forward-headers-strategy=framework —
+	# Spring reads because of server.forward-headers-strategy=framework -
 	# without that pair every OAuth redirect comes back as http:// and sign-in
 	# fails in a way that looks like Google's fault.
 	reverse_proxy 127.0.0.1:8080

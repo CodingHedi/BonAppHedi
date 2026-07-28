@@ -1,18 +1,22 @@
 #!/bin/bash
 #
-# Read-only. Tells you what state the VPS is actually in — run it before
+# Read-only. Tells you what state the VPS is actually in - run it before
 # provisioning, after provisioning, and whenever something is wrong.
 #
-#   Get-Content deploy\check.sh | ssh ubuntu@141.95.86.140 "sudo bash -s"
+#   scp deploy/check.sh ubuntu@141.95.86.140:/tmp/
+#   ssh ubuntu@141.95.86.140 "sudo bash /tmp/check.sh"
 #
-# Piped, not redirected: Windows PowerShell 5.1 has no `<` operator, and cmd.exe
-# does not strip single quotes, so the `ssh host 'bash -s' < file` form found
-# everywhere online fails in both.
+# Copied, never streamed. `ssh host 'bash -s' < file` is a parser error in
+# PowerShell 5.1, mis-quotes in cmd.exe, and piping Get-Content into ssh turns
+# every LF into CRLF so bash reports $'\r': command not found. scp moves bytes.
+#
+# This file is deliberately pure ASCII for the same family of reasons: a stray
+# em-dash arrives as ??? through a Windows console.
 #
 # Changes nothing, so it is safe on a box you are unsure about.
 
 DOMAIN=bonapphedi.fr
-echo "================ $(hostname) — $(date -Is) ================"
+echo "================ $(hostname) - $(date -Is) ================"
 
 section() { printf '\n--- %s\n' "$1"; }
 have() { command -v "$1" >/dev/null 2>&1; }

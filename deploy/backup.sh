@@ -4,7 +4,7 @@
 # provision.sh and run by bonapphedi-backup.timer.
 #
 # Uses `sqlite3 .backup` rather than copying the file. A plain cp of a live
-# SQLite database can capture a torn write — the copy looks fine, restores
+# SQLite database can capture a torn write - the copy looks fine, restores
 # fine, and is missing or corrupting whatever was in flight. `.backup` takes a
 # read lock and produces a consistent snapshot of a database that is being
 # written to.
@@ -39,5 +39,5 @@ find "$DEST" -name 'bonapphedi-*.db.gz' -mtime +"$KEEP_DAYS" -delete
 echo "backed up to $OUT.gz ($(du -h "$OUT.gz" | cut -f1)), keeping $KEEP_DAYS days"
 
 # Worth saying plainly: this writes to the same disk as the database, so it
-# survives a mistake but not a dead VPS. Copying $DEST somewhere else — another
-# host, object storage, a laptop — is a separate decision and is not made here.
+# survives a mistake but not a dead VPS. Copying $DEST somewhere else - another
+# host, object storage, a laptop - is a separate decision and is not made here.
