@@ -1,0 +1,71 @@
+# Caddy in front of the fat jar. Installed to /etc/caddy/Caddyfile by
+# deploy/provision.sh — edit it here and re-run that, so the repository stays
+# the source of truth rather than the server.
+#
+# Caddy gets and renews the certificate itself over ACME. Nothing here mentions
+# a certificate path for that reason, and nothing needs a cron job.
+
+bonapphedi.fr {
+	encode zstd gzip
+
+	# The application binds 127.0.0.1 (application-prod.yml), so this is the
+	# only route in. Caddy sets X-Forwarded-Proto and X-Forwarded-Host, which
+	# Spring reads because of server.forward-headers-strategy=framework —
+	# without that pair every OAuth redirect comes back as http:// and sign-in
+	# fails in a way that looks like Google's fault.
+	reverse_proxy 127.0.0.1:8080
+
+	header {
+		# Once this is on, browsers refuse plain http for the domain for a
+		# year. Correct here and worth being deliberate about: it is awkward
+		# to undo, because browsers remember it.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+		# Stops a browser second-guessing a declared Content-Type, which is
+		# how an uploaded file gets treated as script.
+		X-Content-Type-Options "nosniff"
+
+		# No framing: the site is never embedded, and this is the cheap half
+		# of clickjacking protection.
+		X-Frame-Options "DENY"
+
+		# Send the origin to other sites, never the full path. A recipe URL is
+		# not secret; the habit is.
+		Referrer-Policy "strict-origin-when-cross-origin"
+
+		# Nothing here uses a camera, a microphone or a location.
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+
+		# Caddy announces itself by default.
+		-Server
+	}
+
+	# Hashed filenames, so these can be cached hard. index.html deliberately is
+	# not in this list: it is the one file that must be re-fetched, or a deploy
+	# leaves browsers loading last week's bundle names.
+	@immutable path *.js *.css *.woff2 *.woff *.svg *.png *.jpg *.webp *.avif *.ico
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	log {
+		output file /var/log/caddy/bonapphedi.log {
+			roll_size 10MB
+			roll_keep 14
+		}
+	}
+}
+
+# One canonical hostname. Both are in DNS, and without this the site would exist
+# twice as far as search engines are concerned.
+www.bonapphedi.fr {
+	redir https://bonapphedi.fr{uri} permanent
+}
+
+# A Content-Security-Policy belongs here and is deliberately left out until it
+# can be verified against the running site rather than reasoned about.
+#
+# The shape it wants: default-src 'self'; frame-src https://www.youtube-nocookie.com
+# (the video facade); style-src 'self' 'unsafe-inline' (Angular injects component
+# styles at runtime); img-src 'self' data:.
+#
+# Shipping that untested is how the video player breaks silently on the one page
+# nobody reloads. Add it, then load a recipe with a video and watch the console.
