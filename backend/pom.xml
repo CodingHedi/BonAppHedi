@@ -159,6 +159,34 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
+
+      <!--
+        Keep local credentials out of the artefact.
+
+        application-local.yml is gitignored, so it never reaches the repository
+        — but it lives in src/main/resources, which means Maven was packaging it
+        into the jar. A built jar carried a real Google client secret, the admin
+        address and the fingerprint salt, to be copied to a server and to
+        anywhere else it was ever sent.
+
+        Excluded here, on maven-jar-plugin, rather than on the resources plugin,
+        and the distinction is what makes it safe: resources still copies the
+        file into target/classes, so `mvnw spring-boot:run` picks it up and
+        local sign-in keeps working exactly as documented. Only the archive
+        loses it, and Boot's repackage inherits the exclusion.
+
+        The deploy script checks the built jar for it as well, because this
+        line is one careless edit from being deleted and the failure is silent.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>application-local.yml</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
