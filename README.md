@@ -84,6 +84,12 @@ cd backend
 .\mvnw.cmd -Pweb clean package        # fat jar including the Angular build
 ```
 
+`-Pweb` copies `frontend/dist` into the jar rather than building it, so run
+`npm run build` first. It fails with a message saying so if you have not — a jar
+without `static/index.html` answers every page with a 404 and nothing reveals
+that until it is on the server. In practice use `.\scripts\deploy.ps1`, which
+does both in the right order and checks the artefact before it ships.
+
 ---
 
 ## Testing
@@ -207,8 +213,13 @@ Docs/adr/        Architecture decision records.
 Docs/backlog.md  Wanted, shape already obvious, not yet scheduled.
 frontend/        Angular app (npm root).
 backend/         Spring Boot app (Maven root, owns the wrapper).
-scripts/         Dev, deploy and backup scripts.
+scripts/         dev.ps1, stop.ps1, api.ps1, deploy.ps1.
+deploy/          What runs on the server: Caddyfile, systemd units,
+                 provision.sh, backup.sh, check.sh.
 ```
+
+Deploying, provisioning and what to do when the site is down:
+**[DEPLOY.md](DEPLOY.md)**.
 
 ### Design source of truth
 
