@@ -21,10 +21,13 @@ import org.springframework.stereotype.Component;
  * allowlist. That is what makes deleting an address from the configuration an
  * actual demotion rather than a note of intent (ADR 0003).
  *
- * <p>{@code avatar} is the one column the upsert leaves alone. The provider used
- * to own it too and no longer does: it is chosen on this site (ADR 7), so listing
- * it in the {@code ON CONFLICT} clause would silently reset the choice on the
- * next sign-in and read exactly like the profile page having failed to save.
+ * <p>{@code avatar} and {@code nickname} are the columns the upsert leaves alone.
+ * The provider used to own the picture and no longer does: it is chosen on this
+ * site (ADR 7), so listing it in the {@code ON CONFLICT} clause would silently
+ * reset the choice on the next sign-in and read exactly like the profile page
+ * having failed to save. The chosen name is the same story, and is why it is a
+ * column of its own rather than an overwrite of {@code display_name} — the
+ * provider still owns that one and it is still refreshed on every login.
  */
 @Component
 public class AppUserRegistry {
@@ -112,6 +115,50 @@ public class AppUserRegistry {
                 .query(String.class)
                 .optional()
                 .orElse(null);
+    }
+
+    /**
+     * Records the name this account chose to be shown under, or clears it.
+     *
+     * <p>Normalised by the caller, for the same reason the avatar is validated
+     * there: this method trusts its argument and says so. {@code null} clears the
+     * choice, after which the byline shows what the provider said again.
+     */
+    public void chooseNickname(long userId, String nickname) {
+        jdbc.sql("UPDATE app_user SET nickname = ? WHERE id = ?")
+                .param(nickname)
+                .param(userId)
+                .update();
+    }
+
+    /**
+     * The chosen name, or null if this account has never chosen one.
+     *
+     * <p>Read on demand rather than carried in the session, exactly as the avatar
+     * is: {@link AppUser} is a snapshot held for the life of the session, so a copy
+     * here would show the old name until the next login — in the very session that
+     * had just changed it.
+     */
+    public String nicknameOf(long userId) {
+        return jdbc.sql("SELECT nickname FROM app_user WHERE id = ?")
+                .param(userId)
+                .query(String.class)
+                .optional()
+                .orElse(null);
+    }
+
+    /**
+     * What this account should be shown as: the chosen name if there is one, and
+     * the provider's otherwise.
+     *
+     * <p>One method rather than the {@code ?:} written at each call site, because
+     * there are three of them — the session response, the byline copied onto a new
+     * comment, and the rewrite of the copies on the ones already posted — and a
+     * fallback forgotten at any one of them shows a blank name or the real one.
+     */
+    public String shownNameOf(AppUser user) {
+        String chosen = nicknameOf(user.id());
+        return chosen == null ? user.displayName() : chosen;
     }
 
     /**

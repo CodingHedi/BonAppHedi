@@ -82,7 +82,10 @@ class ApiSecurityMatrixTest {
 
     /** Writes that require a session and answer 401 without one. */
     private static final Set<String> SESSION_WRITES = Set.of(
-            "POST /api/recipes/{slug}/comments", "DELETE /api/comments/{id}", "PUT /api/auth/avatar");
+            "POST /api/recipes/{slug}/comments",
+            "DELETE /api/comments/{id}",
+            "PUT /api/auth/avatar",
+            "PUT /api/auth/name");
 
     /** Everything behind ROLE_ADMIN, asserted in depth by AdminApiTest. */
     private static final Set<String> ADMIN_ONLY = Set.of(

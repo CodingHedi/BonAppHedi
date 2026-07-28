@@ -64,6 +64,7 @@ import { SEGMENTS } from '../../core/i18n/locale';
       <p>{{ 'privacy.commentIdentity' | transloco }}</p>
       <p>{{ 'privacy.commentEmail' | transloco }}</p>
       <p>{{ 'privacy.commentPublic' | transloco }}</p>
+      <p>{{ 'privacy.commentName' | transloco }}</p>
       <p>{{ 'privacy.commentAvatar' | transloco }}</p>
       <p>{{ 'privacy.commentCookies' | transloco }}</p>
 

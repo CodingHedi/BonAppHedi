@@ -76,7 +76,11 @@ class AuthApiTest {
      */
     @BeforeEach
     void standUpTheAccount() {
-        jdbc.sql("DELETE FROM app_user WHERE id = 7").update();
+        // Comments first: comment.user_id is ON DELETE SET NULL, so dropping the
+        // accounts first would leave orphaned rows behind that the name tests then
+        // count as somebody else's.
+        jdbc.sql("DELETE FROM comment WHERE id > 4").update();
+        jdbc.sql("DELETE FROM app_user WHERE id IN (7, 8)").update();
         jdbc.sql(
                         """
                         INSERT INTO app_user (id, provider, provider_user_id, display_name, email, is_admin, created_at)
@@ -252,6 +256,185 @@ class AuthApiTest {
         return put("/api/auth/avatar")
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{\"avatar\":\"" + token + "\"}");
+    }
+
+    // --- choosing a name --------------------------------------------------
+
+    @Test
+    void storesTheNameTheVisitorChose() throws Exception {
+        mvc.perform(chooseName("Chef Hédi").with(oauth2Login().oauth2User(signedIn(false))).with(csrf()))
+                .andExpect(status().isOk())
+                // displayName is what to show; chosenName is the choice itself, and
+                // the profile page needs both to tell "no choice" from "chose this".
+                .andExpect(jsonPath("$.displayName").value("Chef Hédi"))
+                .andExpect(jsonPath("$.chosenName").value("Chef Hédi"));
+
+        mvc.perform(get("/api/auth/session").with(oauth2Login().oauth2User(signedIn(false))))
+                .andExpect(jsonPath("$.displayName").value("Chef Hédi"));
+    }
+
+    @Test
+    void showsTheProvidersNameUntilOneIsChosen() throws Exception {
+        mvc.perform(get("/api/auth/session").with(oauth2Login().oauth2User(signedIn(false))))
+                .andExpect(jsonPath("$.displayName").value("Hédi"))
+                .andExpect(jsonPath("$.chosenName").value(nullValue()));
+    }
+
+    /**
+     * The assertion the whole feature rests on.
+     *
+     * <p>{@code comment.display_name} is a copy taken when the comment was posted,
+     * so choosing a name has to rewrite those copies. Without it somebody who sets a
+     * pseudonym precisely because they do not want their real name public keeps it on
+     * every comment they have already written — and every other test here would still
+     * pass.
+     */
+    @Test
+    void rewritesTheNameOnCommentsAlreadyPosted() throws Exception {
+        long comment = givenACommentBy(7, "Hédi");
+
+        mvc.perform(chooseName("Chef Hédi").with(oauth2Login().oauth2User(signedIn(false))).with(csrf()))
+                .andExpect(status().isOk());
+
+        assertThat(nameOn(comment)).isEqualTo("Chef Hédi");
+    }
+
+    @Test
+    void leavesOtherPeoplesCommentsAlone() throws Exception {
+        // The rewrite is scoped by user_id in SQL. An UPDATE that forgot the WHERE
+        // would rename the whole thread and pass the test above.
+        long mine = givenACommentBy(7, "Hédi");
+        long theirs = givenACommentBy(8, "Camille");
+
+        mvc.perform(chooseName("Chef Hédi").with(oauth2Login().oauth2User(signedIn(false))).with(csrf()))
+                .andExpect(status().isOk());
+
+        assertThat(nameOn(mine)).isEqualTo("Chef Hédi");
+        assertThat(nameOn(theirs)).isEqualTo("Camille");
+    }
+
+    @Test
+    void copiesTheChosenNameOntoNewCommentsToo() throws Exception {
+        mvc.perform(chooseName("Chef Hédi").with(oauth2Login().oauth2User(signedIn(false))).with(csrf()))
+                .andExpect(status().isOk());
+
+        // Posted after the choice, so nothing rewrites it: the copy has to be right
+        // when it is made or the real name sits there until the next rename.
+        mvc.perform(post("/api/recipes/babka-au-chocolat/comments")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"bodyMarkdown\":\"Très bon.\"}")
+                        .with(oauth2Login().oauth2User(signedIn(false)))
+                        .with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.author.displayName").value("Chef Hédi"));
+    }
+
+    @Test
+    void clearingTheChoiceGoesBackToTheProvidersNameEverywhere() throws Exception {
+        long comment = givenACommentBy(7, "Hédi");
+
+        mvc.perform(chooseName("Chef Hédi").with(oauth2Login().oauth2User(signedIn(false))).with(csrf()))
+                .andExpect(status().isOk());
+
+        // Blank is a clear, not a bad request — otherwise a pseudonym could be set
+        // and never undone.
+        mvc.perform(chooseName("").with(oauth2Login().oauth2User(signedIn(false))).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value("Hédi"))
+                .andExpect(jsonPath("$.chosenName").value(nullValue()));
+
+        assertThat(nameOn(comment)).isEqualTo("Hédi");
+    }
+
+    @Test
+    void storesTheNameTrimmedAndCollapsed() throws Exception {
+        // Validated *and stored* through the same normalisation, or the column ends
+        // up holding the raw string that merely passed the check.
+        mvc.perform(chooseName("  Chef    Hédi  ")
+                        .with(oauth2Login().oauth2User(signedIn(false)))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.chosenName").value("Chef Hédi"));
+    }
+
+    @Test
+    void refusesANameThisSiteDoesNotAccept() throws Exception {
+        // One character, over thirty, and a right-to-left override that would make
+        // the rest of the byline read backwards. DisplayNameTest covers the rules;
+        // this asserts the endpoint actually applies them.
+        for (String rejected : new String[] {"x", "y".repeat(31), "He‮di", "Hé\ndi"}) {
+            mvc.perform(chooseName(rejected)
+                            .with(oauth2Login().oauth2User(signedIn(false)))
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
+    void refusesToChooseANameForAVisitorWithNoSession() throws Exception {
+        mvc.perform(chooseName("Chef Hédi").with(csrf())).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void refusesANameChoiceThatCarriesNoCsrfToken() throws Exception {
+        mvc.perform(chooseName("Chef Hédi").with(oauth2Login().oauth2User(signedIn(false))))
+                .andExpect(status().isForbidden());
+    }
+
+    private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder chooseName(
+            String name) {
+        return put("/api/auth/name")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                // Escaped, because two of the rejection cases above are a newline
+                // and a bidi override and both would otherwise break the JSON
+                // rather than reaching the validator.
+                .content("{\"displayName\":\"" + escapeJson(name) + "\"}");
+    }
+
+    private static String escapeJson(String raw) {
+        StringBuilder out = new StringBuilder();
+        raw.codePoints().forEach(point -> {
+            if (point == '"' || point == '\\') out.append('\\').append((char) point);
+            else if (point < 0x20 || point == 0x202E || point == 0xFEFF)
+                out.append(String.format("\\u%04x", point));
+            else out.appendCodePoint(point);
+        });
+        return out.toString();
+    }
+
+    /** A comment attributed to an account, so the rewrite has something to rewrite. */
+    private long givenACommentBy(long userId, String name) {
+        if (userId != 7) {
+            jdbc.sql(
+                            """
+                            INSERT OR IGNORE INTO app_user (
+                                id, provider, provider_user_id, display_name, email, is_admin, created_at)
+                            VALUES (?, 'google', ?, ?, NULL, 0, '2026-07-01T00:00:00Z')
+                            """)
+                    .param(userId)
+                    .param("other-" + userId)
+                    .param(name)
+                    .update();
+        }
+
+        jdbc.sql(
+                        """
+                        INSERT INTO comment (
+                            recipe_id, user_id, display_name, body_markdown, body_html, status, created_at)
+                        VALUES (1, ?, ?, 'x', '<p>x</p>', 'PUBLISHED', '2026-07-01T00:00:00Z')
+                        """)
+                .param(userId)
+                .param(name)
+                .update();
+
+        return jdbc.sql("SELECT last_insert_rowid()").query(Long.class).single();
+    }
+
+    private String nameOn(long commentId) {
+        return jdbc.sql("SELECT display_name FROM comment WHERE id = ?")
+                .param(commentId)
+                .query(String.class)
+                .single();
     }
 
     // --- CSRF -------------------------------------------------------------

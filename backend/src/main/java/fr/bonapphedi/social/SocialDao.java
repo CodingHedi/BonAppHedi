@@ -238,6 +238,30 @@ public class SocialDao {
         return jdbc.sql("SELECT last_insert_rowid()").query(Long.class).single();
     }
 
+    /**
+     * Rewrites the copied byline on every comment this account has posted.
+     *
+     * <p>Called when the account chooses a name, and the reason the feature is not
+     * merely cosmetic. {@code display_name} is a copy taken at posting time, so
+     * without this the real name stays on every comment already published and
+     * "choose the name you are shown under" would apply only to the next one.
+     *
+     * <p>A join at read time would have looked cheaper and is wrong here. A comment
+     * outlives its account — {@code user_id} is {@code ON DELETE SET NULL} — so a
+     * join falls back to the copy the moment the account goes away, resurrecting
+     * the name the person chose to hide. The copies have to be correct rather than
+     * overridden.
+     *
+     * @return how many comments were rewritten, which the caller has no use for and
+     *     a test does.
+     */
+    public int renameAuthor(long userId, String shownName) {
+        return jdbc.sql("UPDATE comment SET display_name = ? WHERE user_id = ?")
+                .param(shownName)
+                .param(userId)
+                .update();
+    }
+
     public Optional<Dto.Comment> commentById(long id, Long userId) {
         return jdbc.sql(
                         """

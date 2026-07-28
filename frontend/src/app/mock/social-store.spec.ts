@@ -118,6 +118,44 @@ describe('SocialStore comments', () => {
     expect(store.commentCountFor(BABKA)).toBe(2);
   });
 
+  /**
+   * Choosing a display name has to cover the comments already posted.
+   *
+   * Asserted here because the e2e suite cannot see it: this store keeps comments
+   * in memory, so a comment posted before navigating to the profile page is gone
+   * by the time a browser test could come back and look. The real rewrite is
+   * covered by `AuthApiTest.rewritesTheNameOnCommentsAlreadyPosted` against the
+   * database; this covers the mock reproducing it, which is what the *frontend*
+   * is developed against.
+   *
+   * Without it, somebody who sets a pseudonym precisely because they do not want
+   * their real name public keeps it on everything they have already written.
+   */
+  it('renames the comments this visitor has already posted', () => {
+    const store = new SocialStore();
+    const own = store.addComment(BABKA, { displayName: 'Hédi', avatar: 'pot/0' }, 'Testé.');
+
+    store.renameAuthor('Le Gourmand');
+
+    const renamed = store.commentsFor(BABKA).find((c) => c.id === own.id);
+    expect(renamed?.author.displayName).toBe('Le Gourmand');
+  });
+
+  it('renames nobody else, however many comments are in the thread', () => {
+    // Scoped to `mine`, which stands in for `WHERE user_id = :me`. A rename that
+    // dropped the condition would pass the test above and rewrite the whole site.
+    const store = new SocialStore();
+    store.addComment(BABKA, { displayName: 'Hédi', avatar: 'pot/0' }, 'Testé.');
+
+    store.renameAuthor('Le Gourmand');
+
+    const names = store.commentsFor(BABKA).map((c) => c.author.displayName);
+    expect(names).toContain('Le Gourmand');
+    // Tom and Camille are seeded and belong to no account.
+    expect(names).toContain('Tom');
+    expect(names).toContain('Camille');
+  });
+
   it('leaves bodyHtml empty so the client renders and sanitizes the markdown', () => {
     // M1 has no server to have pre-rendered it. If this ever arrives populated
     // from a mock, the sanitizing path in MarkdownComponent stops being exercised.
