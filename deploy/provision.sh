@@ -126,9 +126,17 @@ systemctl enable bonapphedi >/dev/null 2>&1 || true
 say "Caddy configuration"
 install -m 644 "$HERE/Caddyfile" /etc/caddy/Caddyfile
 # Fails loudly on a syntax error rather than leaving the old config running and
-# the new one silently unapplied.
-caddy validate --config /etc/caddy/Caddyfile
-systemctl reload caddy || systemctl restart caddy
+# the new one silently unapplied. Run as the caddy user, not as root: validate
+# opens whatever the config tells it to, and anything it creates while running
+# as root is then unwritable by the service.
+sudo -u caddy caddy validate --config /etc/caddy/Caddyfile
+systemctl restart caddy
+sleep 2
+systemctl is-active --quiet caddy || {
+  echo "caddy did not start:" >&2
+  journalctl -u caddy -n 20 --no-pager >&2
+  exit 1
+}
 
 say "Firewall"
 ufw allow OpenSSH >/dev/null
@@ -136,7 +144,12 @@ ufw allow 80/tcp >/dev/null
 ufw allow 443/tcp >/dev/null
 # 8080 is deliberately absent: the application binds 127.0.0.1 and is reachable
 # only through Caddy.
-yes | ufw enable >/dev/null
+#
+# --force rather than `yes | ufw enable`. Under `set -o pipefail` that pipeline
+# aborts the whole script: ufw stops reading, `yes` takes SIGPIPE and exits 141,
+# and pipefail promotes that to the pipeline's status. The script died here
+# silently on its first real run, after the firewall was already enabled.
+ufw --force enable >/dev/null
 ufw status verbose | head -12
 
 say "Unattended security updates"
