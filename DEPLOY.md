@@ -32,7 +32,7 @@ build and budgets were never exercised.
 **Rolling back.** The previous jar stays on the server:
 
 ```bash
-ssh root@141.95.86.140 'cd /opt/bonapphedi && mv bonapphedi.jar.previous bonapphedi.jar && systemctl restart bonapphedi'
+ssh ubuntu@141.95.86.140 "cd /opt/bonapphedi && sudo mv bonapphedi.jar.previous bonapphedi.jar && sudo systemctl restart bonapphedi"
 ```
 
 ---
@@ -52,14 +52,35 @@ pointing the domain at `213.186.33.5` — and deletes custom records including t
 `selector1._domainkey` DKIM entry, which breaks outgoing mail signing silently.
 It has already happened once.
 
+**1b. SSH keys, if `ssh` asks for a password.**
+
+OVH installs the key you paste into the reinstall form. If that was skipped — or
+the box was reinstalled without one — log in with the password OVH emailed and
+push the key up:
+
+```powershell
+Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub |
+  ssh ubuntu@141.95.86.140 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+```
+
+It asks for the password once. After that `ssh ubuntu@141.95.86.140` should log
+straight in, and everything below works unattended. Confirm that before running
+`provision.sh`, which turns password authentication off — it only does so when
+it can already see an `authorized_keys`, but there is no reason to test that
+guard by accident.
+
 **2. Provision the box.**
 
 ```powershell
 scp deploy\provision.sh deploy\Caddyfile deploy\bonapphedi.service `
     deploy\bonapphedi-backup.service deploy\bonapphedi-backup.timer deploy\backup.sh `
-    root@141.95.86.140:/tmp/
-ssh root@141.95.86.140 'cd /tmp && bash provision.sh'
+    ubuntu@141.95.86.140:/tmp/
+ssh ubuntu@141.95.86.140 "cd /tmp && sudo bash provision.sh"
 ```
+
+The OVH Ubuntu image has no root login — it ships an `ubuntu` account with
+sudo, and SSH refuses root outright. Everything here connects as `ubuntu` and
+elevates only where it must.
 
 Idempotent — re-running it is how you apply a change to the Caddyfile or the
 unit. It installs the Java runtime, Caddy, the service account, the units, the
@@ -73,7 +94,7 @@ machine whose only door it is.
 **3. Fill in the secrets.**
 
 ```bash
-ssh root@141.95.86.140 'nano /etc/bonapphedi/bonapphedi.env'
+ssh ubuntu@141.95.86.140 "sudo nano /etc/bonapphedi/bonapphedi.env"
 ```
 
 ```
@@ -104,8 +125,14 @@ step in the whole list that cannot be done from a terminal.
 ## When something is wrong
 
 ```powershell
-ssh root@141.95.86.140 'bash -s' < deploy\check.sh
+Get-Content deploy\check.sh | ssh ubuntu@141.95.86.140 "sudo bash -s"
 ```
+
+Piped rather than redirected: **Windows PowerShell 5.1 has no `<` operator**, so
+the `ssh host 'bash -s' < file` form found everywhere online fails there. In
+`cmd.exe` the redirect works but single quotes do not — it passes them through
+and the remote shell looks for a command literally named `bash -s`. The pipe
+above is the form that works in the shell this project is actually used from.
 
 Read-only, and safe on a box you do not trust. It reports the OS, the runtimes,
 whether each file and unit is where it should be, which environment variables
@@ -116,9 +143,9 @@ lines.
 Otherwise:
 
 ```bash
-journalctl -u bonapphedi -f          # the application
-journalctl -u caddy -n 50            # certificates and proxying
-systemctl status bonapphedi
+sudo journalctl -u bonapphedi -f      # the application
+sudo journalctl -u caddy -n 50        # certificates and proxying
+sudo systemctl status bonapphedi
 ```
 
 **Symptoms worth recognising:**
@@ -150,10 +177,10 @@ copy with `PRAGMA integrity_check`, compresses it and keeps 30 days in
 Restoring:
 
 ```bash
-systemctl stop bonapphedi
-gunzip -c /var/backups/bonapphedi/bonapphedi-2026-07-28.db.gz > /var/lib/bonapphedi/bonapphedi.db
-chown bonapphedi:bonapphedi /var/lib/bonapphedi/bonapphedi.db
-systemctl start bonapphedi
+sudo systemctl stop bonapphedi
+sudo sh -c 'gunzip -c /var/backups/bonapphedi/bonapphedi-2026-07-28.db.gz > /var/lib/bonapphedi/bonapphedi.db'
+sudo chown bonapphedi:bonapphedi /var/lib/bonapphedi/bonapphedi.db
+sudo systemctl start bonapphedi
 ```
 
 **These backups are on the same disk as the database.** They survive a mistake,

@@ -15,8 +15,12 @@
     Skip the frontend verify chain. For a second attempt after a failed upload,
     when the artefact has already been proven. Not for a first deploy.
 
-.PARAMETER Host
+.PARAMETER TargetHost
     Override the target. Defaults to the production VPS.
+
+    The OVH Ubuntu image has no root login - it ships an `ubuntu` account with
+    sudo, and root's SSH access is refused. So this connects as an ordinary user
+    and elevates only for the four commands that need it.
 
 .EXAMPLE
     .\scripts\deploy.ps1
@@ -25,7 +29,7 @@
 [CmdletBinding()]
 param(
     [switch]$SkipVerify,
-    [string]$TargetHost = 'root@141.95.86.140'
+    [string]$TargetHost = 'ubuntu@141.95.86.140'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -101,25 +105,30 @@ Ok 'the Angular build is inside'
 # --- 4. ship ----------------------------------------------------------------
 
 Step "Uploading to $TargetHost"
-# Uploaded beside the live jar and moved into place afterwards, so a dropped
-# connection leaves the running version untouched rather than half-written.
-scp $jar.FullName "${TargetHost}:/opt/bonapphedi/bonapphedi.jar.new"
+# To /tmp, not straight to /opt/bonapphedi: the login user is not root and has
+# no business owning anything under /opt. It is moved into place with sudo
+# below, which also means a dropped connection leaves the running version
+# untouched rather than half-written.
+scp $jar.FullName "${TargetHost}:/tmp/bonapphedi.jar.new"
 if ($LASTEXITCODE -ne 0) { Die 'Upload failed - the running version is untouched.' }
 
 Step 'Swapping it in and restarting'
 $remote = @'
 set -euo pipefail
-cd /opt/bonapphedi
+# Fails immediately and clearly if sudo would prompt, rather than hanging on a
+# password prompt that has nowhere to be typed.
+sudo -n true 2>/dev/null || { echo "sudo needs a password for this user; deploy cannot continue non-interactively" >&2; exit 1; }
+
 # Keep one generation back. `systemctl rollback` is not a thing; this is.
-[ -f bonapphedi.jar ] && cp bonapphedi.jar bonapphedi.jar.previous
-mv bonapphedi.jar.new bonapphedi.jar
-chown root:root bonapphedi.jar
-chmod 644 bonapphedi.jar
-systemctl restart bonapphedi
+[ -f /opt/bonapphedi/bonapphedi.jar ] && sudo cp /opt/bonapphedi/bonapphedi.jar /opt/bonapphedi/bonapphedi.jar.previous
+sudo install -o root -g root -m 644 /tmp/bonapphedi.jar.new /opt/bonapphedi/bonapphedi.jar
+rm -f /tmp/bonapphedi.jar.new
+
+sudo systemctl restart bonapphedi
 sleep 3
-systemctl is-active --quiet bonapphedi && echo "service is active" || {
+sudo systemctl is-active --quiet bonapphedi && echo "service is active" || {
   echo "SERVICE FAILED TO START - last 30 lines:" >&2
-  journalctl -u bonapphedi -n 30 --no-pager >&2
+  sudo journalctl -u bonapphedi -n 30 --no-pager >&2
   exit 1
 }
 '@
