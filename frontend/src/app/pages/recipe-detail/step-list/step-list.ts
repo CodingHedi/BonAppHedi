@@ -1,17 +1,19 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DOCUMENT, inject, input, output } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { DurationPipe, VideoTimestampPipe } from '../../../shared/pipes';
 import { videoTimestamp } from '../../../shared/format';
+import { selectionWithin } from '../../../shared/quote';
+import { IconComponent } from '../../../core/icons/icon';
 import type { Step } from '../../../core/api/models';
 
 @Component({
   selector: 'bah-step-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslocoPipe, DurationPipe, VideoTimestampPipe],
+  imports: [TranslocoPipe, DurationPipe, VideoTimestampPipe, IconComponent],
   template: `
     <ol>
       @for (step of steps(); track step.id; let i = $index) {
-        <li>
+        <li [id]="'step-' + step.id">
           <span class="number" aria-hidden="true">{{ i + 1 }}</span>
 
           @if (step.durationMinutes !== null) {
@@ -34,6 +36,27 @@ import type { Step } from '../../../core/api/models';
               </button>
             }
           </p>
+
+          <!--
+            Asking about a step is the reason this exists: "what does 'until it
+            doubles' mean here" is a question about one instruction, and a comment
+            that quotes it is answerable without guessing which step was meant.
+
+            Offered only when there is somebody to ask as, and it quotes the
+            selection when there is one inside this step — so highlighting five
+            words asks about five words rather than the whole paragraph.
+          -->
+          @if (canQuote()) {
+            <button
+              type="button"
+              class="btn btn-icon btn-secondary quote"
+              [attr.aria-label]="'recipe.quoteStep' | transloco: { number: i + 1 }"
+              [attr.title]="'recipe.quoteStep' | transloco: { number: i + 1 }"
+              (click)="onQuote(step)"
+            >
+              <bah-icon name="quote" [size]="14" />
+            </button>
+          }
         </li>
       }
     </ol>
@@ -109,6 +132,30 @@ import type { Step } from '../../../core/api/models';
       text-decoration: underline;
     }
 
+    /* Quiet until the step is hovered or the button itself is focused, so a column
+       of buttons does not compete with the instructions. Never hidden outright:
+       display:none or visibility:hidden would take it out of the tab order and
+       make the whole feature unreachable by keyboard. */
+    .quote {
+      flex: none;
+      margin-top: 2px;
+      opacity: 0;
+      transition: opacity 120ms ease;
+    }
+
+    li:hover .quote,
+    li:focus-within .quote,
+    .quote:focus-visible {
+      opacity: 1;
+    }
+
+    /* No hover on a touch screen, so there would be nothing to reveal it. */
+    @media (hover: none) {
+      .quote {
+        opacity: 0.55;
+      }
+    }
+
     @media (max-width: 640px) {
       li {
         flex-wrap: wrap;
@@ -121,13 +168,33 @@ import type { Step } from '../../../core/api/models';
   `,
 })
 export class StepListComponent {
+  private readonly document = inject(DOCUMENT);
+
   readonly steps = input.required<readonly Step[]>();
   /** Timestamps are only offered when there is actually a video to jump into. */
   readonly hasVideo = input(false);
+  /** Whether to offer the quote button, which needs somebody to ask as. */
+  readonly canQuote = input(false);
 
   readonly seek = output<number>();
+  readonly quote = output<string>();
 
   protected label(seconds: number): string {
     return videoTimestamp(seconds);
+  }
+
+  /**
+   * The selection inside this step if there is one, and the whole step otherwise.
+   *
+   * Read here rather than in the parent because only this component knows which
+   * element holds which step, and read synchronously because the click that got
+   * here is a mousedown away from the selection being collapsed.
+   */
+  protected onQuote(step: Step): void {
+    const element = this.document.getElementById(`step-${step.id}`);
+    const view = this.document.defaultView;
+
+    const selected = element && view ? selectionWithin(element, view) : null;
+    this.quote.emit(selected ?? step.body);
   }
 }

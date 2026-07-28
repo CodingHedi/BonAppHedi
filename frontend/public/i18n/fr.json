@@ -75,7 +75,9 @@
     "ratingSummary": "{{average}} / 5",
     "reviews": "{count, plural, =0 {aucun avis} one {# avis} other {# avis}}",
     "notFound": "Cette recette est introuvable.",
-    "notFoundAction": "Revenir aux recettes"
+    "notFoundAction": "Revenir aux recettes",
+    "quoteStep": "Citer l'étape {{number}} dans un commentaire",
+    "quoteDescription": "Citer la description dans un commentaire"
   },
   "rating": {
     "label": "Noter cette recette",
@@ -108,7 +110,9 @@
       "link": "Lien",
       "bullet": "Liste à puces",
       "quote": "Citation"
-    }
+    },
+    "quote": "Citer",
+    "quoteAuthor": "Citer {{name}}"
   },
   "share": {
     "label": "Partager",
