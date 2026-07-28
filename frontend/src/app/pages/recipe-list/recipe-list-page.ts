@@ -187,8 +187,12 @@ export class RecipeListPage {
    * applied below in a computed, so typing does not fire a request per
    * keystroke and results update with no perceptible delay.
    *
-   * That holds while the catalogue is small. Past a few hundred recipes this
-   * should move server-side with real pagination.
+   * This holds for far longer than it looks. At ~715 bytes a recipe, three
+   * hundred of them are 27 KB gzipped — against an initial bundle of 156 KB, the
+   * payload is not what will end this arrangement. Rendering is: a list that
+   * needs pagination cannot be filtered client-side, because the pages that were
+   * never fetched cannot be searched. `Docs/backlog.md` has the measurements and
+   * the middle path.
    */
   protected readonly recipes = resource({
     params: () => ({ locale: this.locale() }),
