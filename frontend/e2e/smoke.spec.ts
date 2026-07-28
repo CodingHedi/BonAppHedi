@@ -34,9 +34,11 @@ const ROUTES: readonly RouteCheck[] = [
   // Matched loosely in both languages: these pages are placeholders until M3,
   // and pinning the exact copy now would just mean a false failure the day
   // they are written.
-  { path: '/fr/mentions-legales', expects: /mentions légales|legal notice/i },
+  // Matched on a real heading now rather than loosely: the page held
+  // "A completer avant la mise en ligne" until the notice was written.
+  { path: '/fr/mentions-legales', expects: 'Hébergeur' },
   { path: '/fr/confidentialite', expects: /confidentialité|privacy/i },
-  { path: '/en/legal-notice', expects: /mentions légales|legal notice/i },
+  { path: '/en/legal-notice', expects: 'Host' },
   { path: '/en/privacy', expects: /confidentialité|privacy/i },
   { path: '/fr/connexion', expects: /S'identifier|Sign in/ },
   { path: '/en/sign-in', expects: /S'identifier|Sign in/ },

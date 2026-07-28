@@ -19,6 +19,19 @@
     "legal": "Mentions légales",
     "privacy": "Confidentialité"
   },
+  "legal": {
+    "title": "Mentions légales",
+    "publisherTitle": "Éditeur du site",
+    "publisherCapacity": "Site personnel, publié à titre non professionnel.",
+    "addressWithheld": "Conformément à l'article 6-III-2 de la LCEN, l'adresse postale de l'éditeur n'est pas publiée : le site est édité à titre non professionnel et l'hébergeur, dont les coordonnées figurent ci-dessous, détient les éléments d'identification de l'éditeur.",
+    "directorTitle": "Directeur de la publication",
+    "hostTitle": "Hébergeur",
+    "contentTitle": "Propriété intellectuelle",
+    "contentBody": "Les recettes, textes et photographies publiés sur ce site en sont la création originale et ne peuvent être reproduits sans autorisation. Les marques et logos des services tiers mentionnés appartiennent à leurs propriétaires respectifs.",
+    "dataTitle": "Données personnelles",
+    "dataBody": "Ce site collecte le strict nécessaire à son fonctionnement, sans publicité ni traceur tiers. Le détail figure dans la",
+    "privacyLink": "politique de confidentialité"
+  },
   "list": {
     "heading": "Toutes les recettes",
     "count": "{count, plural, =0 {aucune recette} one {# recette} other {# recettes}}",

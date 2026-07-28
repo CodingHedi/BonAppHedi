@@ -14,6 +14,19 @@
     "switchTo": "Switch to {{language}}",
     "home": "Home"
   },
+  "legal": {
+    "title": "Legal notice",
+    "publisherTitle": "Publisher",
+    "publisherCapacity": "A personal site, published in a non-professional capacity.",
+    "addressWithheld": "Under article 6-III-2 of the French LCEN, the publisher's postal address is not published: the site is personal and non-commercial, and the host named below holds the publisher's identity.",
+    "directorTitle": "Director of publication",
+    "hostTitle": "Host",
+    "contentTitle": "Intellectual property",
+    "contentBody": "The recipes, text and photographs published here are original work and may not be reproduced without permission. Third-party names and logos mentioned belong to their respective owners.",
+    "dataTitle": "Personal data",
+    "dataBody": "This site collects only what it needs to work, with no advertising and no third-party trackers. The details are in the",
+    "privacyLink": "privacy policy"
+  },
   "footer": {
     "copyright": "© {{year}}",
     "legal": "Legal notice",
