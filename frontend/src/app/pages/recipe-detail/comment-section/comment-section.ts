@@ -1,6 +1,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DOCUMENT,
+  Injector,
+  afterNextRender,
   computed,
   inject,
   input,
@@ -12,6 +15,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { applyMark, type MarkName } from '../../../shared/markdown-input';
+import { appendQuote, quoteMarkdown, selectionWithin } from '../../../shared/quote';
 import type { IconName } from '../../../core/icons/icons.data';
 import { IconComponent } from '../../../core/icons/icon';
 import { AvatarComponent } from '../../../shared/ui/avatar/avatar';
@@ -22,6 +26,15 @@ import { AuthService } from '../../../core/auth/auth.service';
 import type { Comment } from '../../../core/api/models';
 
 type CommentTab = 'write' | 'preview';
+
+/**
+ * How tall the box may grow to fit a quote, in px.
+ *
+ * Enough for an attribution, a few lines of quote and a reply. Past it the field
+ * scrolls instead, so quoting a long comment cannot push Publier out of reach —
+ * which would be a worse failure than a scrollbar.
+ */
+const QUOTE_BOX_MAX = 260;
 
 /**
  * The comment block from the prototype: a count heading, a write/preview card,
@@ -160,7 +173,13 @@ type CommentTab = 'write' | 'preview';
       @if (comments().length) {
         <ul class="thread">
           @for (comment of comments(); track comment.id) {
-            <li class="comment" [class.pending]="comment.status === 'PENDING'">
+            <!-- The id is how quoteComment finds this comment's element again, to
+                 ask whether the visitor's selection lies inside it. -->
+            <li
+              class="comment"
+              [id]="'comment-' + comment.id"
+              [class.pending]="comment.status === 'PENDING'"
+            >
               <bah-avatar
                 class="avatar"
                 [avatar]="comment.author.avatar"
@@ -177,6 +196,35 @@ type CommentTab = 'write' | 'preview';
 
                   @if (comment.status === 'PENDING') {
                     <span class="badge-pending">{{ 'comments.pending' | transloco }}</span>
+                  }
+
+                  <!--
+                    A real button in the byline rather than a bubble that appears
+                    over a selection: reachable by keyboard, visible without a
+                    gesture, and no positioning code to get wrong.
+
+                    It quotes the selection when there is one inside this comment
+                    and the whole comment otherwise, so one control covers both
+                    "quote them" and "quote that bit of what they said".
+
+                    Only when there is somebody to quote *as*. Rendering it
+                    disabled would advertise a feature and explain nothing, which
+                    is the same reason the composer shows a sentence rather than a
+                    textarea nobody can type in.
+                  -->
+                  @if (auth.signedIn()) {
+                    <button
+                      type="button"
+                      class="btn btn-icon btn-secondary quote"
+                      [attr.aria-label]="
+                        'comments.quoteAuthor' | transloco: { name: comment.author.displayName }
+                      "
+                      [attr.title]="'comments.quote' | transloco"
+                      [disabled]="busy()"
+                      (click)="quoteComment(comment)"
+                    >
+                      <bah-icon name="quote" [size]="14" />
+                    </button>
                   }
 
                   @if (comment.mine) {
@@ -404,8 +452,33 @@ type CommentTab = 'write' | 'preview';
       opacity: 0.7;
     }
 
-    .delete {
+    /* The first of the byline's actions takes the slack, so both sit at the right
+       whether or not the delete button is there. */
+    .quote {
       margin-left: auto;
+    }
+
+    .delete {
+      margin-left: 0;
+    }
+
+    /* Quiet until wanted: the byline is somebody's name and a date, and two solid
+       buttons in it would compete with the comment. Full strength on hover, on
+       focus, and whenever the comment is hovered — so it is discoverable by
+       pointer and never hidden from the keyboard. */
+    .quote,
+    .delete {
+      opacity: 0.5;
+      transition: opacity 120ms ease;
+    }
+
+    .comment:hover .quote,
+    .comment:hover .delete,
+    .quote:hover,
+    .delete:hover,
+    .quote:focus-visible,
+    .delete:focus-visible {
+      opacity: 1;
     }
 
     .comment .body {
@@ -424,6 +497,8 @@ type CommentTab = 'write' | 'preview';
 export class CommentSectionComponent {
   protected readonly auth = inject(AuthService);
   private readonly transloco = inject(TranslocoService);
+  private readonly document = inject(DOCUMENT);
+  private readonly injector = inject(Injector);
 
   readonly comments = input<readonly Comment[]>([]);
   readonly busy = input(false);
@@ -501,17 +576,37 @@ export class CommentSectionComponent {
       this.transloco.translate('comments.markPlaceholder'),
     );
 
-    // The whole field is replaced rather than the selected fragment, because a
-    // line prefix edits text outside the selection and one insertText call is
-    // one undo step.
+    this.replaceThroughUndoStack(result.text);
+    field.setSelectionRange(result.start, result.end);
+  }
+
+  /**
+   * Replaces the whole field in a way the browser's own undo can reverse.
+   *
+   * `execCommand('insertText')` is deprecated and is still the only way to change
+   * a textarea while keeping the native undo stack: assigning `value`, or pushing
+   * a new string through the signal, wipes it — so Ctrl+Z after pressing Bold, or
+   * after quoting, would throw away everything the person had typed.
+   * `setRangeText` is the modern API and has the same problem. The fallback covers
+   * the day a browser finally drops it, losing undo, which is the lesser failure.
+   *
+   * The whole field rather than the selected fragment, because a line prefix edits
+   * text outside the selection and one `insertText` call is one undo step.
+   *
+   * It also writes synchronously, which is what lets the caller measure the field
+   * immediately afterwards.
+   */
+  private replaceThroughUndoStack(text: string): void {
+    const field = this.editor()?.nativeElement;
+    if (!field) return;
+
     field.focus();
     field.setSelectionRange(0, field.value.length);
 
-    if (!document.execCommand('insertText', false, result.text)) {
-      field.value = result.text;
+    if (!this.document.execCommand('insertText', false, text)) {
+      field.value = text;
     }
 
-    field.setSelectionRange(result.start, result.end);
     this.draft.set(field.value);
   }
 
@@ -544,6 +639,85 @@ export class CommentSectionComponent {
     // having moved out from under the focused element.
     const bar = (event.target as HTMLElement).parentElement;
     bar?.querySelectorAll<HTMLElement>('.tool')[next]?.focus();
+  }
+
+  /**
+   * Quotes a comment — the selection inside it if there is one, otherwise all of
+   * it.
+   *
+   * The selection is read before anything else happens, because clicking the
+   * button is a mousedown and a mousedown collapses the selection in some
+   * browsers. By the time an effect or a microtask ran, there would be nothing
+   * left to read.
+   */
+  protected quoteComment(comment: Comment): void {
+    const element = this.document.getElementById(`comment-${comment.id}`);
+    const view = this.document.defaultView;
+
+    const selected = element && view ? selectionWithin(element, view) : null;
+
+    this.insertQuote(quoteMarkdown(selected ?? comment.bodyMarkdown, comment.author.displayName));
+  }
+
+  /**
+   * Drops a quote into the box and puts the caret below it.
+   *
+   * Public because the recipe page calls it: quoting a step or the description is
+   * the same act from the visitor's side, and routing it through here keeps one
+   * definition of what a quote looks like and where the caret ends up.
+   */
+  quote(text: string, attribution?: string | null): void {
+    this.insertQuote(quoteMarkdown(text, attribution));
+  }
+
+  private insertQuote(quote: string): void {
+    if (!quote || !this.auth.signedIn()) return;
+
+    const { text, caret } = appendQuote(this.draft(), quote);
+
+    // Write first, or the quote lands in a box the visitor cannot see and the
+    // button looks as though it did nothing.
+    const fromPreview = this.tab() !== 'write';
+    this.tab.set('write');
+
+    if (fromPreview) {
+      // There is no textarea to write through while Preview is showing, so the
+      // signal carries the text and the rest waits for the field to exist. Undo
+      // cannot be preserved on this path; the alternative is refusing to quote
+      // from the Preview tab, which is worse.
+      this.draft.set(text);
+      afterNextRender(() => this.settleEditor(caret), { injector: this.injector });
+      return;
+    }
+
+    this.replaceThroughUndoStack(text);
+    this.settleEditor(caret);
+  }
+
+  /**
+   * Focuses the box, puts the caret where it belongs, and grows the box to fit.
+   *
+   * The growth is measured from `scrollHeight`, which only reports the content
+   * once the content is actually in the DOM — writing through the undo stack above
+   * puts it there synchronously, which is half of why that path is used. Measuring
+   * after a signal write instead read the height of an empty field and set the box
+   * back to its 90px minimum, clipping the reply through the middle of its letters.
+   */
+  private settleEditor(caret: number): void {
+    const field = this.editor()?.nativeElement;
+    if (!field) return;
+
+    field.focus();
+    field.setSelectionRange(caret, caret);
+
+    // Reset before measuring, or the box can only ever grow: a second, shorter
+    // quote would keep the height of the first.
+    field.style.height = 'auto';
+    field.style.height = `${Math.min(field.scrollHeight, QUOTE_BOX_MAX)}px`;
+
+    // Past the cap the field scrolls instead of growing, so the caret has to be
+    // brought back into view or the box looks empty.
+    field.scrollTop = field.scrollHeight;
   }
 
   protected submit(): void {

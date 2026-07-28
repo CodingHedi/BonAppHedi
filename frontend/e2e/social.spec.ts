@@ -374,6 +374,192 @@ test.describe('comments', () => {
   });
 });
 
+test.describe('quoting', () => {
+  const editor = (page: import('@playwright/test').Page) =>
+    page.locator('bah-comment-section textarea');
+
+  test('offers nothing to quote with until there is somebody to quote as', async ({ page }) => {
+    // Rendered disabled would advertise a feature and explain nothing, which is
+    // the same reason the composer shows a sentence rather than a dead textarea.
+    await page.goto(BABKA);
+
+    await expect(page.getByRole('button', { name: /^Citer/ })).toHaveCount(0);
+  });
+
+  test('quotes a whole comment, attributed, and previews as a blockquote', async ({ page }) => {
+    await page.goto(BABKA);
+    await signIn(page);
+
+    await page.getByRole('button', { name: 'Citer Camille' }).click();
+
+    // Attribution inside the quote, and the caret left on an empty line below it,
+    // so a reply is the visitor's own words rather than more of Camille's.
+    await expect(editor(page)).toHaveValue(/^> \*\*Camille\*\* :\n> Faite hier soir/);
+    await expect(editor(page)).toHaveValue(/\n\n$/);
+
+    // The round trip that matters: what the button writes has to be what the
+    // renderer understands, or the quote looks broken in the one place people
+    // check before posting.
+    await page.getByRole('tab', { name: 'Aperçu' }).click();
+    await expect(page.locator('bah-comment-section .preview blockquote')).toContainText(
+      'Faite hier soir',
+    );
+    // The first, because Camille's own comment contains a bolded "double tour" —
+    // so a quote of it legitimately has two.
+    await expect(page.locator('bah-comment-section .preview blockquote strong').first()).toHaveText(
+      'Camille',
+    );
+  });
+
+  test('quotes only the selection when part of a comment is selected', async ({ page }) => {
+    await page.goto(BABKA);
+    await signIn(page);
+
+    // Select three words inside Camille's comment. One button covers both "quote
+    // them" and "quote that bit", which is why there is no floating bubble.
+    await page.locator('.comment', { hasText: 'Camille' }).evaluate((li: HTMLElement) => {
+      const target = [...li.querySelectorAll('strong')].find(
+        (el) => el.textContent === 'double tour',
+      )!;
+      const range = document.createRange();
+      range.selectNodeContents(target);
+      const selection = window.getSelection()!;
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+
+    await page.getByRole('button', { name: 'Citer Camille' }).click();
+
+    await expect(editor(page)).toHaveValue('> **Camille** :\n> double tour\n\n');
+    // Not the rest of the comment.
+    await expect(editor(page)).not.toHaveValue(/Faite hier soir/);
+  });
+
+  test('adds to what is already typed rather than replacing it', async ({ page }) => {
+    await page.goto(BABKA);
+    await signIn(page);
+
+    await editor(page).fill('Une question :');
+    await page.getByRole('button', { name: 'Citer Camille' }).click();
+
+    // A blank line between, or markdown swallows the blockquote into the paragraph
+    // above and renders literal angle brackets.
+    await expect(editor(page)).toHaveValue(/^Une question :\n\n> \*\*Camille\*\* :/);
+  });
+
+  test('a quoted reply survives into the posted comment', async ({ page }) => {
+    await page.goto(BABKA);
+    await signIn(page);
+
+    await page.getByRole('button', { name: 'Citer Camille' }).click();
+
+    // Waited for, not assumed. The insert lands in an afterNextRender, so typing
+    // immediately raced it under load: the keystrokes went nowhere, the draft
+    // stayed empty, Publier was inert, and the failure read as a missing
+    // blockquote rather than as a race.
+    await expect(editor(page)).toHaveValue(/^> \*\*Camille\*\*/);
+
+    await editor(page).press('End');
+    await editor(page).pressSequentially('Bien vu.');
+    await expect(editor(page)).toHaveValue(/Bien vu\.$/);
+
+    await page.getByRole('button', { name: 'Publier' }).click();
+
+    const posted = page.locator('bah-comment-section .comment').first();
+    await expect(posted.locator('blockquote')).toContainText('Faite hier soir');
+    await expect(posted).toContainText('Bien vu.');
+  });
+
+  test('Ctrl+Z undoes a quote without throwing away what was typed', async ({ page }) => {
+    // The quote is written through execCommand for this reason, the same as the
+    // toolbar marks: assigning the value, or pushing it through the signal, wipes
+    // the browser's undo stack, and a misfired Quote button would then cost the
+    // visitor their whole draft.
+    await page.goto(BABKA);
+    await signIn(page);
+
+    await editor(page).fill('Ma question tient en une ligne.');
+    await page.getByRole('button', { name: 'Citer Camille' }).click();
+    await expect(editor(page)).toHaveValue(/Camille/);
+
+    await editor(page).press('Control+z');
+    await expect(editor(page)).toHaveValue('Ma question tient en une ligne.');
+  });
+
+  test('grows the box to fit rather than clipping the reply', async ({ page }) => {
+    // Measured, because this is geometry and the suite's standing weakness is
+    // asserting calls instead of appearance. The box starts at 90px and a quote
+    // plus a reply is taller than that; before it grew, the reply was cut through
+    // the middle of its own letters against the bottom border.
+    await page.goto(BABKA);
+    await signIn(page);
+
+    const before = await editor(page).evaluate((el: HTMLTextAreaElement) => el.clientHeight);
+    await page.getByRole('button', { name: 'Citer Camille' }).click();
+    await expect(editor(page)).toHaveValue(/Camille/);
+
+    const box = await editor(page).evaluate((el: HTMLTextAreaElement) => ({
+      client: el.clientHeight,
+      scroll: el.scrollHeight,
+    }));
+
+    expect(box.client).toBeGreaterThan(before);
+    // Nothing hidden: the whole quote fits in the box it grew to.
+    expect(box.scroll).toBeLessThanOrEqual(box.client);
+  });
+
+  test('quotes a step of the recipe, unattributed', async ({ page }) => {
+    await page.goto(BABKA);
+    await signIn(page);
+
+    // No name in front of it: the recipe is the page both people are looking at,
+    // so a citation would read as pointing somewhere else. Which step is the
+    // question, and the quote answers it.
+    await page.getByRole('button', { name: /Citer l.étape 1/ }).click();
+
+    await expect(editor(page)).toHaveValue(/^> Mélanger la farine/);
+    await expect(editor(page)).not.toHaveValue(/\*\*/);
+  });
+
+  test('quoting a step leaves the composer visible and focused', async ({ page }) => {
+    // The steps are above the fold and the composer is below it, so a quote that
+    // landed in an off-screen box would look like a button that did nothing.
+    await page.goto(BABKA);
+    await signIn(page);
+
+    await page.getByRole('button', { name: /Citer l.étape 2/ }).click();
+
+    await expect(editor(page)).toBeFocused();
+    await expect(editor(page)).toBeInViewport();
+  });
+
+  test('quotes the description too', async ({ page }) => {
+    await page.goto(BABKA);
+    await signIn(page);
+
+    await page.getByRole('button', { name: 'Citer la description' }).click();
+    await expect(editor(page)).toHaveValue(/^> La babka est une brioche/);
+  });
+
+  test('switches back from Preview so the quote is not dropped into a hidden box', async ({
+    page,
+  }) => {
+    await page.goto(BABKA);
+    await signIn(page);
+
+    await page.getByRole('tab', { name: 'Aperçu' }).click();
+    await page.getByRole('button', { name: 'Citer Camille' }).click();
+
+    // The textarea does not exist while Preview is showing, so this also covers
+    // the focus landing on something rather than on nothing.
+    await expect(page.getByRole('tab', { name: 'Écrire' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await expect(editor(page)).toBeFocused();
+  });
+});
+
 test.describe('sharing', () => {
   test('contacts no social network merely because the page was opened', async ({ page }) => {
     // The same rule the YouTube facade exists for. A Facebook or X share widget

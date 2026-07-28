@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DOCUMENT,
   computed,
   effect,
   inject,
@@ -11,6 +12,9 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { AuthService } from '../../core/auth/auth.service';
+import { IconComponent } from '../../core/icons/icon';
+import { selectionWithin } from '../../shared/quote';
 import { RECIPE_API } from '../../core/api/recipe-api';
 import { SOCIAL_API } from '../../core/api/social-api';
 import type { RatingSummary, ReactionState } from '../../core/api/models';
@@ -45,6 +49,7 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
     ShareBarComponent,
     ReactionBarComponent,
     CommentSectionComponent,
+    IconComponent,
   ],
   template: `
     @if (recipe.isLoading()) {
@@ -106,8 +111,23 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
         <div class="side">
           <bah-share-bar [title]="r.title" />
 
-          <aside class="card elev-sm description">
-            <h2>{{ 'recipe.description' | transloco }}</h2>
+          <aside class="card elev-sm description" id="recipe-description">
+            <div class="description-head">
+              <h2>{{ 'recipe.description' | transloco }}</h2>
+
+              @if (auth.signedIn()) {
+                <button
+                  type="button"
+                  class="btn btn-icon btn-secondary quote"
+                  [attr.aria-label]="'recipe.quoteDescription' | transloco"
+                  [attr.title]="'recipe.quoteDescription' | transloco"
+                  (click)="onQuoteDescription(r.bodyMarkdown)"
+                >
+                  <bah-icon name="quote" [size]="14" />
+                </button>
+              }
+            </div>
+
             <bah-markdown class="body" [markdown]="r.bodyMarkdown" [html]="r.bodyHtml" />
             <bah-quick-facts
               [prepMinutes]="r.prepMinutes"
@@ -124,7 +144,9 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
           <bah-step-list
             [steps]="r.steps"
             [hasVideo]="r.youtubeVideoId !== null"
+            [canQuote]="auth.signedIn()"
             (seek)="onSeek($event)"
+            (quote)="onQuoteRecipe($event)"
           />
         </div>
 
@@ -243,9 +265,40 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
       padding: 26px 24px 22px;
     }
 
-    .description h2 {
+    .description-head {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .description-head h2 {
       font-size: 22px;
-      margin: 0 0 18px;
+      /* The margin moved to .description-head, so the button lines up with the
+         heading's baseline rather than with the gap under it. */
+      margin: 0;
+    }
+
+    .description-head .quote {
+      margin-left: auto;
+      flex: none;
+      opacity: 0;
+      transition: opacity 120ms ease;
+    }
+
+    /* Revealed by hovering the card, not just the button, since the button is
+       invisible until then and there would be nothing to aim at. Focus keeps it
+       reachable without a pointer. */
+    .description:hover .quote,
+    .description:focus-within .quote,
+    .description-head .quote:focus-visible {
+      opacity: 1;
+    }
+
+    @media (hover: none) {
+      .description-head .quote {
+        opacity: 0.55;
+      }
     }
 
     .description .body {
@@ -343,11 +396,23 @@ export class RecipeDetailPage {
   private readonly api = inject(RECIPE_API);
   private readonly social = inject(SOCIAL_API);
   private readonly localeService = inject(LocaleService);
+  private readonly document = inject(DOCUMENT);
+  protected readonly auth = inject(AuthService);
 
   /** Bound from the route by `withComponentInputBinding()`. */
   readonly slug = input.required<string>();
 
   private readonly media = viewChild(RecipeMediaComponent);
+
+  /**
+   * The composer, so that quoting a step can put text into it.
+   *
+   * A view child rather than a shared service or a signal threaded through
+   * inputs: the two components are on the same page and the interaction is one
+   * imperative act — "put this in the box and focus it" — which is exactly what a
+   * method call expresses and what a piece of shared state would obscure.
+   */
+  private readonly composer = viewChild(CommentSectionComponent);
 
   protected readonly servings = signal(2);
 
@@ -410,6 +475,37 @@ export class RecipeDetailPage {
 
   protected onSeek(seconds: number): void {
     this.media()?.seekTo(seconds);
+  }
+
+  /**
+   * Quotes part of the recipe into the comment box, and scrolls it into view.
+   *
+   * No attribution: the recipe is the page both people are looking at, and
+   * "**Babka au chocolat** :" above a quoted step would read as a citation of
+   * somewhere else. Whose words they are is not in question — which step is, and
+   * the quote itself answers that.
+   */
+  protected onQuoteRecipe(text: string): void {
+    const composer = this.composer();
+    if (!composer) return;
+
+    composer.quote(text);
+
+    // The composer is below the fold from the steps, so without this the button
+    // appears to do nothing at all. `block: 'center'` rather than the default, so
+    // the box and the quote inside it are both visible.
+    this.document
+      .querySelector('bah-comment-section .composer')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  /** The description, on the same terms as a step. */
+  protected onQuoteDescription(markdown: string): void {
+    const root = this.document.getElementById('recipe-description');
+    const view = this.document.defaultView;
+
+    const selected = root && view ? selectionWithin(root, view) : null;
+    this.onQuoteRecipe(selected ?? markdown);
   }
 
   protected onRate(stars: number): void {

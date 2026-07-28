@@ -75,7 +75,9 @@
     "ratingSummary": "{{average}} / 5",
     "reviews": "{count, plural, =0 {no reviews} one {# review} other {# reviews}}",
     "notFound": "This recipe could not be found.",
-    "notFoundAction": "Back to recipes"
+    "notFoundAction": "Back to recipes",
+    "quoteStep": "Quote step {{number}} in a comment",
+    "quoteDescription": "Quote the description in a comment"
   },
   "rating": {
     "label": "Rate this recipe",
@@ -108,7 +110,9 @@
       "link": "Link",
       "bullet": "Bulleted list",
       "quote": "Quote"
-    }
+    },
+    "quote": "Quote",
+    "quoteAuthor": "Quote {{name}}"
   },
   "share": {
     "label": "Share",

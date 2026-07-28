@@ -25,6 +25,24 @@ recettes".
 Worth doing when the translation setup is next opened up. Until then the term is
 documented where it is used, in `deploy/Caddyfile`.
 
+## `the focus request does not linger` fails about one run in ten
+
+Seen once on 2026-07-28 during a full `verify`, in `recipe-list.spec.ts`. Then it
+passed 6/6 on its own and twice more in full runs, so it is intermittent and rare
+rather than broken.
+
+Not chased, because nothing in the change that surfaced it touches the recipe
+list — but written down because an intermittent e2e failure otherwise costs
+somebody an afternoon working out whether their own change caused it. It did not
+fail in isolation, which points at the parallel run rather than the assertion:
+eight workers on one dev server, and this spec asserts on focus and on a query
+parameter being cleared, both of which are timing-sensitive.
+
+If it recurs, the thing to check first is whether the focus assertion needs
+`expect.poll` — `getAttribute` and `document.activeElement` are not web-first
+assertions and do not retry, which is the same trap the avatar shuffle test fell
+into.
+
 ## Every list-page request is made twice on first load
 
 Measured against the live site on 2026-07-28, six loads in fresh contexts. Each
