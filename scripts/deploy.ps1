@@ -144,7 +144,10 @@ sudo systemctl restart bonapphedi
 #
 # The real signal is the application answering on its own port.
 for i in $(seq 1 60); do
-  if curl -fsS -o /dev/null --max-time 2 "http://127.0.0.1:8080/api/recipes?locale=fr"; then
+  # Quiet: -S would print "connection refused" on every attempt, so a normal
+  # sixteen-second startup scrolled past as a wall of curl errors and a
+  # successful deploy read like a broken one.
+  if curl -fs -o /dev/null --max-time 2 "http://127.0.0.1:8080/api/recipes?locale=fr" 2>/dev/null; then
     echo "ready after ${i}s"
     exit 0
   fi
