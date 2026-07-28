@@ -136,12 +136,30 @@ sudo install -o root -g root -m 644 /tmp/bonapphedi.jar.new /opt/bonapphedi/bona
 rm -f /tmp/bonapphedi.jar.new
 
 sudo systemctl restart bonapphedi
-sleep 3
-sudo systemctl is-active --quiet bonapphedi && echo "service is active" || {
-  echo "SERVICE FAILED TO START - last 30 lines:" >&2
-  sudo journalctl -u bonapphedi -n 30 --no-pager >&2
-  exit 1
-}
+
+# Waited for properly, because `systemctl is-active` says yes the instant the
+# JVM process exists - several seconds before Spring has finished starting and
+# Tomcat accepts a connection. Checking too early reported a 502 and called a
+# perfectly good deploy a failure.
+#
+# The real signal is the application answering on its own port.
+for i in $(seq 1 60); do
+  if curl -fsS -o /dev/null --max-time 2 "http://127.0.0.1:8080/api/recipes?locale=fr"; then
+    echo "ready after ${i}s"
+    exit 0
+  fi
+  # If the unit died there is nothing to wait for.
+  sudo systemctl is-active --quiet bonapphedi || {
+    echo "SERVICE FAILED TO START - last 30 lines:" >&2
+    sudo journalctl -u bonapphedi -n 30 --no-pager >&2
+    exit 1
+  }
+  sleep 1
+done
+
+echo "SERVICE DID NOT BECOME READY IN 60s - last 30 lines:" >&2
+sudo journalctl -u bonapphedi -n 30 --no-pager >&2
+exit 1
 '@
 # Stripped of carriage returns before it is sent. .gitattributes checks .ps1
 # files out as CRLF, so a here-string in this file carries \r on every line, and
@@ -157,9 +175,10 @@ if ($LASTEXITCODE -ne 0) {
 # --- 5. confirm from outside ------------------------------------------------
 
 Step 'Checking the live site'
-# From here rather than from the box: "systemd says active" and "the site
-# answers over TLS" are different claims, and only the second one matters.
-Start-Sleep -Seconds 3
+# From here rather than from the box: "the application answers on loopback" and
+# "the site answers over TLS from the internet" are different claims, and the
+# second is the one being made. The remote step above has already waited for
+# readiness, so no sleep is needed.
 try {
     $r = Invoke-WebRequest 'https://bonapphedi.fr/fr' -TimeoutSec 25 -UseBasicParsing
     if ($r.StatusCode -eq 200 -and $r.Content -match '<html') {
