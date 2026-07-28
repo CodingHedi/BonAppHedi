@@ -10,6 +10,48 @@ is probably not wanted — say so and remove it rather than letting the list rot
 
 ---
 
+## A Content-Security-Policy, attempted once and reverted
+
+Tried against the live site on 2026-07-28 and taken straight back off. It broke
+the site, and the measurements are worth keeping so the next attempt starts from
+them rather than from theory.
+
+What was applied:
+
+```
+default-src 'self'; script-src 'self' 'sha256-…'; style-src 'self' 'unsafe-inline';
+img-src 'self' data:; font-src 'self'; connect-src 'self';
+frame-src https://www.youtube-nocookie.com; frame-ancestors 'none';
+base-uri 'self'; form-action 'self'; object-src 'none'
+```
+
+What that produced, in a browser:
+
+- **Dozens of `EvalError`.** Something compiles strings into functions at
+  runtime, and the strong suspect is `@jsverse/transloco-messageformat`:
+  messageformat turns ICU plurals — `{count, plural, …}`, which is exactly what
+  `list.count` and `comments.heading` use — into JavaScript via `new Function`.
+  If that is confirmed, the policy needs `'unsafe-eval'`, which removes a large
+  part of what a CSP is for. Worth checking whether the plural rules can be
+  precompiled at build time instead.
+- **"Executing inline event handler violates…"**, twice, on the home page.
+  Something in the built output carries an `on*` attribute. Not yet located.
+
+What did work, and is settled:
+
+- **The inline bootstrap can be hashed rather than allowed wholesale.**
+  `index.html` has exactly one inline script — the anti-FOUC theme setter — it is
+  hand-written and stable, and `'sha256-…'` let it run. Verified: `data-theme`
+  was still set. Its failure mode if the hash goes stale is a flash of the wrong
+  theme, not a broken site.
+- **`style-src` must keep `'unsafe-inline'`.** Angular inlines ~6 KB of critical
+  CSS that differs on every build, and injects component styles at runtime.
+
+How to do it next time, and the actual lesson: **test the policy locally against
+`java -jar`, injecting the header with Playwright's request interception, and
+only deploy once the console is clean.** This attempt went straight to
+production, which is precisely what the comment in the Caddyfile warned against.
+
 ## Every list-page request is made twice on first load
 
 Measured against the live site on 2026-07-28, six loads in fresh contexts. Each
