@@ -18,6 +18,7 @@ git commit
 git checkout main
 git merge --no-ff fix/player-fill
 git branch -d fix/player-fill
+git push                             # main and GitHub do not drift
 ```
 
 `--no-ff` is the whole point. It keeps each change one identifiable unit in the
@@ -33,19 +34,69 @@ flat history this convention exists to avoid.
 | `docs/` | Documentation only |
 | `chore/` | Tooling, dependencies, configuration |
 
-There is no remote, so there are no pull requests to open. If one is added
-later the branch step is already in place and only the final merge changes.
+**There is a remote as of 2026-08-07** — `CodingHedi/BonAppHedi`, public. Branches
+still live and die locally and there are no pull requests to open; what changed
+is that `main` gets pushed as soon as it moves. CI runs the same chain on every
+push, so an unpushed merge is a change nothing has independently confirmed.
 
 **Finish the cycle.** A branch is not somewhere to accumulate work — it exists
 to carry one change into `main` and then go away. Branch, build, `verify`,
-commit, merge, delete. An agent working here does the merge itself once the
-chain is green; it does not leave branches parked waiting to be collected.
+commit, merge, delete, push. An agent working here does the merge and the push
+itself once the chain is green; it does not leave branches parked waiting to be
+collected, and it does not leave `main` ahead of the remote.
 
 **One branch per change, and a new one each time.** The failure mode is subtler
 than committing to `main`: a branch that is never merged quietly becomes a
 second trunk, and three unrelated changes end up stacked on it with `main`
 frozen behind them. If the next thing is a different piece of work, it gets its
 own branch off a freshly merged `main`.
+
+### `deploy/` is a submodule, and it changes two things
+
+Everything describing the server — the Caddyfile, the systemd units,
+`provision.sh`, `backup.sh`, `check.sh`, `DEPLOY.md` and `deploy.ps1` — lives in
+the private `CodingHedi/bonapphedi-ops` repository, mounted at `deploy/`. Nothing
+here reads it, so the build, both suites and CI all pass without it; a clone
+without access simply cannot deploy.
+
+**An ops change is two commits in two repositories.** Edit the Caddyfile, commit
+and push inside `deploy/`, then commit the moved pointer out here:
+
+```powershell
+cd deploy
+git checkout main                    # see below - it is not on a branch
+git checkout -b fix/some-thing ; git commit ; git checkout main
+git merge --no-ff fix/some-thing ; git branch -d fix/some-thing ; git push
+cd ..
+git add deploy                       # the gitlink, not the files
+```
+
+Skip that second half and this repository silently keeps pointing at the old ops
+commit. Nothing fails — that is exactly what makes it worth writing down.
+
+**A submodule sits on a detached HEAD**, always: `git submodule update` checks
+out the recorded commit, not a branch. So `git checkout main` comes first, and
+without it a commit made in `deploy/` belongs to no branch, pushes nowhere, and
+is gone the next time the submodule is updated.
+
+**Checking out anything from before 2026-08-07 fails** until the submodule is
+out of the way:
+
+```
+error: The following untracked working tree files would be overwritten
+by checkout: deploy/Caddyfile ...
+```
+
+Those commits track `deploy/` as ordinary files, and they collide with the
+submodule's own checkout. It is not corruption and nothing is lost:
+
+```powershell
+git submodule deinit -f deploy       # clears the directory
+git checkout <old-commit>
+git submodule update --init deploy   # when you come back
+```
+
+Worth knowing before a `git bisect`, which walks straight into it.
 
 ### Commit messages
 
@@ -128,12 +179,19 @@ what it needs on first run:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 185 tests
+.\mvnw.cmd test          # 232 tests
 .\mvnw.cmd spring-boot:run
 ```
 
 JDK 25 (Amazon Corretto) is at `C:\Program\AmazonCorretto\jdk25.0.3_9` with
 `JAVA_HOME` already set, and unlike Node it *is* on `PATH` non-interactively.
+
+**`gh` has the same problem as Node** — installed, but not on `PATH` in a
+non-interactive shell, where it reads as missing rather than as unconfigured:
+
+```powershell
+$env:Path = "C:\Program Files\GitHub CLI;$env:Path"
+```
 
 Run both halves together with `.\scripts\dev.ps1` from the repo root. The SQLite
 file lives in **`backend/data/`** and is gitignored; `-Fresh` deletes it so
