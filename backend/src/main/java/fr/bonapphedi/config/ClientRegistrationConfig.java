@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.config.oauth2.client.CommonOAuth2Provider;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -27,17 +28,42 @@ public class ClientRegistrationConfig {
      * only the credentials are ours. Facebook is the exception noted below.
      */
     @Bean
-    public ConfiguredProviders configuredProviders(OAuthProperties properties) {
+    public ConfiguredProviders configuredProviders(OAuthProperties properties, Environment environment) {
         List<ClientRegistration> registrations = new ArrayList<>();
 
         for (Map.Entry<String, OAuthProperties.Credentials> entry : properties.oauth().entrySet()) {
             if (!entry.getValue().usable()) {
                 continue;
             }
+            rejectOverridesInProduction(entry.getKey(), entry.getValue(), environment);
             registrations.add(build(entry.getKey(), entry.getValue()));
         }
 
         return new ConfiguredProviders(List.copyOf(registrations));
+    }
+
+    /**
+     * Endpoint overrides exist for the acceptance run and must never be live.
+     *
+     * <p>{@code ProductionProfileTest} already refuses any {@code bah.oauth} key
+     * in {@code application-prod.yml}, but that reads a file and production does
+     * not get its credentials from one — they arrive as environment variables out
+     * of the systemd unit, so {@code BAH_OAUTH_GOOGLE_AUTHORIZATIONURI} would go
+     * straight past it. This is the check that sees them.
+     *
+     * <p>Refusing to start is the point. Sign-in silently pointed at a different
+     * issuer is the one failure here worth being loud about: everything would
+     * appear to work, and the accounts arriving would be whatever that issuer
+     * said they were.
+     */
+    private void rejectOverridesInProduction(
+            String id, OAuthProperties.Credentials credentials, Environment environment) {
+        if (credentials.hasEndpointOverrides() && environment.matchesProfiles("prod")) {
+            throw new IllegalStateException(
+                    "bah.oauth." + id + " overrides its OAuth endpoints, which is for the acceptance run only. "
+                            + "Under the prod profile the provider's real endpoints are the only ones allowed. "
+                            + "Clear the authorization-uri, token-uri, user-info-uri and jwk-set-uri.");
+        }
     }
 
     private ClientRegistration build(String id, OAuthProperties.Credentials credentials) {
@@ -64,9 +90,39 @@ public class ClientRegistrationConfig {
                             "bah.oauth." + id + " is configured but no such provider is supported");
                 };
 
-        return builder.clientId(credentials.clientId())
-                .clientSecret(credentials.clientSecret())
-                .build();
+        builder.clientId(credentials.clientId()).clientSecret(credentials.clientSecret());
+
+        // Normally nothing below applies. The acceptance run is the exception:
+        // it points `google` at a local OIDC issuer so the specs that need a
+        // signed-in session can run against the real backend, which they cannot
+        // otherwise do - a click on the provider button leaves for Google and
+        // never comes back.
+        //
+        // Applied one at a time, and on top of the provider's own definition
+        // rather than instead of it, so the scopes and the brand name survive.
+        // Rebuilding from nothing here would silently drop `openid` and the flow
+        // would stop being OIDC - a failure that surfaces at the id_token,
+        // nowhere near this line.
+        // The issuer first, because it is the one that is not an address. It is
+        // the identifier the id_token's `iss` claim is compared against, and
+        // leaving Google's in place while pointing everywhere else at a local
+        // issuer fails at the very last step of an otherwise perfect sign-in:
+        // "The ID Token contains invalid claims: {iss=...}". Nothing ever
+        // connects to it, so it does not have to be reachable and does not have
+        // to agree with the host in the URIs below.
+        apply(credentials.issuerUri(), builder::issuerUri);
+        apply(credentials.authorizationUri(), builder::authorizationUri);
+        apply(credentials.tokenUri(), builder::tokenUri);
+        apply(credentials.userInfoUri(), builder::userInfoUri);
+        apply(credentials.jwkSetUri(), builder::jwkSetUri);
+
+        return builder.build();
+    }
+
+    private void apply(String uri, java.util.function.Consumer<String> to) {
+        if (uri != null && !uri.isBlank()) {
+            to.accept(uri);
+        }
     }
 
     /**

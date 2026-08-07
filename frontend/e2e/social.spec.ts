@@ -1,4 +1,5 @@
 import { expect, test } from './fixtures';
+import { AGAINST_REAL_API } from './sign-in';
 
 const BABKA = '/fr/recettes/babka-au-chocolat';
 const SHAKSHUKA = '/fr/recettes/chakchouka';
@@ -14,10 +15,24 @@ const SHAKSHUKA = '/fr/recettes/chakchouka';
 const THIRD_PARTY =
   /facebook\.com|whatsapp\.com|connect\.facebook|twitter\.com|x\.com|pinterest\.com|google\.com|googleusercontent\.com|gstatic\.com/i;
 
-/** Signs in through the provider row inside the comment box. */
+/**
+ * Signs in through the provider row inside the comment box.
+ *
+ * The click is the same against either backend, and against the real one it is
+ * the genuine article: it leaves for the issuer, comes back through the
+ * callback, and ReturnPath puts the visitor back on the recipe they were
+ * reading. Only the waiting differs — a round trip with a token exchange in it
+ * takes longer than a mock that resolves at once (ADR 0001, second amendment).
+ */
 async function signIn(page: import('@playwright/test').Page, provider = 'Google') {
+  if (AGAINST_REAL_API) {
+    await page.request.get('http://127.0.0.1:9779/_identity?who=admin');
+  }
+
   await page.getByRole('button', { name: new RegExp(provider) }).click();
-  await expect(page.locator('bah-comment-section textarea')).toBeVisible();
+  await expect(page.locator('bah-comment-section textarea')).toBeVisible({
+    timeout: AGAINST_REAL_API ? 30_000 : 5_000,
+  });
 }
 
 test.describe('reactions', () => {

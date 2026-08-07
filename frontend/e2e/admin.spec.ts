@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
+import { AGAINST_REAL_API, signInForReal } from './sign-in';
 
 const ADMIN = '/fr/admin';
 const BABKA = '/fr/recettes/babka-au-chocolat';
@@ -15,6 +16,16 @@ const DRAFT_SLUG = '/fr/recettes/jus-grenade-orange';
  * the suite slower without making it stricter.
  */
 async function signedInAs(page: Page, role: 'admin' | 'reader') {
+  // Against the real API the two roles are not something the test asserts, they
+  // are something the server decides: `reader` signs in as an address that is
+  // not on the allowlist, so "a signed-in non-admin is sent home" stops being a
+  // restatement of the fixture and becomes a real check (ADR 0001, second
+  // amendment - setup only, no assertion changed).
+  if (AGAINST_REAL_API) {
+    await signInForReal(page, role);
+    return;
+  }
+
   await page.addInitScript(
     ([isAdmin]) => {
       localStorage.setItem(

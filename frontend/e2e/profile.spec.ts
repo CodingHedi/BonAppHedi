@@ -1,4 +1,5 @@
 import { expect, test } from './fixtures';
+import { AGAINST_REAL_API, chooseAvatarForReal, signInForReal } from './sign-in';
 import type { Page } from '@playwright/test';
 
 /**
@@ -37,6 +38,17 @@ const avatarBlock = (page: Page) =>
  * are about. Storage is per test, so this cannot leak between them.
  */
 async function signedIn(page: Page, avatar: string | null = null) {
+  // Against the real API there is no mock session to plant: a session is a
+  // cookie the server issued, so one has to be earned. Setup only - every
+  // assertion below is unchanged (ADR 0001, second amendment).
+  if (AGAINST_REAL_API) {
+    await signInForReal(page, 'admin');
+    if (avatar) {
+      await chooseAvatarForReal(page, avatar);
+    }
+    return;
+  }
+
   await page.addInitScript(
     ([token]) => {
       if (localStorage.getItem('bah-mock-session')) return;

@@ -62,11 +62,40 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  // Nothing is started for `real`: the point is to test what dev.ps1 is already
-  // serving. Starting one here would build the e2e configuration and quietly put
-  // the mocks back, which is the exact thing being avoided.
+  // No *application* server is started for `real`: the point is to test what
+  // dev.ps1 is already serving. Starting one here would build the e2e
+  // configuration and quietly put the mocks back, which is the exact thing being
+  // avoided.
+  //
+  // The OIDC issuer is different, and is started, because it is part of the
+  // harness rather than part of the thing under test. It is what makes the 40
+  // session specs runnable at all: the backend is pointed at it by
+  // `application-acceptance.yml`, and it approves without asking, so a click on
+  // the Google button completes a genuine authorization-code flow instead of
+  // leaving for a host Playwright cannot drive.
+  //
+  // Safe to start here rather than before the backend: the endpoints are named
+  // in configuration rather than discovered, so nothing is fetched from the
+  // issuer until somebody actually signs in.
   webServer: againstRealApi
-    ? undefined
+    ? {
+        command: 'node e2e/mock-issuer.mjs',
+        // 127.0.0.1, not localhost: the JVM resolves localhost to ::1 first and
+        // the issuer listens on IPv4 only.
+        url: 'http://127.0.0.1:9779/jwks',
+        // Never reuse. This was `true` for one run, and it cost the whole
+        // measurement: the issuer had crashed on startup, an older one from a
+        // previous session was still holding the port, the health check passed
+        // against it, and 154 specs ran against an issuer without the identity
+        // route they needed. Nothing said so - the run simply reported failures
+        // that looked like application bugs.
+        //
+        // With `false` a leftover process is a loud "port already in use"
+        // instead, which is the correct outcome: an issuer somebody else started
+        // is not the one this run built.
+        reuseExistingServer: false,
+        timeout: 30_000,
+      }
     : {
         command: `npm start -- --configuration ${againstProd ? 'e2e-prod' : 'e2e'} --port ${PORT}`,
         url: `http://localhost:${PORT}`,
