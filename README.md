@@ -87,8 +87,9 @@ cd backend
 `-Pweb` copies `frontend/dist` into the jar rather than building it, so run
 `npm run build` first. It fails with a message saying so if you have not — a jar
 without `static/index.html` answers every page with a 404 and nothing reveals
-that until it is on the server. In practice use `.\scripts\deploy.ps1`, which
-does both in the right order and checks the artefact before it ships.
+that until it is on the server. In practice use `.\deploy\deploy.ps1`, which
+does both in the right order and checks the artefact before it ships — it lives
+in the private submodule described under [Layout](#layout).
 
 ---
 
@@ -213,13 +214,33 @@ Docs/adr/        Architecture decision records.
 Docs/backlog.md  Wanted, shape already obvious, not yet scheduled.
 frontend/        Angular app (npm root).
 backend/         Spring Boot app (Maven root, owns the wrapper).
-scripts/         dev.ps1, stop.ps1, api.ps1, deploy.ps1.
-deploy/          What runs on the server: Caddyfile, systemd units,
-                 provision.sh, backup.sh, check.sh.
+scripts/         dev.ps1, stop.ps1, api.ps1, csp-lab.mjs, check-legal.mjs.
+deploy/          Private submodule. What runs on the server, plus DEPLOY.md
+                 and deploy.ps1.
 ```
 
-Deploying, provisioning and what to do when the site is down:
-**[DEPLOY.md](DEPLOY.md)**.
+### The `deploy/` submodule
+
+Everything describing the **machine** rather than the application lives in a
+separate private repository, mounted here at `deploy/`: the Caddyfile, the
+systemd units, `provision.sh`, `backup.sh`, `check.sh`, `DEPLOY.md` and
+`deploy.ps1`.
+
+The split is about topology, not secrets — no credential has ever been committed
+to either repository, and the VPS address is simply the public A record for
+`bonapphedi.fr`. What is worth not publishing is a ready-made map of a live
+server: the login user, the paths, the unit names, the firewall, the
+provisioning order.
+
+Nothing in this repository reads `deploy/`. It is absent from the build, the
+test suites and CI, so **the application clones, builds, tests and runs
+perfectly well without it** — you simply cannot deploy. If you do have access:
+
+```powershell
+git clone --recurse-submodules <url>
+# or, in an existing clone
+git submodule update --init
+```
 
 ### Design source of truth
 
