@@ -1,5 +1,5 @@
 import { expect, test } from './fixtures';
-import { AGAINST_REAL_API } from './sign-in';
+import { AGAINST_REAL_API, chooseAvatarForReal } from './sign-in';
 
 const BABKA = '/fr/recettes/babka-au-chocolat';
 const SHAKSHUKA = '/fr/recettes/chakchouka';
@@ -33,6 +33,19 @@ async function signIn(page: import('@playwright/test').Page, provider = 'Google'
   await expect(page.locator('bah-comment-section textarea')).toBeVisible({
     timeout: AGAINST_REAL_API ? 30_000 : 5_000,
   });
+
+  if (AGAINST_REAL_API) {
+    // The mock's signed-in accounts already own an avatar - `pot/0`, set in
+    // mock-auth-api.ts - and a real account owns none until somebody picks one,
+    // which is correct: ADR 7 makes it a choice, not a default. So the account
+    // is given the same one the mock hands out, before anything is posted,
+    // because the avatar is copied onto a comment when it is written.
+    //
+    // Fixture parity, not a workaround. Without it "a signed comment shows a
+    // chosen avatar" fails on an account that never chose one - a difference
+    // between two fixtures wearing the costume of a defect.
+    await chooseAvatarForReal(page, 'pot/0');
+  }
 }
 
 test.describe('reactions', () => {
