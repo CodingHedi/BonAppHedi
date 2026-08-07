@@ -1,4 +1,6 @@
 import { test as base, expect } from '@playwright/test';
+import type { APIRequestContext } from '@playwright/test';
+import { AGAINST_REAL_API, resetDatabaseForReal } from './sign-in';
 
 /**
  * Every spec in this suite imports `test` from here rather than from
@@ -46,7 +48,56 @@ const isIgnored = (message: string) => IGNORED.some((pattern) => pattern.test(me
 const isExpectedApiNotFound = (text: string, url: string) =>
   /status of 404/.test(text) && /\/api\//.test(url);
 
-export const test = base.extend<{ failOnBrowserProblems: void }>({
+/**
+ * The spec file the database was last put back for.
+ *
+ * Module scope, so it lives as long as the worker does. The acceptance run is
+ * `--workers=1` — it has to be, since the specs share one database — so "last
+ * file this worker saw" and "last file the run saw" are the same thing.
+ */
+let lastResetFor: string | undefined;
+
+/** Measured below; see the comment on `resetBetweenFiles`. */
+const RESET_EVERY_SPEC = true;
+
+/**
+ * Puts the database back to the seeded state between spec files.
+ *
+ * Only under `PW_TARGET=real`. Against the mocks the store already resets on
+ * every page load, which is precisely why the suite was written expecting a
+ * clean slate — and why it started failing the moment those expectations met a
+ * real database. Three admin specs pass and, in passing, publish a draft, rename
+ * the babka and create a recipe; every later spec asserting the seeded catalogue
+ * then fails on content it never touched.
+ *
+ * Done here rather than with a `beforeAll` in each spec file, and that is
+ * deliberate: ADR 0001's second amendment exempts the three sign-in helpers and
+ * nothing else, so the specs keep their hands clean. This file is harness.
+ *
+ * Between files rather than between specs. It fixes the cross-file damage, which
+ * was the bulk of it, and leaves the cases where a file contaminates itself —
+ * admin's own analytics specs count what the admin specs before them did. Making
+ * it per-spec is a one-line change if that becomes worth the extra resets.
+ */
+async function resetBetweenFiles(file: string, request: APIRequestContext) {
+  if (!AGAINST_REAL_API) return;
+  if (!RESET_EVERY_SPEC && file === lastResetFor) return;
+
+  lastResetFor = file;
+  await resetDatabaseForReal(request);
+}
+
+export const test = base.extend<{ seededDatabase: void; failOnBrowserProblems: void }>({
+  // Ordered before failOnBrowserProblems by being declared first: the reset is
+  // setup, and a request it makes should not be attributed to the test.
+  seededDatabase: [
+    async ({ request }, use, testInfo) => {
+      await resetBetweenFiles(testInfo.file, request);
+      await use();
+    },
+    { auto: true },
+  ],
+
   failOnBrowserProblems: [
     async ({ page }, use) => {
       const problems: string[] = [];

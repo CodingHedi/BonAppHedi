@@ -191,12 +191,25 @@ install, and `-Fresh` had never deleted the database it claimed to.
 **The milestone-1 e2e suite must pass unmodified against the real backend** —
 that is the acceptance test for the swap, scoped by the amendment in ADR 0001.
 
-**Measured 2026-08-08: 120 of 154 pass, and none of the 34 failures is a contract
-mismatch or a sign-in problem.** The 40 specs that used to be unrunnable because
-they need a session now run: `application-acceptance.yml` points Google at a
-local OIDC issuer, and a real authorization-code flow completes. ADR 0001's
-second amendment records the exemption that makes it legal — the three sign-in
-helpers may differ between backends, and nothing else does.
+**Measured 2026-08-08: 153 of 154 pass.** The 40 specs that used to be
+unrunnable because they need a session now run — `application-acceptance.yml`
+points sign-in at a local OIDC issuer and a real authorization-code flow
+completes — and the database is put back to the seeded state before every spec,
+which is what the mocks gave the suite for free by resetting on every page load.
+ADR 0001's second amendment records the exemption that makes the first part
+legal: the three sign-in helpers may differ between backends, and nothing else
+does.
+
+**The one failure cannot pass and should not be made to.** `admin.spec.ts` has
+*"signing in as the admin opens the door, without a reload"*. Against the mocks
+signing in is a state change with no navigation; against real OAuth it is three
+redirects, so there is necessarily a reload. It asserts something only a mock can
+do.
+
+Nothing found in getting from 88 to 153 was a defect in the application. Every
+failure resolved along the way was the two fixtures disagreeing about what a
+signed-in account looks like — its name, its avatar, how many providers exist —
+or a bug in the harness itself. Zero contract drift, still.
 
 To reproduce:
 

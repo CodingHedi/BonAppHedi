@@ -180,3 +180,49 @@ Three things cost real time and are worth not rediscovering:
   new one crashed on startup; 154 specs ran against the wrong thing and reported
   failures that read like application bugs. It is now `false` for the issuer, so
   a leftover process is a loud port conflict instead.
+
+### Amendment, 2026-08-08 (later the same day): 153 of 154
+
+The isolation problem above is fixed. `POST /api/test/reset` drops every table
+and re-runs the migrations, and `e2e/fixtures.ts` calls it before every spec, so
+each one starts from the seeded catalogue. **153 of 154 pass.**
+
+Per spec rather than per file, which was measured rather than assumed: per file
+gave 138 and per spec gave 147, and per spec was also a third *faster* — specs
+that fail on contaminated state mostly fail by timing out, so removing the
+contamination removes the waiting. The reset lives in `fixtures.ts` keyed on the
+spec, so no spec file gained a hook and the exemption above still covers only the
+three sign-in helpers.
+
+**The remaining failure is permanent.** *"Signing in as the admin opens the door,
+without a reload"* asserts something only a mock can do: against real OAuth,
+signing in is three redirects. It should stay failing rather than be rewritten to
+accommodate the harness — it is a true statement about the mock and a false one
+about the world, and the honest place to record that is here.
+
+**Nothing in getting from 88 to 153 was a defect in the application.** Worth
+stating plainly, because the numbers imply otherwise. Every failure resolved was
+one of two things:
+
+- **The fixtures disagreeing about what a signed-in account is.** The issuer
+  signed people in as "Acceptance Run" while the specs assert "Hédi"; the
+  acceptance profile offered one provider where the mocks offer two; the real
+  account owned no avatar where `mock-auth-api.ts` hands out `pot/0`. Each of
+  those failed a handful of specs and none of them was about the application.
+- **Bugs in the harness.** A CSRF token captured before authentication, so every
+  avatar write 403'd. `flyway.clean()` silently doing nothing on SQLite, so the
+  isolation was a fiction that returned 204. And a test helper that counted the
+  keys of `{items,page,size,total}` and therefore reported "4 recipes" whatever
+  the database held.
+
+Two of those deserve their own note, because they are the shape of thing this
+suite exists to catch and nearly were not caught:
+
+- **A retry that hides a 403 does not hide it from the browser.** Retrying the
+  avatar write made the assertion pass, and `e2e/fixtures.ts` failed the test
+  anyway because Chromium had logged the 403 as a console error. That fixture was
+  right and the workaround was wrong; the token is now refreshed before the write
+  instead. It is the clearest demonstration so far of why that fixture is
+  described as the highest-value thing in the suite.
+- **Zero contract drift, still.** After all of it, the backend and
+  `core/api/models.ts` have never disagreed once.

@@ -39,17 +39,22 @@ const USERS = {
     sub: 'acceptance-admin',
     email: 'acceptance@bonapphedi.test',
     email_verified: true,
-    name: 'Acceptance Run',
-    given_name: 'Acceptance',
-    family_name: 'Run',
+    // The names are the mock fixtures' names, and that is the point rather than
+    // a coincidence. The specs assert what the header and the comment byline
+    // say, so an issuer that invented its own would fail a dozen of them on
+    // `Expected: "Hédi", Received: "Acceptance Run"` - a difference between two
+    // fixtures, dressed up as a defect.
+    name: 'Hédi',
+    given_name: 'Hédi',
+    family_name: 'Soumri',
   },
   reader: {
     sub: 'acceptance-reader',
     email: 'reader@bonapphedi.test',
     email_verified: true,
-    name: 'Camille Lecteur',
+    name: 'Camille',
     given_name: 'Camille',
-    family_name: 'Lecteur',
+    family_name: 'Durand',
   },
 };
 

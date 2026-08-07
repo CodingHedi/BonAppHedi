@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { APIRequestContext, Page } from '@playwright/test';
 
 /**
  * Establishing a session, whichever backend the suite is pointed at.
@@ -46,6 +46,88 @@ export async function signInForReal(page: Page, who: 'admin' | 'reader' = 'admin
 }
 
 /**
+ * Puts the database back to the seeded state. Acceptance run only.
+ *
+ * Reaches `/api/test/reset`, which exists only under the backend's `acceptance`
+ * profile — so a 404 here means the backend was started without it, which is
+ * worth saying plainly rather than letting 154 specs fail one at a time.
+ *
+ * The CSRF dance is not optional and not cosmetic. Every write is protected, the
+ * token is only generated once something reads it, and this request context has
+ * its own cookie jar independent of any page — so the GET is what causes the
+ * cookie to exist at all. Without it the reset is a 403 and the isolation
+ * silently does nothing.
+ */
+export async function resetDatabaseForReal(request: APIRequestContext): Promise<void> {
+  let last = '';
+
+  // Retried, because SQLite takes one writer at a time and this now runs before
+  // every spec. Dropping every table while the previous spec's last request is
+  // still finishing gives an occasional lock, which surfaced exactly once in 154
+  // resets - as a 500 on an unrelated smoke spec, which is the worst place for
+  // it to appear and the reason it is handled here rather than left to chance.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await request.get('/api/auth/session');
+
+    const { cookies } = await request.storageState();
+    const xsrf = cookies.find((c) => c.name === 'XSRF-TOKEN')?.value;
+
+    const response = await request.post('/api/test/reset', {
+      headers: xsrf ? { 'X-XSRF-TOKEN': xsrf } : {},
+    });
+
+    if (response.ok()) return;
+
+    if (response.status() === 404) {
+      throw new Error(
+        'POST /api/test/reset is not there, so the backend is not running under the acceptance ' +
+          'profile. Start it with:  .\\scripts\\dev.ps1 -Fresh -Acceptance',
+      );
+    }
+
+    last = `${response.status()} ${await response.text()}`;
+    await new Promise((wait) => setTimeout(wait, 250 * attempt));
+  }
+
+  throw new Error(`could not reset the database after three attempts: ${last}`);
+}
+
+/** The write itself, from inside the page so the browser supplies its own cookies. */
+async function putAvatar(page: Page, avatar: string): Promise<{ status: number; body: string }> {
+  return page.evaluate(async (token) => {
+    // Read something first, in this context, immediately before writing.
+    //
+    // Spring Security issues a fresh CSRF token when the session changes, and a
+    // sign-in changes it - so the XSRF-TOKEN cookie sitting in the browser after
+    // the OAuth round trip can be the pre-authentication one. `CsrfCookieFilter`
+    // writes the current token on any request that reads it, so this GET is what
+    // makes the cookie right rather than merely present.
+    //
+    // Retrying after a 403 was tried instead and is worse: the retry succeeds,
+    // but Chromium has already logged the 403 as a console error and the e2e
+    // fixture fails the test on it - correctly, since that fixture exists to
+    // catch exactly the errors nobody asserts on.
+    await fetch('/api/auth/session');
+
+    const xsrf = document.cookie
+      .split('; ')
+      .find((entry) => entry.startsWith('XSRF-TOKEN='))
+      ?.slice('XSRF-TOKEN='.length);
+
+    const response = await fetch('/api/auth/avatar', {
+      method: 'PUT',
+      headers: {
+        'content-type': 'application/json',
+        ...(xsrf ? { 'X-XSRF-TOKEN': decodeURIComponent(xsrf) } : {}),
+      },
+      body: JSON.stringify({ avatar: token }),
+    });
+
+    return { status: response.status, body: await response.text() };
+  }, avatar);
+}
+
+/**
  * Chooses an avatar through the API, standing in for the mock's seeded session.
  *
  * The specs that take a starting avatar are testing what happens to one that is
@@ -59,16 +141,16 @@ export async function signInForReal(page: Page, who: 'admin' | 'reader' = 'admin
  * concerned, since nothing would be visibly wrong until the assertion failed.
  */
 export async function chooseAvatarForReal(page: Page, avatar: string): Promise<void> {
-  const xsrf = (await page.context().cookies()).find((c) => c.name === 'XSRF-TOKEN')?.value;
+  // Sent from inside the page rather than through page.request, and that is the
+  // fix rather than a preference. Reading XSRF-TOKEN from the context and
+  // replaying it as a header answered 403 every time: Spring Security issues a
+  // new CSRF token when the session changes on authentication, so the value
+  // captured just after a sign-in is the pre-authentication one. Letting the
+  // browser read its own cookie at the moment of the request cannot get that
+  // wrong, and it is also what the application itself does.
+  const result = await putAvatar(page, avatar);
 
-  const response = await page.request.put('/api/auth/avatar', {
-    data: { avatar },
-    headers: xsrf ? { 'X-XSRF-TOKEN': xsrf } : {},
-  });
-
-  if (!response.ok()) {
-    throw new Error(
-      `could not seed the avatar '${avatar}': ${response.status()} ${await response.text()}`,
-    );
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`could not seed the avatar '${avatar}': ${result.status} ${result.body}`);
   }
 }

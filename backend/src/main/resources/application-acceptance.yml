@@ -18,6 +18,18 @@
 # OverriddenEndpointsInProductionTest, which was confirmed to fail by removing
 # that check once.
 
+spring:
+  flyway:
+    # Off by default since Flyway 9, and rightly - clean drops every table. The
+    # acceptance run needs it: /api/test/reset cleans and re-migrates between
+    # spec files so each one starts from the seeded catalogue, which is what the
+    # specs were written against and what the mocks gave them for free by
+    # resetting on every page load.
+    #
+    # Enabled here and nowhere else. The controller that calls it is
+    # @Profile("acceptance") and does not exist in a deployed jar.
+    clean-disabled: false
+
 bah:
   oauth:
     google:
@@ -51,6 +63,28 @@ bah:
       # "Connection refused" - a sign-in that breaks at the last step with
       # nothing visibly misconfigured. curl does not reproduce it, because curl
       # tries both address families.
+      authorization-uri: http://127.0.0.1:9779/authorize
+      token-uri: http://127.0.0.1:9779/token
+      user-info-uri: http://127.0.0.1:9779/userinfo
+      jwk-set-uri: http://127.0.0.1:9779/jwks
+
+    # The second provider, pointed at the same issuer.
+    #
+    # Not padding. The specs assert the sign-in row offers one button per
+    # configured provider, which against the mocks means two - a server holding
+    # one set of credentials offers one, and those specs fail on a difference
+    # between fixtures rather than on anything about the application. This was
+    # its own category in the first acceptance measurement ("two providers
+    # expected, 2 specs").
+    #
+    # It also buys real coverage rather than only a matching count: Spring treats
+    # Facebook as plain OAuth2 rather than OIDC, so signing in with it runs
+    # AppUserOAuth2UserService and the userinfo path instead of the id_token one.
+    # Two genuinely different code paths, both now exercised.
+    facebook:
+      client-id: acceptance-client-2
+      client-secret: acceptance-secret-2
+      issuer-uri: http://localhost:9779
       authorization-uri: http://127.0.0.1:9779/authorize
       token-uri: http://127.0.0.1:9779/token
       user-info-uri: http://127.0.0.1:9779/userinfo
