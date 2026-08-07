@@ -117,3 +117,66 @@ from `CommonOAuth2Provider` — which is a legitimate feature rather than a test
 hook, since a self-hosted deployment needs it anyway. The application would be
 genuinely unmodified, and it would exercise token exchange, session creation and
 principal serialization for real.
+
+### Amendment, 2026-08-08: the session category is closed
+
+The paragraph above was carried out. `bah.oauth.<provider>.*` now takes an
+issuer and four endpoint URIs, `frontend/e2e/mock-issuer.mjs` serves an OIDC
+issuer on loopback that approves without asking, and `application-acceptance.yml`
+points Google at it. A sign-in completes for real: authorization code, token
+exchange, userinfo, session, admin allowlist.
+
+**120 of 154 pass, and the 40 specs blocked on a session are now 0.** No failure
+is a contract mismatch, and none is about signing in.
+
+**The scoping in the first amendment is withdrawn.** The guarantee no longer has
+to exclude the specs that need a session, because they run.
+
+**In its place, a narrower exemption: the three sign-in helpers may differ
+between the two backends.** `signIn` in `social.spec.ts`, `signedIn` in
+`profile.spec.ts` and `signedInAs` in `admin.spec.ts` branch on `PW_TARGET`, and
+the whole of the difference lives in `e2e/sign-in.ts`. Nothing else moves — every
+assertion, route, describe block and test name is byte-identical. The reasoning
+is that how a test *arrives* signed in is setup, not the thing under test: against
+the mocks a session is a value in `localStorage`, and against a real server it is
+a cookie the server issued. Requiring those to be written the same way would not
+be testing the application, it would be testing that two different systems can be
+lied to identically.
+
+Note what this does **not** do, because the distinction matters: it does not give
+the server a test-only way in. The bypass rejected above is still rejected. The
+server still only accepts a session it minted itself at the end of a real OAuth
+flow; the helpers changed how the *browser* obtains one. And the overrides that
+make it possible cannot reach production — the application refuses to start if
+they are set under the `prod` profile, which was confirmed by removing that check
+and watching the test fail.
+
+**What is left is test isolation, and it is the same problem the first amendment
+called a floor.** All 34 remaining failures are state the run itself created. It
+was 2 specs before and is 34 now, because the specs that could not run are
+precisely the ones that *write*: three admin specs pass and, in passing, publish
+a draft, rename the babka and create a recipe. Every later spec asserting the
+seeded catalogue then fails — `Received: 6` where 5 cards were expected,
+`Received: "Babka relue"` where the seeded title was.
+
+That is not a regression and nothing is wrong with the application. It is a
+property the mocks concealed by resetting on every page load, and it only became
+visible once a third of the suite stopped being skipped. Fixing it means real
+isolation — a fresh database per spec file, or a reset between specs — and that
+is a separate piece of work with its own trade-offs.
+
+Three things cost real time and are worth not rediscovering:
+
+- **`localhost` is not `127.0.0.1` here.** The JVM resolves `localhost` to `::1`
+  first and does not fall back, and the issuer listens on IPv4. The browser
+  reaches `/authorize`, comes back with a code, and the server-side token
+  exchange then dies on "Connection refused" — a sign-in that fails at the last
+  step with nothing visibly misconfigured. curl does not reproduce it.
+- **The `iss` claim is not an endpoint.** Overriding all four URIs and leaving
+  the issuer alone still fails, because the registration keeps Google's and the
+  id_token is validated against it.
+- **A reused test server can make a whole run lie.** Playwright's
+  `reuseExistingServer` adopted a stale issuer from an earlier session after the
+  new one crashed on startup; 154 specs ran against the wrong thing and reported
+  failures that read like application bugs. It is now `false` for the issuer, so
+  a leftover process is a loud port conflict instead.

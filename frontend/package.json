@@ -53,6 +53,7 @@
     "cross-env": "^10.1.0",
     "eslint": "^10.6.0",
     "jsdom": "^28.0.0",
+    "oauth2-mock-server": "9.1.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "8.62.1",

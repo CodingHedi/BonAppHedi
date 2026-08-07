@@ -31,17 +31,32 @@
     still compiling, so opening the moment the process starts shows a connection
     error on a first run and needs a manual reload. What start.bat passes.
 
+.PARAMETER Acceptance
+    Starts the backend under the `acceptance` profile, which points sign-in at a
+    local OIDC issuer instead of Google. For the scoped acceptance run in ADR
+    0001 and nothing else.
+
+    This is what makes the 40 specs that need a signed-in session runnable:
+    against real Google the browser leaves for a consent screen Playwright
+    cannot drive and never comes back. Playwright starts the issuer itself, so
+    there is nothing to launch by hand.
+
+    Without it those specs fail at sign-in, which reads like a broken
+    application rather than a missing flag.
+
 .EXAMPLE
     .\scripts\dev.ps1
     .\scripts\dev.ps1 -Mocks
     .\scripts\dev.ps1 -Fresh
     .\scripts\dev.ps1 -Open
+    .\scripts\dev.ps1 -Fresh -Acceptance
 #>
 [CmdletBinding()]
 param(
     [switch]$Mocks,
     [switch]$Fresh,
-    [switch]$Open
+    [switch]$Open,
+    [switch]$Acceptance
 )
 
 $ErrorActionPreference = 'Stop'
@@ -162,7 +177,19 @@ try {
 
         Write-Host 'Starting the backend on :8080 ...' -ForegroundColor Cyan
         $mvnw = Join-Path $backend 'mvnw.cmd'
-        Add-Half -Name 'backend' -Process (Start-Process -FilePath $mvnw -ArgumentList 'spring-boot:run' `
+
+        # -Acceptance points sign-in at the local OIDC issuer instead of Google,
+        # which is what lets the 40 session specs run at all (ADR 0001, second
+        # amendment). Without it the backend picks up application-local.yml -
+        # real Google - and every one of them stops at a consent screen
+        # Playwright cannot drive. Playwright starts the issuer itself.
+        $mvnArgs = @('spring-boot:run')
+        if ($Acceptance) {
+            $mvnArgs += '-Dspring-boot.run.profiles=acceptance'
+            Write-Host '  acceptance profile: sign-in points at the local issuer on :9779' -ForegroundColor Yellow
+        }
+
+        Add-Half -Name 'backend' -Process (Start-Process -FilePath $mvnw -ArgumentList $mvnArgs `
                 -WorkingDirectory $backend -NoNewWindow -PassThru)
 
         $deadline = (Get-Date).AddSeconds(120)

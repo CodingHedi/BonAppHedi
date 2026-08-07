@@ -1,0 +1,71 @@
+# The acceptance run, and nothing else.
+#
+# ADR 0001 makes the milestone-1 e2e suite the definition of done for the swap
+# to the real API. Its amendment scoped that guarantee to the specs that do not
+# need a session, because 40 of the 132 could not run at all: signing in means
+# clicking a provider button, and against the real API that leaves for Google
+# and never comes back. Playwright cannot fake the round trip either - the token
+# exchange and the userinfo call are server-to-server and never touch the page.
+#
+# This profile closes that hole by pointing `google` at an OIDC issuer on
+# loopback (`frontend/e2e/mock-issuer.mjs`) which approves without asking. The
+# full authorization-code flow still runs, exactly as in production; only the
+# counterparty differs.
+#
+# None of this can reach production. The application refuses to start if these
+# endpoint overrides are set while the prod profile is active - see
+# ClientRegistrationConfig.rejectOverridesInProduction, and
+# OverriddenEndpointsInProductionTest, which was confirmed to fail by removing
+# that check once.
+
+bah:
+  oauth:
+    google:
+      # Any values will do. The mock issuer does not check them; what matters is
+      # that they are non-blank, because blank means the provider is skipped and
+      # the sign-in row would render no buttons at all (ADR 0003).
+      client-id: acceptance-client
+      client-secret: acceptance-secret
+
+      # Endpoints named one by one rather than discovered. Spring's
+      # `ClientRegistrations.fromIssuerLocation` would fetch a discovery document
+      # while building the bean, so the backend would refuse to start whenever
+      # the issuer was not already listening - boot ordering between two harness
+      # processes is exactly the kind of failure that gets misread as a broken
+      # application. Naming them keeps the two independent: start them in either
+      # order, and only an actual sign-in needs the issuer up.
+      #
+      # `localhost` here and 127.0.0.1 below, which is correct and not a slip.
+      # This one is an *identifier*, compared against the id_token's `iss` claim
+      # and never connected to, and the mock issuer calls itself
+      # http://localhost:9779 whatever address it binds. Leave Google's issuer in
+      # place instead and sign-in fails at the very last step with
+      # "The ID Token contains invalid claims".
+      issuer-uri: http://localhost:9779
+      #
+      # 127.0.0.1 and never `localhost`. The browser only uses the first of
+      # these; the other three are fetched by the JVM, which resolves
+      # `localhost` to ::1 before 127.0.0.1 and does not fall back. The issuer
+      # listens on IPv4, so `localhost` here means the redirect works, the
+      # browser comes back with a code, and the token exchange then fails with
+      # "Connection refused" - a sign-in that breaks at the last step with
+      # nothing visibly misconfigured. curl does not reproduce it, because curl
+      # tries both address families.
+      authorization-uri: http://127.0.0.1:9779/authorize
+      token-uri: http://127.0.0.1:9779/token
+      user-info-uri: http://127.0.0.1:9779/userinfo
+      jwk-set-uri: http://127.0.0.1:9779/jwks
+
+  admin:
+    # The address the mock issuer signs everyone in as. This one line is what
+    # makes the 19 admin specs reachable; without it the acceptance visitor
+    # arrives as an ordinary signed-in user and every admin route 403s.
+    emails: acceptance@bonapphedi.test
+
+  security:
+    # Fixed rather than blank, because a blank salt is regenerated at every
+    # startup and every previously stored fingerprint becomes unmatchable. Two
+    # runs would then disagree about whether a visitor had already rated, which
+    # reads as a flaky backend. Not a secret: it never leaves a developer's
+    # machine, and the profile it lives in cannot be used in production.
+    fingerprint-salt: acceptance-salt-not-a-secret

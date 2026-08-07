@@ -191,19 +191,29 @@ install, and `-Fresh` had never deleted the database it claimed to.
 **The milestone-1 e2e suite must pass unmodified against the real backend** —
 that is the acceptance test for the swap, scoped by the amendment in ADR 0001.
 
-**Measured 2026-07-28: 88 of 132 pass, and none of the 44 failures is a contract
-mismatch.** ADR 0001 carries the amendment that scopes the guarantee to the specs
-that do not need a session. To reproduce:
+**Measured 2026-08-08: 120 of 154 pass, and none of the 34 failures is a contract
+mismatch or a sign-in problem.** The 40 specs that used to be unrunnable because
+they need a session now run: `application-acceptance.yml` points Google at a
+local OIDC issuer, and a real authorization-code flow completes. ADR 0001's
+second amendment records the exemption that makes it legal — the three sign-in
+helpers may differ between backends, and nothing else does.
+
+To reproduce:
 
 ```powershell
 # 1. Point the dev loop at the real API
 #    useMocks: false in src/environments/environment.development.ts
-.\scripts\dev.ps1 -Fresh
+.\scripts\dev.ps1 -Fresh -Acceptance
 # 2. Then, in another shell
 cd frontend
 $env:PW_TARGET = 'real'
 npx playwright test --workers=1
 ```
+
+**`-Acceptance` starts the backend under the `acceptance` profile**, which is
+what points sign-in at the local issuer. Without it the backend uses whatever
+`application-local.yml` holds — real Google — and every session spec fails at a
+consent screen Playwright cannot drive. Playwright starts the issuer itself.
 
 Both halves of that matter. **`PW_TARGET=real`** is what makes the suite use the
 dev server on 4200 instead of starting its own mocked one on 4300 — without it
