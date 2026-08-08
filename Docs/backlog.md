@@ -23,32 +23,20 @@ fail in isolation, which points at the parallel run rather than the assertion:
 eight workers on one dev server, and this spec asserts on focus and on a query
 parameter being cleared, both of which are timing-sensitive.
 
-If it recurs, the thing to check first is whether the focus assertion needs
-`expect.poll` — `getAttribute` and `document.activeElement` are not web-first
-assertions and do not retry, which is the same trap the avatar shuffle test fell
-into.
+**Did not recur in five full-suite runs on 2026-08-08**, all 154 green. That is
+not proof against a one-in-ten flake, but it is the only evidence there is.
 
-## Every list-page request is made twice on first load
+An earlier version of this entry proposed `expect.poll`, on the grounds that
+`getAttribute` and `document.activeElement` do not retry. **That does not apply
+here** — the spec uses `toBeFocused()` and `not.toBeFocused()`, which are
+web-first and retry until the timeout. Whatever this is, it is not that, and
+rewriting a passing spec against a wrong diagnosis would only hide it.
 
-Measured against the live site on 2026-07-28, six loads in fresh contexts. Each
-one fetches `recipes`, `recipes/featured`, `tags` and `authors`, cancels most of
-them, and immediately issues them again. The page is correct every time — hero,
-cards and both filters rendered in 6 of 6 — so this costs bandwidth and log
-noise rather than behaviour.
-
-The cause is the locale signal settling after the resources have already fired.
-`routesFor` applies the locale in a `canActivate`, that writes to
-`LocaleService.locale`, and every `resource()` on the page has `locale` in its
-`params` — so Angular aborts the in-flight request and starts a new one. The
-browser reports the first as `net::ERR_ABORTED`.
-
-Invisible in every suite, and will stay invisible: the mocks do not use
-`HttpClient`, so there is no request for the e2e fixture to see fail. It only
-appears against the real API.
-
-Not urgent — nobody sees a wrong page. Worth doing when the list page is next
-opened up: resolve the locale before the resources are created rather than
-alongside them, so the first attempt is the only attempt.
+If it recurs, the negative assertion is the place to look. `not.toBeFocused()`
+passes the moment focus is absent, so it cannot see focus that arrives *after*
+it has passed — a real lingering-focus bug and a green run are compatible. The
+honest check is whether focus is still absent a beat after `goBack()` settles,
+not whether it is absent at the first opportunity.
 
 ## What would actually force search server-side
 
