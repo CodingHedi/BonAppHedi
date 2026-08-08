@@ -199,9 +199,25 @@ simply doesn't appear as a sign-in button — `GET /api/auth/providers` only
 returns providers that have credentials. Adding Facebook later is a config
 change and a restart, not a code change.
 
-For local Google OAuth, register the redirect URI
-`http://localhost:4200/login/oauth2/code/google` (port **4200**, not 8080 — the
-dev proxy preserves the browser's origin on purpose).
+For local Google OAuth, **add** this redirect URI in the Google Cloud console:
+
+```
+http://localhost:4200/login/oauth2/code/google
+```
+
+**Add, not replace.** The OAuth client holds a list, and the deployed site needs
+its own entry — `https://bonapphedi.fr/login/oauth2/code/google`, registered in
+DEPLOY.md's first-time steps. Both belong there at once and neither affects the
+other. Swapping one for the other breaks the environment you are not looking at,
+and the error Google returns says only `redirect_uri_mismatch`, which describes
+every possible cause of it equally well.
+
+Two details, both of which produce that same unhelpful error:
+
+- **Port 4200, not 8080.** The dev proxy preserves the browser's origin on
+  purpose, so Google sees the Angular port rather than the API's.
+- **`http`, not `https`.** Google allows plain HTTP for `localhost` specifically,
+  and for nothing else.
 
 ---
 
