@@ -179,7 +179,7 @@ what it needs on first run:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 232 tests
+.\mvnw.cmd test          # 247 tests
 .\mvnw.cmd spring-boot:run
 ```
 

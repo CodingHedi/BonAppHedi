@@ -109,9 +109,13 @@ Recorded because each one cost time once:
 - **Asserting a specific language on `/`.** That route negotiates from
   `Accept-Language`, and the test browser reports `en-US`. Pinning French there
   asserts the negotiation is broken.
-- **Asserting on placeholder copy.** The legal and privacy pages are stubs until
-  M3, so the smoke suite matches them loosely on purpose — writing the real copy
-  should not be a test failure.
+- **Matching copy loosely to protect a placeholder.** The smoke suite once
+  matched the legal and privacy pages on `/confidentialité|privacy/i`, so that
+  writing the real copy would not fail a test. It also meant the mentions
+  légales read "À compléter avant la mise en ligne" for months, green the whole
+  time, while the site was live. Both notices are written now, and the legal
+  rows are pinned to `Hébergeur` and `Host`. An assertion loose enough never to
+  fail is not protecting anything.
 - **Screenshot baselines from `Docs/Design/`.** Those prototypes contain their
   own drag-and-drop placeholder chrome and will never match a real render.
   Generate baselines only from a state you have actually looked at.
@@ -122,7 +126,7 @@ Recorded because each one cost time once:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 185 tests
+.\mvnw.cmd test          # 247 tests
 ```
 
 **One assertion cannot live in `AuthApiTest`, and it is worth knowing why.**
