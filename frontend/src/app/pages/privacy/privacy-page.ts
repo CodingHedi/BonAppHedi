@@ -17,6 +17,8 @@ import { SEGMENTS } from '../../core/i18n/locale';
  *   <li>the address is fingerprinted, never stored — {@code fingerprint()},
  *       an HMAC whose input is discarded;
  *   <li>no request to Google before a click — the YouTube facade (ADR 0006);
+ *   <li>no picture taken from an identity provider — {@code ProviderProfile},
+ *       which does not map {@code picture} at all (ADR 7);
  *   <li>self-hosted typefaces — {@code styles/_fonts.scss};
  *   <li>no audience measurement — there is no view counter anywhere in the
  *       schema, and the admin statistics count rows that visitors created
@@ -28,11 +30,18 @@ import { SEGMENTS } from '../../core/i18n/locale';
  * expects them and the only place they should need updating. This page links
  * there instead of repeating them.
  *
- * <p>One disclosure is not flattering and is here anyway: a commenter's picture
- * is served from their identity provider, so displaying a signed comment does
- * reach Google. That is the one third-party request the rest of the site is
- * built to avoid, and the fix is in the backlog. A privacy page that omitted it
- * would be worth less than no page at all.
+ * <p>This page used to carry a disclosure that is no longer true, and the way it
+ * went is worth keeping. A commenter's picture was served from their identity
+ * provider, so displaying a signed comment reached Google — the one third-party
+ * request the rest of the site is built to avoid. Writing that admission down is
+ * what made it intolerable, and ADR 7 removed it: an avatar is now a token
+ * chosen here, {@code ProviderProfile} never reads {@code picture}, and
+ * {@code V6__chosen_avatar.sql} cleared the URLs already stored.
+ *
+ * <p>{@code privacy.commentAvatar} was going to be deleted with the leak and is
+ * reworded instead. "No picture is taken from your provider" is worth more to a
+ * reader than the absence of a sentence: saying what a site declines to collect
+ * is the page doing its job, not padding.
  */
 @Component({
   selector: 'bah-privacy-page',

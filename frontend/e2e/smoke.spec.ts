@@ -31,14 +31,15 @@ const ROUTES: readonly RouteCheck[] = [
   { path: '/en/recipes/chocolate-babka', expects: 'Chocolate babka' },
   // A recipe with no video, so the media component's other branch is swept too.
   { path: '/fr/recettes/cheesecake-basque', expects: 'Cheesecake basque' },
-  // Matched loosely in both languages: these pages are placeholders until M3,
-  // and pinning the exact copy now would just mean a false failure the day
-  // they are written.
-  // Matched on a real heading now rather than loosely: the page held
-  // "A completer avant la mise en ligne" until the notice was written.
+  // Matched on a real heading rather than loosely: the page held
+  // "A completer avant la mise en ligne" until the notice was written, and a
+  // loose match is exactly what let it stay that way while the site was live.
   { path: '/fr/mentions-legales', expects: 'Hébergeur' },
-  { path: '/fr/confidentialite', expects: /confidentialité|privacy/i },
   { path: '/en/legal-notice', expects: 'Host' },
+  // The privacy rows stay loose, and here that is not a gap: this file sweeps
+  // for reachability, and `legal.spec.ts` pins what the policy actually claims
+  // — the cookie name, the HMAC, the click-to-load video.
+  { path: '/fr/confidentialite', expects: /confidentialité|privacy/i },
   { path: '/en/privacy', expects: /confidentialité|privacy/i },
   { path: '/fr/connexion', expects: /S'identifier|Sign in/ },
   { path: '/en/sign-in', expects: /S'identifier|Sign in/ },
