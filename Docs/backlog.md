@@ -10,21 +10,6 @@ is probably not wanted — say so and remove it rather than letting the list rot
 
 ---
 
-## Precompile the ICU plurals, and drop `'unsafe-eval'`
-
-The CSP that shipped has one term in it that a CSP exists to forbid.
-`@jsverse/transloco-messageformat` compiles `{count, plural, …}` into JavaScript
-with `new Function` at runtime, and exactly two messages need it — `list.count`
-and `comments.heading`. Without `'unsafe-eval'` both render empty.
-
-Two ways out, and neither is urgent for two strings: precompile the plural rules
-at build time, or hand-write the two cases and drop the dependency. The second
-is smaller than it sounds — French pluralisation here is "1 recette" against "N
-recettes".
-
-Worth doing when the translation setup is next opened up. Until then the term is
-documented where it is used, in `deploy/Caddyfile`.
-
 ## `the focus request does not linger` fails about one run in ten
 
 Seen once on 2026-07-28 during a full `verify`, in `recipe-list.spec.ts`. Then it

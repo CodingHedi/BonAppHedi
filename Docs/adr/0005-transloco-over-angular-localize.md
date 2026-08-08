@@ -37,8 +37,42 @@ way.
 - **Pluralization is not symmetric between the languages.** French treats zero
   as singular ("0 réaction"); English does not ("0 reactions"). Use Transloco's
   messageformat plugin with ICU plural rules — a hand-rolled pluralizer will get
-  this wrong. There is an explicit test.
+  this wrong. There is an explicit test. *(The messages are still ICU; the plugin
+  is not. See the amendment below.)*
 - Missing-key drift between the two files is caught by a unit test rather than
   by a user finding a raw key on the page.
 - Runtime cost: the translation JSON is an extra request on first load. It is
   small, cacheable, and worth it.
+
+## Amendment, 2026-08-08: ICU stays, the messageformat plugin goes
+
+`@jsverse/transloco-messageformat` compiles each message into JavaScript with
+`new Function`, and that single fact put `'unsafe-eval'` in the site's
+Content-Security-Policy — the one term a CSP exists to forbid, carried for six
+strings. It is now a ~130-line transpiler in
+`core/i18n/plural-transpiler.ts`, and the policy no longer has the term.
+
+**Nothing above changes.** The messages in `public/i18n/*.json` are still ICU,
+still `{count, plural, …}`, and the asymmetry the original bullet warns about is
+still real. What changed is only who resolves them.
+
+The warning in that bullet is also still correct, and is the reason this was
+safe to do at all: **the categories come from `Intl.PluralRules`, not from a
+hand-written rule.** That is CLDR, in the browser, and it knows things a rule
+written here would not — French counts zero as singular, and French has a `many`
+category that English lacks and that none of these messages declares, so an
+absent category has to fall back to `other` or the string renders empty. Both
+cases are in the spec's table, and both were confirmed by breaking them.
+
+That table is the output messageformat itself produced for these exact strings,
+captured before the dependency was removed, so the test compares against what
+the site used to render rather than against a fresh reading of the ICU spec.
+
+What is deliberately unimplemented, because no message uses it: `select`,
+`selectordinal`, offsets, date and number skeletons, and quoting a literal `#`.
+Wanting any of them is a reason to reconsider the dependency, not to grow the
+file — at which point this decision is worth revisiting rather than working
+around.
+
+Measured: the initial bundle went from 442 kB to 368 kB, and `new Function(`
+now appears nowhere in the build output.

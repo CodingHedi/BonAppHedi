@@ -34,8 +34,7 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"],
-            "allowedCommonJsDependencies": ["@messageformat/core"]
+            "styles": ["src/styles.scss"]
           },
           "configurations": {
             "production": {
