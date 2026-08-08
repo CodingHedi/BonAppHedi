@@ -228,29 +228,53 @@ what points sign-in at the local issuer. Without it the backend uses whatever
 `application-local.yml` holds — real Google — and every session spec fails at a
 consent screen Playwright cannot drive. Playwright starts the issuer itself.
 
-Both halves of that matter. **`PW_TARGET=real`** is what makes the suite use the
-dev server on 4200 instead of starting its own mocked one on 4300 — without it
-you measure the mocks and learn nothing. **`-Fresh`** is what makes the number
-mean anything: a database carrying a previous run's ratings fails specs asserting
-the seeded `4.0 / 5 · 1 avis`, and those failures look exactly like backend bugs.
-Measured twice without it, the count moved from 44 failures to 47.
+**`PW_TARGET=real`** is what makes the suite use the dev server on 4200 instead
+of starting its own mocked one on 4300 — without it you measure the mocks and
+learn nothing.
 
-**`--workers=1` and still not enough.** The specs share one database, so they are
-not independent of each other however they are scheduled — two of the 44 fail on
-state the run itself created, not on anything wrong. Read the number as a floor.
+**`--workers=1` is required, not a precaution.** One database, one reset endpoint
+and one issuer identity are all shared by the whole run; two workers would race
+for every one of them. `-Fresh` matters much less than it used to, now that each
+spec resets, but it still guarantees the run starts from the same place it will
+end.
 
-The 44, all accounted for:
+The one failure, accounted for:
 
 | Cause | Specs | Why |
 |---|---|---|
-| Needs a session | 40 | 19 admin, 8 profile, 13 comment. Signing in means clicking a provider and coming back, which against the real API navigates to Google and never returns. |
-| Two providers expected | 2 | They assert a row of two buttons; a server holding one set of credentials offers one. |
-| State the run left behind | 2 | `reacting twice` and the English social block both count reactions, and an earlier spec in the same run has already reacted. Each spec gets a fresh browser and therefore a fresh visitor cookie; the server remembers anyway. |
+| Only a mock can do it | 1 | `signing in as the admin opens the door, **without a reload**`. Against the mocks signing in is a state change with no navigation; against real OAuth it is three redirects. The spec is true of a mock and false of the world, and is left failing rather than rewritten to suit the harness. |
 
-What needs a person at a browser, and is the one thing still unverified: signing
-in for real, choosing an avatar, and seeing it against a comment. Playwright
-cannot fake the OAuth round trip — the token exchange and the userinfo call are
-server-to-server and never touch the browser.
+### The signed-in half, by hand
+
+Playwright cannot reach one thing and never will: **Google's own login form**.
+Google detects automated browsers and refuses to render it — the same in
+Playwright, Cypress, Selenium and Puppeteer, with no sanctioned way round it. The
+suite proves the integration against a local OIDC issuer, which is all of *this*
+application's code. The provider's own screen needs a person.
+
+**Done 2026-08-08, and every step passed:**
+
+| Checked | Result |
+|---|---|
+| Sign-in returns to the recipe you were reading, not the home page | ✅ |
+| A new account arrives with no avatar (ADR 7 makes it a choice) | ✅ |
+| Choosing subject, tint and ink saves and shows in the header | ✅ |
+| A display name saves, and clearing it falls back to the account name | ✅ |
+| A posted comment carries the chosen avatar, drawn as SVG | ✅ |
+| **No request to `googleusercontent.com` or `gstatic.com` on that page** | ✅ |
+| The allowlisted account gets the admin area | ✅ |
+| A second, non-allowlisted account does not, and `/fr/admin` sends it home | ✅ |
+
+The sixth row is the one worth having done. It is the whole point of ADR 7: a
+commenter's avatar used to be the URL the provider returned, so *reading* a
+thread disclosed the reader's IP to Google. It renders perfectly either way —
+only a request log tells you, and no test in this suite runs against real Google
+to check.
+
+Register **both** redirect URIs in the Google console before trying this:
+`http://localhost:4200/login/oauth2/code/google` and the production one. They
+coexist; replacing one with the other breaks the environment you are not looking
+at, and Google reports only `redirect_uri_mismatch`.
 
 ---
 
