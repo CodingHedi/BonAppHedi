@@ -290,6 +290,15 @@ whether it is load-bearing:
 - **The e2e fixture** in `frontend/e2e/fixtures.ts` fails tests on console
   errors and failed requests even when assertions pass. That is the highest-value
   behaviour in the suite; do not bypass it.
+- **`net::ERR_ABORTED` in DevTools on the live site is not a failed request.**
+  Every list-page load shows two to four of them, and they are teardown noise
+  from `resource()`: each one follows a `200` **for the same URL**, the body was
+  received, and nothing refetches. Measured 2026-08-08 over twelve fresh loads —
+  exactly five API requests every time, no duplicates, and 19 of 19 aborts
+  preceded by their own 200. `/api/auth/session` is the control: it is a plain
+  `HttpClient` call rather than a `resource()`, and it never aborts.
+  This was previously in `Docs/backlog.md` as "every list-page request is made
+  twice on first load". It is not, and that entry is gone.
 - **The avatar vocabulary exists twice**, in `core/avatar/avatar-token.ts` and in
   `auth/Avatar.java`, and that is not an oversight to consolidate. The frontend
   owns the drawings and the backend owns the guard on what may be written to the
