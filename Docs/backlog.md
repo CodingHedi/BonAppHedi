@@ -38,7 +38,7 @@ it has passed — a real lingering-focus bug and a green run are compatible. The
 honest check is whether focus is still absent a beat after `goBack()` settles,
 not whether it is absent at the first opportunity.
 
-## What would actually force search server-side
+## Infinite scroll, virtualisation, and what would force search server-side
 
 `RecipeListPage` fetches the catalogue once per locale and every filter — the
 query, the tags, the author, the sort — runs in a computed over the result. Load
@@ -59,19 +59,60 @@ cheat on repetition:
 is 156 KB. Payload is not the constraint, and the note in `recipe-list-page.ts`
 about "a few hundred recipes" was pessimistic by roughly an order of magnitude.
 
-**The constraint is pagination, and it is not really about search.** What breaks
-first is rendering: a thousand cards in the DOM with no virtualisation, which is
-a scrolling problem long before it is a filtering one. The moment the list is
-paged, though, client-side filtering stops working *by definition* — you cannot
-filter over pages you have not fetched. So search moves server-side because
-pagination arrived, not because search got slow.
+**The constraint is rendering, and it is not really about search.** What breaks
+first is a thousand cards in the DOM with no virtualisation, which is a scrolling
+problem long before it is a filtering one. Search only moves server-side as a
+*consequence* of how that gets solved — not because search got slow.
 
-When that day comes there is a middle path worth remembering, because it keeps
-what is good about today's behaviour: fetch a **slim index** for searching —
-`slug`, `title`, `searchText`, about a third the size, 16 KB gzipped at three
-hundred recipes — and page the full records for display. Search stays instant and
-local, the grid pages properly. The cost is a second endpoint and a second shape
-to keep in step with the first.
+### Two things are called "infinite scroll", and only one is free
+
+The preference here is infinite scroll over pagination. Worth separating, because
+the difference decides whether the search rewrite happens at all:
+
+- **Render-only** — fetch the whole catalogue exactly as now, reveal it
+  progressively. Purely a rendering strategy. Search stays instant and local, no
+  new endpoint, no second shape to keep in step.
+- **Fetch-on-scroll** — pages arrive as you scroll. Identical to pagination for
+  this purpose: you cannot filter over what you have not fetched, so search goes
+  server-side and gains a round trip per keystroke.
+
+An earlier version of this entry said client-side filtering stops working *by
+definition* once the list is paged. That is true of the second and false of the
+first, which is the whole point: the cheap option sidesteps the problem the rest
+of this entry is about.
+
+### Three costs that are specific to this site
+
+**Crawling, and it cuts the opposite way from usual.** There is no SSR (ADR 4),
+so Googlebot renders the JS — and today every recipe therefore ends up in the
+DOM and is indexable. **Googlebot does not scroll.** Infinite scroll would leave
+it only the first batch. So would virtualisation. Rendering everything is
+accidentally the most crawlable arrangement available, which matters more than
+usual for a site that wants to be found by recipe name. The thing that bounds the
+DOM is the same thing that hides content from crawlers.
+
+**Scroll restoration is on and is relied upon.** `app.config.ts` sets
+`scrollPositionRestoration: 'enabled'`, so leaving a recipe returns you to your
+place in the grid. Content that has not been revealed yet cannot be restored to,
+and `recipe-list.spec.ts` already asserts on what survives a `goBack()`.
+
+**The footer is not only a footer.** Mentions légales are legally required of a
+French site, `check:legal` is a deploy gate because that page once shipped
+incomplete while the site was live, and infinite scroll is the pattern that puts
+a footer permanently out of reach.
+
+### So
+
+Revisit on a **rendering measurement**, not a recipe count — profile the grid at
+two or three hundred and find out whether it is actually slow. If it is:
+virtualise rather than infinite-scroll, and keep crawlable paginated URLs
+alongside for Googlebot. That bounds the DOM, keeps search instant, and leaves
+the footer reachable.
+
+If search ever does have to move, the middle path is worth remembering: fetch a
+**slim index** for searching — `slug`, `title`, `searchText`, about a third the
+size, 16 KB gzipped at three hundred recipes — and page the full records for
+display. The cost is a second endpoint and a second shape to keep in step.
 
 Until then, leave it. Moving it early makes the search *slower*: a round trip per
 keystroke where there is now none. `RecipeQueryDao` already understands `query`,
