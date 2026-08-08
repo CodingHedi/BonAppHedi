@@ -12,12 +12,12 @@ import {
   withInMemoryScrolling,
   withViewTransitions,
 } from '@angular/router';
-import { provideTransloco } from '@jsverse/transloco';
-import { provideTranslocoMessageformat } from '@jsverse/transloco-messageformat';
+import { TRANSLOCO_TRANSPILER, provideTransloco } from '@jsverse/transloco';
 
 import { routes } from './app.routes';
 import { DEFAULT_LOCALE, LOCALES, LOCALE_IDS } from './core/i18n/locale';
 import { LocaleService } from './core/i18n/locale.service';
+import { PluralTranspiler } from './core/i18n/plural-transpiler';
 import { HttpTranslocoLoader } from './core/i18n/transloco-loader';
 import { ThemeService } from './core/theme/theme.service';
 import { RECIPE_API } from './core/api/recipe-api';
@@ -64,9 +64,13 @@ export const appConfig: ApplicationConfig = {
       loader: HttpTranslocoLoader,
     }),
     // ICU plural rules. Not optional: French treats zero as singular
-    // ("0 réaction") and English does not ("0 reactions"), and no hand-rolled
-    // pluralizer gets that right for both.
-    provideTranslocoMessageformat(),
+    // ("0 étoile") and English does not ("0 stars"), and no hand-rolled
+    // pluralizer gets that right for both — so this one does not try, and asks
+    // Intl.PluralRules instead.
+    //
+    // Must stay after provideTransloco(), which registers DefaultTranspiler
+    // against the same token; the later provider is the one that wins.
+    { provide: TRANSLOCO_TRANSPILER, useClass: PluralTranspiler },
 
     // Read from the URL prefix at bootstrap so DatePipe and number formatting
     // agree with the page's language.

@@ -7,9 +7,16 @@
 // in deploy/Caddyfile earned its place by being removed here and watching what
 // broke.
 //
-//   cd backend ; .\mvnw.cmd -Pweb -DskipTests package
-//   java -jar backend\target\bonapphedi-0.0.1-SNAPSHOT.jar
+//   cd frontend ; npm run build          # -Pweb only *copies* frontend/dist
+//   cd ..\backend ; .\mvnw.cmd clean -Pweb -DskipTests package
+//   java -jar backend\target\backend-0.0.1-SNAPSHOT.jar
 //   node scripts\csp-lab.mjs "<policy>"
+//
+// The frontend build is not optional and skipping it is silent: the Maven
+// profile copies whatever is already in frontend/dist, so without it the jar
+// serves the previous bundle and the policy is measured against code that is no
+// longer the code. `clean` for the same reason — copy-resources adds files and
+// never removes them, so an old main-*.js otherwise lingers in target/.
 //
 // Pass the policy exactly as it appears in the Caddyfile. Anything the browser
 // refuses is printed at the end; a clean run prints no violations.
@@ -65,6 +72,11 @@ await page.goto(`${ORIGIN}/fr`, { waitUntil: 'networkidle' });
 await page.locator('bah-recipe-card').first().waitFor({ timeout: 15000 }).catch(() => {});
 
 ok('cards render', (await page.locator('bah-recipe-card').count()) === 5);
+// Weaker than its name, and known to be: ThemeService sets the same attribute
+// during bootstrap, so this still passes with the inline script blocked - a
+// corrupted hash was tried on 2026-08-08 and only the violations check below
+// caught it. Kept because the attribute missing entirely is still worth seeing;
+// the guard on script-src is the violations list, not this line.
 ok('theme bootstrap ran (inline script allowed)', !!(await page.getAttribute('html', 'data-theme')));
 
 // Styling actually applied - the question when dropping 'unsafe-inline' from
@@ -75,8 +87,11 @@ const styled = await page.evaluate(() => {
 });
 ok('component styles applied', /Bricolage|Work Sans/i.test(styled), styled.slice(0, 40));
 
-// ICU plurals: the messageformat path, and the reason 'unsafe-eval' is in the
-// policy. Without it this renders empty rather than throwing anywhere visible.
+// ICU plurals. This was the reason 'unsafe-eval' was in the policy until
+// 2026-08-08, when messageformat was replaced by a transpiler that generates no
+// code (ADR 5). The check stays: it is the thing that would break first if
+// anything ever reintroduced a runtime compiler, and it fails by rendering
+// empty rather than by throwing anywhere visible.
 const count = (await page.locator('.count').first().textContent()) ?? '';
 ok('ICU plural rendered', /5\s*recettes/.test(count), JSON.stringify(count.trim()));
 
