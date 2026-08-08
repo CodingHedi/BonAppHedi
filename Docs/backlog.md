@@ -104,7 +104,12 @@ a footer permanently out of reach.
 ### So
 
 Revisit on a **rendering measurement**, not a recipe count — profile the grid at
-two or three hundred and find out whether it is actually slow. If it is:
+two or three hundred and find out whether it is actually slow. **Measure it
+after milestone 3, not before** (ADR 8): every card in the grid is a CSS
+placeholder panel today, and a grid of real photographs is a different
+measurement in both directions — decoding and memory go up, and `loading="lazy"`
+starts doing work that the panels never needed. Profiling the panels would
+answer a question nobody is going to ask again. If it is slow:
 virtualise rather than infinite-scroll, and keep crawlable paginated URLs
 alongside for Googlebot. That bounds the DOM, keeps search instant, and leaves
 the footer reachable.
