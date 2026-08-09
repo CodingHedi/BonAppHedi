@@ -1,10 +1,21 @@
-# Design tokens — "Umber"
+# Design tokens
 
-Extracted from `Docs/Design/index.html` and `recipe.html`. These are final.
+Extracted from `Docs/Design/index.html` and `recipe.html`.
 
 The implementation lives in `frontend/src/styles/_tokens.scss`; this file is the
 human-readable record of *why* each value is what it is, and the place to look
 when the prototypes and the app disagree.
+
+> **The colours disagree, and this is that place.** The prototypes specify
+> "Umber" — sand, rust and spruce. The site ships **"Vin et olive"**: wine and
+> olive on near-neutral greys, and a surface *lighter* than the background
+> rather than darker. See ADR 9 for why, and for the two ramps that were
+> deliberately left pointing at Umber.
+>
+> Every colour table below gives both: **shipped** first, Umber second. Nothing
+> else in this document diverges — the typography, radii, shadows, layout and
+> the colours that sit on photography are all still as drawn, and `Docs/Design/`
+> itself is never edited.
 
 > **Note on provenance.** The prototypes referenced a design-system stylesheet
 > (`_ds/organic-…/styles.css`) that was never supplied. Everything below marked
@@ -47,6 +58,18 @@ stretching).
 Four tokens change between themes. **The accent ramps do not** — that's what
 gives light and dark the same identity.
 
+**Shipped — Vin et olive.** Note that surface is *lighter* than bg, so cards
+lift off the page. Umber had that the other way round and cards sank into it.
+
+| Token | Light | Dark |
+|---|---|---|
+| `--color-bg` | `#f8f5f4` | `#1e1a1b` |
+| `--color-surface` | `#ffffff` | `#2c2527` |
+| `--color-text` | `#1e1a1b` | `#f2ecec` |
+| `--color-divider` | `rgba(30,26,27,0.13)` | `rgba(242,236,236,0.14)` |
+
+**Umber, as drawn:**
+
 | Token | Light | Dark |
 |---|---|---|
 | `--color-bg` | `#efe6d6` | `#241f1a` |
@@ -54,31 +77,52 @@ gives light and dark the same identity.
 | `--color-text` | `#241f1a` | `#efe6d6` |
 | `--color-divider` | `rgba(36,31,26,0.16)` | `rgba(239,230,214,0.14)` |
 
-### Accent — rust/umber (primary)
+### Accent — wine (primary)
 
-`--color-accent: #a15a35` (= step 500)
+`--color-accent: #a04a64` (= step 500), hue 342
+
+| 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 |
+|---|---|---|---|---|---|---|---|---|
+| `#faeaee` | `#f0c8d2` | `#dfa0b0` | `#c1738a` | `#a04a64` | `#833b51` | `#642c3d` | `#481e2b` | `#2c1119` |
+
+Umber drew this ramp as rust/umber, `--color-accent: #a15a35`, hue 20:
 
 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 |
 |---|---|---|---|---|---|---|---|---|
 | `#f7e8de` | `#edcbb0` | `#dba377` | `#c37f4f` | `#a15a35` | `#7e4527` | `#5f331d` | `#422314` | `#2b170d` |
 
-### Accent 2 — spruce/teal (secondary)
+### Accent 2 — olive (secondary)
 
-`--color-accent-2: #4f7d74` (= step 500)
+`--color-accent-2: #77854a` (= step 500), hue 74
+
+| 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 |
+|---|---|---|---|---|---|---|---|---|
+| `#eef0e2` | `#d6dcbc` | `#b8c291` | `#96a467` | `#77854a` | `#5f6c3a` | `#47522b` | `#32391d` | `#1d2110` |
+
+Umber drew this ramp as spruce/teal, `--color-accent-2: #4f7d74`, hue 171:
 
 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 |
 |---|---|---|---|---|---|---|---|---|
 | `#e3efec` | `#c3ddd6` | `#96c1b5` | `#6ea395` | `#4f7d74` | `#3c625b` | `#2c4844` | `#1e332f` | `#14231f` |
 
+Those two Umber hues, 20 and 171, are still the anchors of the avatar tint ramp
+in `core/avatar/avatar-token.ts` and of the placeholder's warm band in
+`shared/ui/image/image.ts`. Both are deliberate leftovers rather than
+oversights — ADR 9 explains why re-anchoring them is a decision about existing
+accounts, not a mechanical follow-on.
+
 ### `--color-accent-text` — one deliberate exception
 
 The ramp is theme-independent, and stays that way. But accent used as *text on a
 surface* cannot be a single fixed step: `accent-700` is near-black, which is
-correct on `#e0d3ba` and unreadable on `#332c24` (about 1.4:1).
+correct on the light surface and unreadable on the dark one.
 
 So one semantic token resolves per theme — `accent-700` in light, `accent-300`
-in dark (~6.5:1) — while every literal ramp step keeps its value. Used by
-ingredient amounts, quick-fact values and step numbers.
+in dark — while every literal ramp step keeps its value. Used by ingredient
+amounts, quick-fact values and step numbers.
+
+Measured on the shipped palette: `accent-700` on white is **10.66:1** (it was
+7.18:1 on Umber's `#e0d3ba`), and `accent-300` on the dark surface is 6.99:1.
 
 ### Where the ramp steps are actually used
 
@@ -91,9 +135,10 @@ Not decoration — these assignments come from the prototype and matter:
 - `700` → ingredient quantities, quick-fact values, step numbers
 - `800` → tag chip text
 
-Tag colour rule: terracotta (`accent`) by default, teal (`accent-2`) as the
-alternate. In the seed data `gluten` and `dessert` are teal; `chocolat` and
-`mijoté` are terracotta.
+Tag colour rule: the primary `accent` by default, `accent-2` as the alternate.
+In the seed data `gluten` and `dessert` take `accent-2`; `chocolat` and `mijoté`
+take `accent`. Which tag gets which came from the prototype and is unchanged —
+only what those two ramps look like moved.
 
 ### Fixed colours (never themed)
 
@@ -147,7 +192,11 @@ Soft, low-opacity, ink-tinted rather than neutral grey.
 | `--shadow-lg` | `0 18px 48px rgba(36,31,26,.20)` | `0 18px 48px rgba(0,0,0,.55)` |
 
 Shadows are the one thing besides the four surface tokens that **does** change
-between themes: an umber shadow is invisible against `#241f1a`.
+between themes: an ink-tinted shadow is invisible against the dark background.
+
+Their tint is still Umber's `rgba(36,31,26,…)` rather than the new ink
+`rgba(30,26,27,…)`. A six-unit difference at 7–20% opacity is not visible, and
+ADR 9 changed colour values only.
 
 ---
 

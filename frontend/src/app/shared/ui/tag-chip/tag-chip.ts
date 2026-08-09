@@ -15,7 +15,7 @@ export class TagChipComponent {
   readonly tag = input.required<Tag>();
 
   // Colour comes from the tag's own data, not from its position in a list, so
-  // "dessert" is the same teal everywhere it appears.
+  // "dessert" is the same accent everywhere it appears.
   protected readonly variantClass = computed(() =>
     this.tag().colorVariant === 'accent2' ? 'tag--accent2' : 'tag--accent',
   );

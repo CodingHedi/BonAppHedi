@@ -107,7 +107,7 @@ import type { ImageRef } from '../../../core/api/models';
       opacity: 1;
       padding: 0;
       /* Dark end of the ramp on the light surface, light end on the dark one —
-         accent-800 on #332c24 is effectively invisible. */
+         accent-800 on the dark surface is effectively invisible. */
       color: var(--color-accent-800);
     }
 
@@ -151,8 +151,10 @@ export class ImageComponent {
     const text = this.label() || this.alt();
     let hash = 0;
     for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) % 360;
-    // Kept in a warm band so placeholders sit inside the Umber palette rather
-    // than introducing greens and blues the design never uses.
+    // A warm band, chosen so placeholders sat inside the Umber palette rather
+    // than introducing greens and blues that design never used. It no longer
+    // tracks the palette — wine is hue 342 and olive 74 — and is left alone for
+    // the same reason as the avatar ramp it shares its treatment with (ADR 9).
     return 18 + (hash % 42);
   });
 }

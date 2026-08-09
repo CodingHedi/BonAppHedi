@@ -50,11 +50,19 @@ export type AvatarIcon = (typeof AVATAR_ICONS)[number];
 /**
  * Six tints, as hues.
  *
- * The ramp is anchored at both of the site's own accents — slot 0 is the hue of
- * `--color-accent` (#a15a35, rust) and slot 5 is the hue of `--color-accent-2`
- * (#4f7d74, teal) — with four steps between. So the picker offers six visibly
- * different tints without introducing a colour the design does not already use,
- * which is the constraint the image placeholder's warm band exists to respect.
+ * The ramp was anchored at both of the site's accents — slot 0 the hue of
+ * `--color-accent`, slot 5 the hue of `--color-accent-2`, four steps between —
+ * so the picker offered six visibly different tints without introducing a
+ * colour the design did not already use.
+ *
+ * That was true of "Umber", whose accents were rust (hue 20) and teal (171).
+ * The palette is now wine (342) and olive (74), so these hues no longer track
+ * it, and the anchoring above describes where they came from rather than what
+ * they currently match. Left that way on purpose (ADR 9): the hues are
+ * presentation, but the *slots* are stored in `app_user.avatar` against real
+ * accounts, so re-anchoring the ramp silently recolours every avatar anybody
+ * has already chosen. That is a decision about existing accounts, not a
+ * mechanical consequence of a palette swap.
  *
  * Saturation and lightness are not stored: they come from the same washed
  * treatment the placeholder uses, so an avatar sits in the page rather than

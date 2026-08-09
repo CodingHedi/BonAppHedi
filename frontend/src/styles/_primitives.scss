@@ -215,8 +215,8 @@ select.input {
   );
 }
 
-// An umber shadow over #241f1a is invisible, and so is this wash: the light
-// ramp's 74% lightness sits above the dark surface, not below it.
+// An ink-tinted shadow over the dark background is invisible, and so is this
+// wash: the light ramp's 74% lightness sits above the dark surface, not below it.
 [data-theme='dark'] .tinted {
   background-image: linear-gradient(
     135deg,

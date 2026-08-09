@@ -28,9 +28,9 @@ Only colour values changed. No token was renamed, added or removed; the radii,
 the shadows, the fonts, the layout, the `--on-photo` pair and the scrims are
 untouched, and everything non-colour in `styles/_tokens.scss` is still verbatim
 from the prototypes. `Docs/Design/` itself is not edited — it stays the Umber
-record — and `Docs/design-tokens.md` still describes Umber, which is why the
-token file's header now says to read that document's colour values as the
-originals rather than as what ships.
+record. `Docs/design-tokens.md` now carries both palettes, shipped values first
+and Umber beside them, since that document already claimed to be "the place to
+look when the prototypes and the app disagree" and this is the disagreement.
 
 ## Decision
 
@@ -117,11 +117,20 @@ with room — `accent-100` on `accent-800` is 12.08, `accent-2-100` on
 `accent-2-800` is 10.47 — and `accent-700` as ingredient and step text on the
 light surface goes from 7.18 to 10.66. `::selection` is 11.57.
 
-**Two comment references went stale and were not chased.** `_primitives.scss`
-and `filter-bar.ts` each explain a decision by naming `#241f1a`, the old dark
-background. The reasoning still holds; only the hex is wrong. Left as-is rather
-than swept into a palette commit, and recorded here so the next reader knows it
-was seen rather than missed.
+**Comments naming the old colours were corrected in a follow-up, and there were
+more of them than first reported.** The initial count was two; a full sweep for
+every Umber hex and for the words *umber*, *rust*, *spruce*, *teal* and *sand*
+found nine, across `_primitives.scss`, `_typography.scss`, `filter-bar.ts`,
+`tag-chip.ts`, `seed-data.ts`, `icons.data.ts`, `avatar.ts` and `image.ts`.
+
+The fix was not to substitute new hexes for old ones. Where a comment named a
+colour that a token already names — "accent-800 on `#332c24`" — it now names the
+token instead, so the next palette change cannot falsify it. Hexes survive in
+comments only where the specific value is the point.
+
+One comment was left saying *teal* on purpose: `avatar.ts` explains why a chosen
+ink is desaturated relative to the accent, and the avatar ramp genuinely still
+runs to teal — see below.
 
 **The screenshots in `Docs/Design/screenshots/` now differ from the running app
 in colour.** That is intended and follows from not editing the prototypes.
