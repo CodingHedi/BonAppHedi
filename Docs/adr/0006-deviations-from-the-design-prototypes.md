@@ -105,3 +105,11 @@ page. The prototype simply predates there being anything to link to.
 The header gains a language switcher alongside search, account and theme. It
 shows `FR`/`EN` as text rather than a flag — flags denote countries, not
 languages, and French is not exclusively French.
+
+### Changed: the whole palette — see ADR 9
+
+The prototypes specify "Umber": sand, rust and spruce. The site ships "Vin et
+olive" instead. Listed here because this is where a reader compares the app to
+the prototypes and starts wondering, but it is recorded in ADR 9 rather than in
+this list — every other entry changes one screen, and this one changes all of
+them and reverses the surface/background relationship while it does.
