@@ -9,9 +9,13 @@ export type ResolvedTheme = 'light' | 'dark';
  */
 const STORAGE_KEY = 'bah-organic-theme';
 
+// Must agree with --color-bg in styles/_tokens.scss and with both branches of
+// the blocking script in index.html. Three copies of the same two colours, none
+// of which can read the others: the script runs before Angular, and neither can
+// reach a SCSS variable.
 const THEME_COLOR: Record<ResolvedTheme, string> = {
-  light: '#efe6d6',
-  dark: '#241f1a',
+  light: '#f8f5f4',
+  dark: '#1e1a1b',
 };
 
 @Injectable({ providedIn: 'root' })
