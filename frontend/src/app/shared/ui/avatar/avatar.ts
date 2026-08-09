@@ -55,7 +55,7 @@ import { AVATAR_TINT_HUES, parseAvatar } from '../../../core/avatar/avatar-token
       justify-content: center;
       /* Dark end of the accent ramp on the light surface and the light end on
          the dark one, matching the compact placeholder's initial: accent-800 on
-         #332c24 is effectively invisible. */
+         the dark surface is effectively invisible. */
       color: var(--color-accent-800);
     }
 

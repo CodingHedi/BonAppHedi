@@ -293,10 +293,10 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
       cursor: pointer;
     }
 
-    /* Teal rather than the neutral secondary, so the one control that undoes
-       everything is not the same shape and colour as the ones that set it. The
-       palette's second accent, not a new colour: red would be the convention
-       for something destructive, and this deletes nothing. */
+    /* The second accent rather than the neutral secondary, so the one control
+       that undoes everything is not the same shape and colour as the ones that
+       set it. A colour the palette already has, not a new one: red would be the
+       convention for something destructive, and this deletes nothing. */
     .clear-all {
       flex: 0 0 auto;
       display: inline-flex;
@@ -317,8 +317,8 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
     }
 
     :host-context([data-theme='dark']) .clear-all {
-      /* accent-2-500 on #241f1a is too dark to read; the ramp's lighter end is
-         what carries on the dark surface, exactly as the avatar discs do. */
+      /* accent-2-500 on the dark background is too dark to read; the ramp's
+         lighter end is what carries there, exactly as the avatar discs do. */
       color: var(--color-accent-2-300);
       border-color: color-mix(in srgb, var(--color-accent-2-300) 40%, transparent);
     }

@@ -8,11 +8,13 @@
 //
 // The colours are a deliberate departure from the prototypes, which are
 // otherwise the source of truth. The palette they specify is "Umber" — sand,
-// rust and spruce — and it is preserved in Docs/Design/ and described in
-// Docs/design-tokens.md, neither of which is edited.
+// rust and spruce — and it is preserved in Docs/Design/, which is never edited.
+// ADR 9 records the departure.
 //
-// See Docs/design-tokens.md for the reasoning behind each group; read its
-// colour values as the Umber originals rather than as what ships.
+// See Docs/design-tokens.md for the reasoning behind each group. Its colour
+// tables carry both palettes, shipped first and Umber beside it, because being
+// the place to look when the prototypes and the app disagree is that document's
+// stated job.
 // =============================================================================
 
 :root {

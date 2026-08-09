@@ -225,7 +225,8 @@ export type IconName = keyof typeof ICONS;
 /**
  * Brand marks. Kept out of ICONS because they must keep their official colours
  * and multi-path fills — running them through `currentColor` would make Google's
- * "G" a solid umber blob, which is both ugly and against brand guidelines.
+ * "G" a solid single-colour blob, which is both ugly and against brand
+ * guidelines.
  */
 export const BRAND_ICONS = {
   google:

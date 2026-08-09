@@ -30,8 +30,10 @@ const daysAgo = (days: number): string =>
   new Date(SEED_NOW.getTime() - days * 86_400_000).toISOString();
 
 // --- Tags --------------------------------------------------------------------
-// Colour assignment comes from the prototype: gluten and dessert are teal,
-// chocolat and mijoté are terracotta.
+// Colour assignment comes from the prototype: gluten and dessert take the
+// second accent, chocolat and mijoté the primary. The prototype draws those as
+// teal and terracotta; the site ships olive and wine (ADR 9). Which tag gets
+// which is the part that came from the drawing, and it is unchanged.
 
 export interface SeedTag {
   readonly key: string;
