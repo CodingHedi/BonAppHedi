@@ -1,11 +1,18 @@
 // =============================================================================
-// Design tokens — "Umber"
+// Design tokens — "Vin et olive"
 //
-// Verbatim from Docs/Design/*.html except where marked RECONSTRUCTED: the
-// prototype's design-system stylesheet was never supplied, so radii and shadows
-// are inferred from the screenshots and from how the values are used.
+// Everything that is NOT a colour is still verbatim from Docs/Design/*.html,
+// except where marked RECONSTRUCTED: the prototype's design-system stylesheet
+// was never supplied, so radii and shadows are inferred from the screenshots
+// and from how the values are used.
 //
-// See Docs/design-tokens.md for the reasoning behind each group.
+// The colours are a deliberate departure from the prototypes, which are
+// otherwise the source of truth. The palette they specify is "Umber" — sand,
+// rust and spruce — and it is preserved in Docs/Design/ and described in
+// Docs/design-tokens.md, neither of which is edited.
+//
+// See Docs/design-tokens.md for the reasoning behind each group; read its
+// colour values as the Umber originals rather than as what ships.
 // =============================================================================
 
 :root {
@@ -15,43 +22,46 @@
   --font-logo: 'Oswald', var(--font-heading);
 
   // --- Surfaces (the only colour tokens that change with the theme) ----------
-  --color-bg: #efe6d6;
-  --color-surface: #e0d3ba;
-  --color-text: #241f1a;
-  --color-divider: rgba(36, 31, 26, 0.16);
+  // Surface is LIGHTER than bg here, which is the reverse of the Umber palette
+  // this replaced. Cards lift off the page instead of sinking into it; it is
+  // the intended effect and not a pair to swap back.
+  --color-bg: #f8f5f4;
+  --color-surface: #ffffff;
+  --color-text: #1e1a1b;
+  --color-divider: rgba(30, 26, 27, 0.13);
 
-  // --- Accent: rust / umber (primary) ---------------------------------------
+  // --- Accent: wine (primary) -----------------------------------------------
   // Identical in both themes. That is what gives light and dark one identity.
-  --color-accent: #a15a35;
-  --color-accent-100: #f7e8de;
-  --color-accent-200: #edcbb0;
-  --color-accent-300: #dba377;
-  --color-accent-400: #c37f4f;
-  --color-accent-500: #a15a35;
-  --color-accent-600: #7e4527;
-  --color-accent-700: #5f331d;
-  --color-accent-800: #422314;
-  --color-accent-900: #2b170d;
+  --color-accent: #a04a64;
+  --color-accent-100: #faeaee;
+  --color-accent-200: #f0c8d2;
+  --color-accent-300: #dfa0b0;
+  --color-accent-400: #c1738a;
+  --color-accent-500: #a04a64;
+  --color-accent-600: #833b51;
+  --color-accent-700: #642c3d;
+  --color-accent-800: #481e2b;
+  --color-accent-900: #2c1119;
 
-  // --- Accent 2: spruce / teal (secondary) ----------------------------------
-  --color-accent-2: #4f7d74;
-  --color-accent-2-100: #e3efec;
-  --color-accent-2-200: #c3ddd6;
-  --color-accent-2-300: #96c1b5;
-  --color-accent-2-400: #6ea395;
-  --color-accent-2-500: #4f7d74;
-  --color-accent-2-600: #3c625b;
-  --color-accent-2-700: #2c4844;
-  --color-accent-2-800: #1e332f;
-  --color-accent-2-900: #14231f;
+  // --- Accent 2: olive (secondary) ------------------------------------------
+  --color-accent-2: #77854a;
+  --color-accent-2-100: #eef0e2;
+  --color-accent-2-200: #d6dcbc;
+  --color-accent-2-300: #b8c291;
+  --color-accent-2-400: #96a467;
+  --color-accent-2-500: #77854a;
+  --color-accent-2-600: #5f6c3a;
+  --color-accent-2-700: #47522b;
+  --color-accent-2-800: #32391d;
+  --color-accent-2-900: #1d2110;
 
   // Accent used as TEXT on a surface — ingredient amounts, quick-fact values,
   // step numbers.
   //
   // The ramp itself is theme-independent by design, but a single fixed step
   // cannot serve as text in both themes: accent-700 is near-black, which is
-  // right on the light surface and unreadable on #332c24. This token picks the
-  // readable end per theme while leaving the ramp untouched.
+  // right on the light surface and unreadable on the dark one. This token picks
+  // the readable end per theme while leaving the ramp untouched.
   --color-accent-text: var(--color-accent-700);
 
   // --- Colours that sit on top of photography --------------------------------
@@ -89,16 +99,19 @@
 }
 
 :root[data-theme='dark'] {
-  --color-bg: #241f1a;
-  --color-surface: #332c24;
-  --color-text: #efe6d6;
-  --color-divider: rgba(239, 230, 214, 0.14);
+  // Re-neutralised with the light theme: the previous values were warm browns
+  // belonging to Umber, and they clash with the wine and olive ramps that the
+  // dark theme inherits from :root rather than redeclaring.
+  --color-bg: #1e1a1b;
+  --color-surface: #2c2527;
+  --color-text: #f2ecec;
+  --color-divider: rgba(242, 236, 236, 0.14);
 
   // ~6.5:1 against the dark surface, versus ~1.4:1 for accent-700.
   --color-accent-text: var(--color-accent-300);
 
-  // An umber shadow is invisible against #241f1a, so these are re-tinted.
-  // The accent ramps deliberately are not.
+  // An ink-tinted shadow is invisible against the dark background, so these are
+  // re-tinted. The accent ramps deliberately are not.
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);

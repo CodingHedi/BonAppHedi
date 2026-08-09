@@ -115,11 +115,11 @@ test.describe('smoke', () => {
         getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim(),
       );
 
-    await expect.poll(bg).toBe('#efe6d6');
+    await expect.poll(bg).toBe('#f8f5f4');
 
     await page.getByRole('button', { name: /thème sombre/i }).click();
     // Polled, not read once: the theme is applied by an Angular effect, which
     // flushes after the click resolves.
-    await expect.poll(bg).toBe('#241f1a');
+    await expect.poll(bg).toBe('#1e1a1b');
   });
 });

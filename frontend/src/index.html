@@ -6,7 +6,7 @@
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Un carnet de recettes tenu à la main." />
-    <meta name="theme-color" content="#efe6d6" />
+    <meta name="theme-color" content="#f8f5f4" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
     <!--
@@ -34,7 +34,7 @@
           root.setAttribute('data-theme', dark ? 'dark' : 'light');
 
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute('content', dark ? '#241f1a' : '#efe6d6');
+          if (meta) meta.setAttribute('content', dark ? '#1e1a1b' : '#f8f5f4');
 
           var seg = location.pathname.split('/')[1];
           root.setAttribute('lang', seg === 'en' ? 'en' : 'fr');
