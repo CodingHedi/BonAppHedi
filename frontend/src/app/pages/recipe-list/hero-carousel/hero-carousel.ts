@@ -139,28 +139,57 @@ const AUTOPLAY_MS = 6000;
       backdrop-filter: blur(9px);
       -webkit-backdrop-filter: blur(9px);
       /*
-       * The stops are per-breakpoint because the caption's height is, and the
-       * mask has to cover it. The caption reaches 50.7% of the slide on a
+       * NB: no backticks anywhere in this block. These styles are a TypeScript
+       * template literal, so one backtick in a CSS comment ends the string and
+       * the compiler reports two dozen errors about names it cannot find.
+       *
+       * --defocus-solid is per-breakpoint because the caption's height is, and
+       * the mask has to cover it. The caption reaches 50.7% of the slide on a
        * desktop and 76.6% on a phone, where the excerpt wraps to four lines —
-       * so a single pair of stops either leaves the phone's kicker outside the
-       * blur entirely, which is what it did, or blurs two thirds of a desktop
-       * hero for no reason. Each pair is the measured caption top plus a few
-       * points of margin.
+       * so a single value either leaves the phone's kicker outside the blur
+       * entirely, which is what it did, or blurs two thirds of a desktop hero
+       * for no reason. Each is the measured caption top plus a few points.
+       *
+       * EASED, NOT LINEAR, and that is the whole reason for the seven stops.
+       * A two-stop ramp is linear in alpha, so its RATE of change jumps from
+       * nothing to constant at --defocus-solid and back to nothing at
+       * --defocus-fade. Those two corners are visible as a band edge even
+       * though no stop is abrupt — the eye finds the discontinuity in the
+       * gradient of the blur, not in the blur itself, which is why widening a
+       * linear ramp alone never fixed it.
+       *
+       * The alphas below approximate a smoothstep: they leave 1 slowly, cross
+       * the middle quickly and approach 0 slowly, so both corners are rounded
+       * off. Expressed against --defocus-band so the shape survives each
+       * breakpoint moving its own endpoints.
        */
+      --defocus-band: calc(var(--defocus-fade) - var(--defocus-solid));
       -webkit-mask-image: linear-gradient(
         0deg,
         #000 0%,
         #000 var(--defocus-solid),
+        rgba(0, 0, 0, 0.94) calc(var(--defocus-solid) + var(--defocus-band) * 0.18),
+        rgba(0, 0, 0, 0.78) calc(var(--defocus-solid) + var(--defocus-band) * 0.36),
+        rgba(0, 0, 0, 0.54) calc(var(--defocus-solid) + var(--defocus-band) * 0.55),
+        rgba(0, 0, 0, 0.28) calc(var(--defocus-solid) + var(--defocus-band) * 0.73),
+        rgba(0, 0, 0, 0.09) calc(var(--defocus-solid) + var(--defocus-band) * 0.88),
         transparent var(--defocus-fade)
       );
       mask-image: linear-gradient(
         0deg,
         #000 0%,
         #000 var(--defocus-solid),
+        rgba(0, 0, 0, 0.94) calc(var(--defocus-solid) + var(--defocus-band) * 0.18),
+        rgba(0, 0, 0, 0.78) calc(var(--defocus-solid) + var(--defocus-band) * 0.36),
+        rgba(0, 0, 0, 0.54) calc(var(--defocus-solid) + var(--defocus-band) * 0.55),
+        rgba(0, 0, 0, 0.28) calc(var(--defocus-solid) + var(--defocus-band) * 0.73),
+        rgba(0, 0, 0, 0.09) calc(var(--defocus-solid) + var(--defocus-band) * 0.88),
         transparent var(--defocus-fade)
       );
       --defocus-solid: 54%;
-      --defocus-fade: 82%;
+      /* Well above the caption: the band is where the easing happens, so it
+         has to be long enough for the easing to be worth anything. */
+      --defocus-fade: 94%;
     }
 
     .scrim {
@@ -299,7 +328,7 @@ const AUTOPLAY_MS = 6000;
       /* The slide is shorter but the caption is not, so it reaches higher. */
       .defocus {
         --defocus-solid: 60%;
-        --defocus-fade: 86%;
+        --defocus-fade: 97%;
       }
 
       .caption h2 {
@@ -326,8 +355,15 @@ const AUTOPLAY_MS = 6000;
        * at this size: the text is what the hero is for.
        */
       .defocus {
-        --defocus-solid: 80%;
-        --defocus-fade: 98%;
+        /*
+         * The shortest band of the three, and it cannot be lengthened much:
+         * the caption already reaches 76.6% and the mask cannot run past the
+         * top of the slide. solid drops to 78% — still clear of the kicker at
+         * 74.2% — and fade takes the whole of what is left, so the easing has
+         * as much room as this size can give it.
+         */
+        --defocus-solid: 78%;
+        --defocus-fade: 100%;
       }
 
       .caption h2 {
