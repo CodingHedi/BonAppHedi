@@ -1,6 +1,14 @@
 # 9. "Vin et olive" replaces the Umber palette
 
-Date: 2026-08-09 · Status: accepted
+Date: 2026-08-09 · Status: accepted, **partly superseded by ADR 10**
+
+> **ADR 10 (2026-08-10) returned the dark theme to Umber.** This ADR still
+> holds for the light theme, which is the palette's real subject and the reason
+> it was written. Two parts of it no longer describe what ships: the dark
+> theme's four re-neutralised greys, and the section below titled *"The accent
+> ramps stay identical in both themes"*, which is now false — the ramps are
+> declared per theme. Both are flagged in place rather than rewritten, since an
+> ADR records what was decided when.
 
 ## Context
 
@@ -62,6 +70,10 @@ Cards separate from the page by `--shadow-*`, which is why this reads correctly
 in practice.
 
 ### The accent ramps stay identical in both themes
+
+> **Superseded by ADR 10.** The ramps are now declared per theme, and the four
+> neutrals below went back to Umber's warm browns. What follows is what was
+> decided on 2026-08-09.
 
 Unchanged from Umber and worth restating, because it is what makes the dark
 theme almost free: both ramps are declared once on `:root` and inherited, so

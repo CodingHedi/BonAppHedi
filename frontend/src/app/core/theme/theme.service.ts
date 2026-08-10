@@ -15,7 +15,7 @@ const STORAGE_KEY = 'bah-organic-theme';
 // reach a SCSS variable.
 const THEME_COLOR: Record<ResolvedTheme, string> = {
   light: '#f8f5f4',
-  dark: '#1e1a1b',
+  dark: '#241f1a',
 };
 
 @Injectable({ providedIn: 'root' })

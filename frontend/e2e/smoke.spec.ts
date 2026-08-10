@@ -110,16 +110,27 @@ test.describe('smoke', () => {
     // page would fall back to browser defaults and still render, so no other
     // assertion here would notice.
     await page.goto('/fr');
-    const bg = () =>
-      page.evaluate(() =>
-        getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim(),
+    const token = (name: string) => () =>
+      page.evaluate(
+        (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(),
+        name,
       );
+    const bg = token('--color-bg');
+    const accent = token('--color-accent');
 
     await expect.poll(bg).toBe('#f8f5f4');
+    await expect.poll(accent).toBe('#a04a64');
 
     await page.getByRole('button', { name: /thème sombre/i }).click();
     // Polled, not read once: the theme is applied by an Angular effect, which
     // flushes after the click resolves.
-    await expect.poll(bg).toBe('#1e1a1b');
+    await expect.poll(bg).toBe('#241f1a');
+
+    // The two themes are two palettes (ADR 10), and the dark one redeclares
+    // both accent ramps instead of inheriting them. Asserted because the
+    // failure is otherwise silent: drop the redeclaration and the light
+    // theme's wine simply flows through onto Umber's warm brown surfaces,
+    // which renders perfectly and looks like a design choice.
+    await expect.poll(accent).toBe('#a15a35');
   });
 });
