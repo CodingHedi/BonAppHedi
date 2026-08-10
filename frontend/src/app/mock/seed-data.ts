@@ -117,6 +117,16 @@ export interface SeedRecipe {
   readonly youtubeVideoId: string | null;
   /** Position in the hero carousel; absent means not featured. */
   readonly featuredRank?: number;
+  /**
+   * MOCKUP ONLY — a photograph under `public/images/`, served from the app's
+   * own origin because the CSP allows `img-src 'self'` and nothing else.
+   *
+   * Absent means the placeholder panel, which is still every recipe's real
+   * state: the API hardcodes `ImageRef(null, title)` and there is no image
+   * column in the database, so this field exists to see the design with
+   * photography in it and cannot reach production. See Docs/photo-mockup.md.
+   */
+  readonly mockImageUrl?: string;
   readonly ratingSum: number;
   readonly ratingCount: number;
   readonly reactionCount: number;
@@ -260,6 +270,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     baseServings: 2,
     youtubeVideoId: null,
     featuredRank: 2,
+    mockImageUrl: '/images/chakchouka.jpg',
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
@@ -352,6 +363,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     baseServings: 2,
     youtubeVideoId: null,
     featuredRank: 3,
+    mockImageUrl: '/images/pain-au-levain.jpg',
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
