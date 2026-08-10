@@ -10,33 +10,58 @@ is probably not wanted — say so and remove it rather than letting the list rot
 
 ---
 
-## `the focus request does not linger` fails about one run in ten
+## `the focus request does not linger` fails about half the time, on a console error
 
-Seen once on 2026-07-28 during a full `verify`, in `recipe-list.spec.ts`. Then it
-passed 6/6 on its own and twice more in full runs, so it is intermittent and rare
-rather than broken.
+**Measured 2026-08-10: 4 failures in 8 runs**, `--repeat-each=8 --workers=1`,
+against a clean `main` with everything else stashed. Then 1 in 5 with an
+unrelated change applied — the same coin, not an improvement. It is no longer
+rare and it gates every merge, because green `verify` is the bar.
 
-Not chased, because nothing in the change that surfaced it touches the recipe
-list — but written down because an intermittent e2e failure otherwise costs
-somebody an afternoon working out whether their own change caused it. It did not
-fail in isolation, which points at the parallel run rather than the assertion:
-eight workers on one dev server, and this spec asserts on focus and on a query
-parameter being cleared, both of which are timing-sensitive.
+**It does not fail on the focus assertion.** It fails on the fixture, which
+refuses a test that logged a browser error:
 
-**Did not recur in five full-suite runs on 2026-08-08**, all 154 green. That is
-not proof against a one-in-ten flake, but it is the only evidence there is.
+```
+console.error: AbortError: Transition was skipped
+```
 
-An earlier version of this entry proposed `expect.poll`, on the grounds that
-`getAttribute` and `document.activeElement` do not retry. **That does not apply
-here** — the spec uses `toBeFocused()` and `not.toBeFocused()`, which are
-web-first and retry until the timeout. Whatever this is, it is not that, and
-rewriting a passing spec against a wrong diagnosis would only hide it.
+The spec presses the magnifier, clicks a card, then `goBack()` immediately. The
+back navigation supersedes the view transition the forward one started, the
+browser aborts it, and Angular surfaces that as an unhandled rejection. Nothing
+about focus is wrong when this happens.
 
-If it recurs, the negative assertion is the place to look. `not.toBeFocused()`
-passes the moment focus is absent, so it cannot see focus that arrives *after*
-it has passed — a real lingering-focus bug and a green run are compatible. The
-honest check is whether focus is still absent a beat after `goBack()` settles,
-not whether it is absent at the first opportunity.
+### Two things this entry used to say that the measurement contradicts
+
+- *"It did not fail in isolation, which points at the parallel run rather than
+  the assertion."* It fails in isolation, on one worker, half the time. The
+  parallel run is not the cause and eight workers on one dev server is not the
+  mechanism.
+- *"About one run in ten."* Not any more, whatever it was on 2026-07-28. Either
+  it worsened or the earlier sample was lucky; five green full runs on
+  2026-08-08 do not distinguish those and neither does anything here.
+
+The earlier note about `expect.poll` still stands and is still not the issue:
+`toBeFocused()` is web-first and retries. **Nothing about the assertions needs
+changing** — a spec asserting the right thing is being failed by an error the
+page logged, which is the fixture working as designed on a genuine console
+error.
+
+### The fix is a decision, not a diagnosis
+
+Two ways, and they are not equivalent:
+
+- **Wait for the transition to settle before `goBack()`.** Confined to the
+  spec, changes no production code, and is arguably honest — no real visitor
+  navigates back within a frame of arriving. It also makes this one spec quiet
+  while leaving every other back-navigation free to log the same error.
+- **Stop a superseded transition surfacing as an unhandled error.** Fixes the
+  cause for every spec and for the console of anyone using the site, which is
+  where it actually belongs — a transition that was skipped because a newer
+  navigation replaced it is normal, not a fault.
+
+The second is almost certainly right, and it is the one that needs care: it
+touches what the e2e fixture guarantees, and `CLAUDE.md` calls failing on
+console errors the highest-value behaviour in the suite. Narrow it to this
+rejection rather than relaxing the fixture.
 
 ## Infinite scroll, virtualisation, and what would force search server-side
 
