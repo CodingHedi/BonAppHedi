@@ -7,15 +7,20 @@ human-readable record of *why* each value is what it is, and the place to look
 when the prototypes and the app disagree.
 
 > **The colours disagree, and this is that place.** The prototypes specify
-> "Umber" — sand, rust and spruce. The site ships **"Vin et olive"**: wine and
-> olive on near-neutral greys, and a surface *lighter* than the background
-> rather than darker. See ADR 9 for why, and for the two ramps that were
-> deliberately left pointing at Umber.
+> "Umber" — sand, rust and spruce. The **light theme** ships
+> **"Vin et olive"**: wine and olive on near-neutral greys, and a surface
+> *lighter* than the background rather than darker. See ADR 9 for why.
 >
-> Every colour table below gives both: **shipped** first, Umber second. Nothing
-> else in this document diverges — the typography, radii, shadows, layout and
-> the colours that sit on photography are all still as drawn, and `Docs/Design/`
-> itself is never edited.
+> **The dark theme ships Umber, as drawn.** It was re-neutralised to match the
+> light theme when Vin et olive landed, and returned to Umber a day later by
+> preference — so the two themes are now two palettes, and the accent ramps are
+> declared per theme rather than shared. ADR 10 records that, and it is the one
+> structural claim in this document that reversed.
+>
+> Every colour table below therefore gives the **light** values and the **dark**
+> values, and they come from different palettes. Nothing else in this document
+> diverges — the typography, radii, shadows, layout and the colours that sit on
+> photography are all still as drawn, and `Docs/Design/` itself is never edited.
 
 > **Note on provenance.** The prototypes referenced a design-system stylesheet
 > (`_ds/organic-…/styles.css`) that was never supplied. Everything below marked
@@ -55,74 +60,89 @@ stretching).
 
 ## Colour
 
-Four tokens change between themes. **The accent ramps do not** — that's what
-gives light and dark the same identity.
+Four surface tokens change between themes, **and so do both accent ramps** —
+the two themes are two palettes (ADR 10). This is the reverse of how it worked
+between ADR 9 and ADR 10, when the ramps were shared to give light and dark one
+identity.
 
-**Shipped — Vin et olive.** Note that surface is *lighter* than bg, so cards
-lift off the page. Umber had that the other way round and cards sank into it.
+**Shipped.** The light column is Vin et olive; the dark column is Umber. Note
+that surface is *lighter* than bg in light, so cards lift off the page, and
+darker than bg in dark, so they sink into it — the two themes genuinely differ
+here rather than one being a tint of the other.
 
-| Token | Light | Dark |
+| Token | Light (Vin et olive) | Dark (Umber) |
 |---|---|---|
-| `--color-bg` | `#f8f5f4` | `#1e1a1b` |
-| `--color-surface` | `#ffffff` | `#2c2527` |
-| `--color-text` | `#1e1a1b` | `#f2ecec` |
-| `--color-divider` | `rgba(30,26,27,0.13)` | `rgba(242,236,236,0.14)` |
+| `--color-bg` | `#f8f5f4` | `#241f1a` |
+| `--color-surface` | `#ffffff` | `#332c24` |
+| `--color-text` | `#1e1a1b` | `#efe6d6` |
+| `--color-divider` | `rgba(30,26,27,0.13)` | `rgba(239,230,214,0.14)` |
 
-**Umber, as drawn:**
+**Umber's light theme, as drawn and not shipped**, kept here because it is what
+`Docs/Design/` shows and the screenshots still look like:
 
-| Token | Light | Dark |
-|---|---|---|
-| `--color-bg` | `#efe6d6` | `#241f1a` |
-| `--color-surface` | `#e0d3ba` | `#332c24` |
-| `--color-text` | `#241f1a` | `#efe6d6` |
-| `--color-divider` | `rgba(36,31,26,0.16)` | `rgba(239,230,214,0.14)` |
+| Token | Light |
+|---|---|
+| `--color-bg` | `#efe6d6` |
+| `--color-surface` | `#e0d3ba` |
+| `--color-text` | `#241f1a` |
+| `--color-divider` | `rgba(36,31,26,0.16)` |
 
-### Accent — wine (primary)
+### Accent (primary) — wine in light, rust in dark
 
-`--color-accent: #a04a64` (= step 500), hue 342
+Light, `--color-accent: #a04a64` (= step 500), hue 342:
 
 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 |
 |---|---|---|---|---|---|---|---|---|
 | `#faeaee` | `#f0c8d2` | `#dfa0b0` | `#c1738a` | `#a04a64` | `#833b51` | `#642c3d` | `#481e2b` | `#2c1119` |
 
-Umber drew this ramp as rust/umber, `--color-accent: #a15a35`, hue 20:
+Dark — Umber's rust/umber ramp, `--color-accent: #a15a35`, hue 20:
 
 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 |
 |---|---|---|---|---|---|---|---|---|
 | `#f7e8de` | `#edcbb0` | `#dba377` | `#c37f4f` | `#a15a35` | `#7e4527` | `#5f331d` | `#422314` | `#2b170d` |
 
-### Accent 2 — olive (secondary)
+### Accent 2 (secondary) — olive in light, spruce in dark
 
-`--color-accent-2: #77854a` (= step 500), hue 74
+Light, `--color-accent-2: #77854a` (= step 500), hue 74:
 
 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 |
 |---|---|---|---|---|---|---|---|---|
 | `#eef0e2` | `#d6dcbc` | `#b8c291` | `#96a467` | `#77854a` | `#5f6c3a` | `#47522b` | `#32391d` | `#1d2110` |
 
-Umber drew this ramp as spruce/teal, `--color-accent-2: #4f7d74`, hue 171:
+Dark — Umber's spruce/teal ramp, `--color-accent-2: #4f7d74`, hue 171:
 
 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 |
 |---|---|---|---|---|---|---|---|---|
 | `#e3efec` | `#c3ddd6` | `#96c1b5` | `#6ea395` | `#4f7d74` | `#3c625b` | `#2c4844` | `#1e332f` | `#14231f` |
 
-Those two Umber hues, 20 and 171, are still the anchors of the avatar tint ramp
+**Both ramps are redeclared in full inside `:root[data-theme='dark']`, not
+patched.** Overriding only the stops a component happens to use would let a
+wine value inherit through onto a warm brown surface on whichever component
+nobody opened, and it would render perfectly while doing it.
+
+Those two Umber hues, 20 and 171, are also the anchors of the avatar tint ramp
 in `core/avatar/avatar-token.ts` and of the placeholder's warm band in
-`shared/ui/image/image.ts`. Both are deliberate leftovers rather than
-oversights — ADR 9 explains why re-anchoring them is a decision about existing
-accounts, not a mechanical follow-on.
+`shared/ui/image/image.ts`. Under ADR 9 that anchoring was left stated-but-false
+because the site had moved to hues 342 and 74; the dark theme now genuinely
+carries the hues those ramps were drawn against, so the claim is half true again
+— true in dark, false in light. It is still not worth re-anchoring, for the
+reason ADR 9 gives: the avatar *slots* are stored against real accounts, so
+changing the hues silently recolours avatars people already chose.
 
-### `--color-accent-text` — one deliberate exception
+### `--color-accent-text` — one semantic token
 
-The ramp is theme-independent, and stays that way. But accent used as *text on a
-surface* cannot be a single fixed step: `accent-700` is near-black, which is
-correct on the light surface and unreadable on the dark one.
+Accent used as *text on a surface* cannot be a single fixed step: `accent-700`
+is near-black, which is correct on the light surface and unreadable on the dark
+one.
 
 So one semantic token resolves per theme — `accent-700` in light, `accent-300`
-in dark — while every literal ramp step keeps its value. Used by ingredient
-amounts, quick-fact values and step numbers.
+in dark. It names a *stop* rather than a colour, which is why it needed no
+change when the ramps were split per theme: it follows whichever ramp is in
+scope.
 
-Measured on the shipped palette: `accent-700` on white is **10.66:1** (it was
-7.18:1 on Umber's `#e0d3ba`), and `accent-300` on the dark surface is 6.99:1.
+Measured as shipped: `accent-700` (wine) on white is **10.66:1** (it was 7.18:1
+on Umber's `#e0d3ba`), and `accent-300` (rust) on Umber's dark surface
+`#332c24` is **6.23:1**.
 
 ### Where the ramp steps are actually used
 
@@ -191,8 +211,10 @@ Soft, low-opacity, ink-tinted rather than neutral grey.
 | `--shadow-md` | `0 8px 24px rgba(36,31,26,.12)` | `0 8px 24px rgba(0,0,0,.40)` |
 | `--shadow-lg` | `0 18px 48px rgba(36,31,26,.20)` | `0 18px 48px rgba(0,0,0,.55)` |
 
-Shadows are the one thing besides the four surface tokens that **does** change
-between themes: an ink-tinted shadow is invisible against the dark background.
+Shadows change between themes too — an ink-tinted shadow is invisible against
+the dark background. Since ADR 10 the full list of what the dark block
+overrides is: the four surface tokens, both accent ramps, `--color-accent-text`
+and these three shadows.
 
 Their tint is still Umber's `rgba(36,31,26,…)` rather than the new ink
 `rgba(30,26,27,…)`. A six-unit difference at 7–20% opacity is not visible, and
