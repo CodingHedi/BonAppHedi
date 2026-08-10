@@ -66,9 +66,17 @@ class RecipeApiTest {
                 .andExpect(jsonPath("$.items[0].rating.count").value(1))
                 .andExpect(jsonPath("$.items[0].author.displayName").value("Hédi"))
                 .andExpect(jsonPath("$.items[0].tags.length()").value(2))
-                // Present and null, not absent: ImageRef.url is `string | null`,
-                // and a missing key is a different thing to the frontend.
-                .andExpect(jsonPath("$.items[0].image.url").value(nullValue()))
+                // Photography landed with ADR 8, so this is no longer null. The
+                // assertion it replaces read `value(nullValue())` and was right
+                // for as long as RecipeQueryDao hardcoded it.
+                //
+                // Present, not absent, is still the point and still worth
+                // asserting: ImageRef's url, width, height and dominant are all
+                // nullable in the contract, and to the frontend a key that is
+                // missing is a different thing to a key that is null.
+                .andExpect(jsonPath("$.items[0].image.url").isNotEmpty())
+                .andExpect(jsonPath("$.items[0].image.width").isNotEmpty())
+                .andExpect(jsonPath("$.items[0].image.dominant").isNotEmpty())
                 .andExpect(jsonPath("$.items[0].image.alt").value("Babka au chocolat"))
                 .andExpect(jsonPath("$.items[0].searchText").isNotEmpty());
     }

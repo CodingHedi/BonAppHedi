@@ -42,6 +42,10 @@ public class RecipeQueryDao {
                    r.prep_minutes      AS prep_minutes,
                    r.cook_minutes      AS cook_minutes,
                    r.difficulty        AS difficulty,
+                   r.image_file        AS image_file,
+                   r.image_width       AS image_width,
+                   r.image_height      AS image_height,
+                   r.image_dominant    AS image_dominant,
                    a.slug              AS author_slug,
                    a.display_name      AS author_name,
                    a.avatar_url        AS author_avatar,
@@ -207,7 +211,7 @@ public class RecipeQueryDao {
 
         return Optional.of(new Dto.RecipeDetail(
                 row.slug(), row.title(), row.excerpt(),
-                new Dto.ImageRef(null, row.title()),
+                row.image(),
                 tags, row.author(), row.publishedAt(),
                 row.prepMinutes(), row.cookMinutes(), row.difficulty(), row.searchText(),
                 (String) extra[2],
@@ -223,7 +227,8 @@ public class RecipeQueryDao {
 
     public List<Dto.HeroSlide> featured(String locale) {
         return jdbc.sql("""
-                        SELECT rt.slug, rt.title, rt.hero_kicker, rt.hero_excerpt, rt.excerpt
+                        SELECT rt.slug, rt.title, rt.hero_kicker, rt.hero_excerpt, rt.excerpt,
+                               r.image_file, r.image_width, r.image_height, r.image_dominant
                         FROM recipe r
                         JOIN recipe_translation rt ON rt.recipe_id = r.id AND rt.locale = :locale
                         WHERE r.status = 'PUBLISHED' AND rt.title <> '' AND r.featured_rank IS NOT NULL
@@ -240,7 +245,7 @@ public class RecipeQueryDao {
                             // Falls back to the card excerpt, which is what the
                             // mock does when no hero copy was written.
                             heroExcerpt == null ? rs.getString("excerpt") : heroExcerpt,
-                            new Dto.ImageRef(null, rs.getString("title")));
+                            imageOf(rs, rs.getString("title")));
                 })
                 .list();
     }
@@ -316,9 +321,36 @@ public class RecipeQueryDao {
     }
 
     /** The shared summary row, before tags are attached. */
+    /**
+     * The photograph, from the summary columns.
+     *
+     * <p>{@code wasNull()} is asked immediately after each read and never after
+     * a later one. The driver reports on the column read <em>last</em>, and
+     * getting that order wrong here is the same defect that once made "salt and
+     * pepper, to taste" come back quantified and multiply on the servings
+     * stepper.
+     */
+    private static Dto.ImageRef imageOf(java.sql.ResultSet rs, String alt) throws java.sql.SQLException {
+        String file = rs.getString("image_file");
+        if (file == null) return Dto.ImageRef.none(alt);
+
+        int rawWidth = rs.getInt("image_width");
+        Integer width = rs.wasNull() ? null : rawWidth;
+        int rawHeight = rs.getInt("image_height");
+        Integer height = rs.wasNull() ? null : rawHeight;
+
+        return new Dto.ImageRef(
+                fr.bonapphedi.media.MediaStorage.urlFor(file),
+                alt,
+                width,
+                height,
+                rs.getString("image_dominant"));
+    }
+
     private record Row(
             long id, String slug, String title, String excerpt, String searchText,
             String publishedAt, Integer prepMinutes, Integer cookMinutes, int difficulty,
+            Dto.ImageRef image,
             Dto.Author author, double ratingAvg, int ratingCount) {
 
         static final org.springframework.jdbc.core.RowMapper<Row> MAPPER = (rs, n) -> {
@@ -337,6 +369,7 @@ public class RecipeQueryDao {
                     prepNull ? null : prep,
                     cookNull ? null : cook,
                     rs.getInt("difficulty"),
+                    imageOf(rs, rs.getString("title")),
                     new Dto.Author(rs.getString("author_slug"), rs.getString("author_name"),
                             rs.getString("author_avatar"), rs.getString("author_bio")),
                     rs.getDouble("rating_avg"),
@@ -346,7 +379,7 @@ public class RecipeQueryDao {
         Dto.RecipeSummary toSummary(List<Dto.Tag> tags) {
             return new Dto.RecipeSummary(
                     slug, title, excerpt,
-                    new Dto.ImageRef(null, title),
+                    image,
                     tags, author, publishedAt, prepMinutes, cookMinutes, difficulty,
                     new Dto.Rating(ratingAvg, ratingCount),
                     searchText);
