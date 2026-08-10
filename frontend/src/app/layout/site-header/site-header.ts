@@ -1,20 +1,27 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { QuickSearchComponent } from '../quick-search/quick-search';
 import { IconComponent } from '../../core/icons/icon';
 import { LocaleService } from '../../core/i18n/locale.service';
 import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.service';
 import { LOCALE_LABELS, stripLocale } from '../../core/i18n/locale';
 import { ThemeService } from '../../core/theme/theme.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { SearchFocusService } from '../../core/search/search-focus.service';
 import { BrandLogoComponent } from '../brand-logo/brand-logo';
 import { AvatarComponent } from '../../shared/ui/avatar/avatar';
 
 @Component({
   selector: 'bah-site-header',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, IconComponent, BrandLogoComponent, AvatarComponent, TranslocoPipe],
+  imports: [
+    RouterLink,
+    IconComponent,
+    BrandLogoComponent,
+    AvatarComponent,
+    TranslocoPipe,
+    QuickSearchComponent,
+  ],
   template: `
     <header>
       <nav class="nav container">
@@ -24,19 +31,11 @@ import { AvatarComponent } from '../../shared/ui/avatar/avatar';
 
         <div class="actions">
           <!--
-            Transcribed from the prototype as a button that did nothing, on
-            every page, for the whole of milestone 1. There is one search on
-            this site and it lives on the recipe list, so this goes there and
-            puts the cursor in it rather than opening a second one.
+            Opens in place and answers here. It used to navigate to the recipe
+            list and borrow that page's filter bar, which cost you whatever you
+            were reading to look something up.
           -->
-          <button
-            type="button"
-            class="btn btn-icon btn-secondary"
-            [attr.aria-label]="'nav.search' | transloco"
-            (click)="openSearch()"
-          >
-            <bah-icon name="search" />
-          </button>
+          <bah-quick-search />
 
           <!--
             Only present once there is an account, and then it signs out.
@@ -152,7 +151,6 @@ export class SiteHeaderComponent {
   private readonly router = inject(Router);
   private readonly locale = inject(LocaleService);
   private readonly transloco = inject(TranslocoService);
-  private readonly searchFocus = inject(SearchFocusService);
   private readonly alternates = inject(LocaleAlternatesService);
   protected readonly theme = inject(ThemeService);
   protected readonly auth = inject(AuthService);
@@ -166,19 +164,6 @@ export class SiteHeaderComponent {
   protected readonly themeLabel = computed(() =>
     this.theme.isDark() ? 'nav.themeToLight' : 'nav.themeToDark',
   );
-
-  /**
-   * Goes to the recipe list and asks the filter bar for its cursor.
-   *
-   * The request is made *after* the navigation resolves so that it cannot be
-   * consumed by a filter bar that is about to be destroyed — from a recipe page
-   * there is none anyway, and from the list itself the navigation is a no-op
-   * that settles immediately.
-   */
-  protected async openSearch(): Promise<void> {
-    await this.router.navigate(this.locale.link());
-    this.searchFocus.request();
-  }
 
   /**
    * Switching language is a navigation, not a state flip — every page must stay

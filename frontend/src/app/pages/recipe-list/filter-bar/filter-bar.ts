@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   ElementRef,
   inject,
   input,
@@ -12,7 +11,6 @@ import {
 } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { IconComponent } from '../../../core/icons/icon';
-import { SearchFocusService } from '../../../core/search/search-focus.service';
 import type { Author, SortOrder, Tag } from '../../../core/api/models';
 
 /**
@@ -331,8 +329,6 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
   `,
 })
 export class FilterBarComponent {
-  private readonly searchFocus = inject(SearchFocusService);
-
   readonly authors = input<readonly Author[]>([]);
   readonly tags = input<readonly Tag[]>([]);
 
@@ -351,25 +347,6 @@ export class FilterBarComponent {
   private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
   private readonly tagTrigger = viewChild<ElementRef<HTMLButtonElement>>('tagTrigger');
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-
-  constructor() {
-    // Serves a request left by the header's magnifier, whether it was made on
-    // this page or on the one the visitor was reading when they pressed it.
-    effect(() => {
-      if (!this.searchFocus.requested()) return;
-
-      const field = this.searchBox()?.nativeElement;
-      if (!field) return;
-
-      this.searchFocus.consume();
-
-      // Centred rather than merely scrolled to. Focus alone would bring the
-      // input just inside the viewport, which on a sticky-header page means
-      // underneath the header.
-      field.scrollIntoView({ block: 'center' });
-      field.focus({ preventScroll: true });
-    });
-  }
 
   protected toggleTagMenu(): void {
     this.tagsOpen.update((open) => !open);
