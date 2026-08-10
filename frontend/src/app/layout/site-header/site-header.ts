@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { IconComponent } from '../../core/icons/icon';
 import { LocaleService } from '../../core/i18n/locale.service';
+import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.service';
 import { LOCALE_LABELS, stripLocale } from '../../core/i18n/locale';
 import { ThemeService } from '../../core/theme/theme.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -152,6 +153,7 @@ export class SiteHeaderComponent {
   private readonly locale = inject(LocaleService);
   private readonly transloco = inject(TranslocoService);
   private readonly searchFocus = inject(SearchFocusService);
+  private readonly alternates = inject(LocaleAlternatesService);
   protected readonly theme = inject(ThemeService);
   protected readonly auth = inject(AuthService);
 
@@ -166,15 +168,6 @@ export class SiteHeaderComponent {
   );
 
   /**
-   * Switching language is a navigation, not a state flip — every page must stay
-   * independently linkable in both languages.
-   *
-   * Route segments are translated here. Recipe *slugs* cannot be: they live in
-   * the database, so a page holding a translated slug supplies it via the
-   * `alternates` field and overrides this. Falling back to the section root is
-   * the correct behaviour when no counterpart is known — better than a 404.
-   */
-  /**
    * Goes to the recipe list and asks the filter bar for its cursor.
    *
    * The request is made *after* the navigation resolves so that it cannot be
@@ -187,6 +180,17 @@ export class SiteHeaderComponent {
     this.searchFocus.request();
   }
 
+  /**
+   * Switching language is a navigation, not a state flip — every page must stay
+   * independently linkable in both languages.
+   *
+   * Route segments are translated from the locale tables. Recipe slugs cannot
+   * be, because they are rows rather than translations, so the recipe page
+   * publishes its counterpart through `LocaleAlternatesService` and this reads
+   * it. A segment with no known counterpart is carried across unchanged, which
+   * is right for anything that is not a slug and is why an unknown slug still
+   * lands on the 404 rather than somewhere arbitrary.
+   */
   protected switchLanguage(): void {
     const target = this.other();
     const rest = stripLocale(this.router.url.split('?')[0].split('#')[0]);
@@ -199,7 +203,20 @@ export class SiteHeaderComponent {
       const key = (['recipes', 'legal', 'privacy', 'admin', 'signIn', 'profile'] as const).find(
         (candidate) => this.locale.segment(candidate) === segment,
       );
-      return key ? this.locale.segment(key, target) : segment;
+      if (key) return this.locale.segment(key, target);
+
+      /*
+       * Not a route segment, so it may be a recipe slug — and a slug is a row
+       * rather than a translation. `babka-au-chocolat` is `chocolate-babka`
+       * only because the database says so, which is why the page supplies it
+       * and this asks rather than translating.
+       *
+       * Returning the segment unchanged is what used to happen to every slug,
+       * and it produced /en/recipes/babka-au-chocolat: a real route carrying a
+       * slug that does not exist in that language, so the visitor was told the
+       * recipe was missing by pressing a button that promised the same page.
+       */
+      return this.alternates.counterpart(segment, target) ?? segment;
     });
 
     this.locale.remember(target);

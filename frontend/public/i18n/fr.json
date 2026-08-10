@@ -74,8 +74,6 @@
     "byAuthor": "Par {{author}}",
     "ratingSummary": "{{average}} / 5",
     "reviews": "{count, plural, =0 {aucun avis} one {# avis} other {# avis}}",
-    "notFound": "Cette recette est introuvable.",
-    "notFoundAction": "Revenir aux recettes",
     "quoteStep": "Citer l'étape {{number}} dans un commentaire",
     "quoteDescription": "Citer la description dans un commentaire"
   },
@@ -277,6 +275,7 @@
     "pageNotFound": "Page introuvable",
     "pageNotFoundBody": "La page que vous cherchez n'existe pas ou a été déplacée.",
     "backHome": "Retour à l'accueil",
-    "trySearch": "Vous cherchiez une recette en particulier ? La recherche se trouve en haut de la page."
+    "trySearch": "Vous cherchiez une recette en particulier ? La recherche se trouve en haut de la page.",
+    "trySearchOr": "Vous cherchiez une recette en particulier ? La recherche se trouve en haut de la page, ou essayez"
   }
 }

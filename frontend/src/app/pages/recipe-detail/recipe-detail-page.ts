@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   DOCUMENT,
   computed,
   effect,
@@ -31,6 +32,8 @@ import { QuickFactsComponent } from './quick-facts/quick-facts';
 import { RecipeMediaComponent } from './recipe-media/recipe-media';
 import { StepListComponent } from './step-list/step-list';
 import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
+import { NotFoundPage } from '../not-found/not-found-page';
+import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.service';
 
 @Component({
   selector: 'bah-recipe-detail-page',
@@ -38,6 +41,7 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
   imports: [
     RouterLink,
     TranslocoPipe,
+    NotFoundPage,
     RelativeTimePipe,
     TagChipComponent,
     MarkdownComponent,
@@ -177,12 +181,14 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
         />
       </section>
     } @else {
-      <section class="missing">
-        <h1>{{ 'recipe.notFound' | transloco }}</h1>
-        <a class="btn btn-primary" [routerLink]="homeLink()">
-          {{ 'recipe.notFoundAction' | transloco }}
-        </a>
-      </section>
+      <!--
+        The site's 404, not a second one written here. An unknown slug, a slug
+        from the other language and a draft are all "no such recipe" and all
+        three used to land on a bare heading and a button, while the designed
+        404 page — numeral, explanation, a nudge towards the search — was
+        reachable only by mistyping a path that was not a recipe.
+      -->
+      <bah-not-found-page />
     }
   `,
   styles: `
@@ -339,14 +345,6 @@ import { IngredientPanelComponent } from './ingredient-panel/ingredient-panel';
       color: var(--color-accent-800);
     }
 
-    .missing {
-      padding: 80px 0 60px;
-    }
-
-    .missing h1 {
-      font-size: 34px;
-      margin-bottom: 24px;
-    }
 
     .skeleton {
       background: var(--color-surface);
@@ -396,6 +394,7 @@ export class RecipeDetailPage {
   private readonly api = inject(RECIPE_API);
   private readonly social = inject(SOCIAL_API);
   private readonly localeService = inject(LocaleService);
+  private readonly alternates = inject(LocaleAlternatesService);
   private readonly document = inject(DOCUMENT);
   protected readonly auth = inject(AuthService);
 
@@ -471,6 +470,27 @@ export class RecipeDetailPage {
       this.ratedOverride.set(null);
       this.reactionOverride.set(null);
     });
+
+    /*
+     * Hand the header this recipe's slug in the other language.
+     *
+     * Only this page knows it — slugs are rows, not route segments — and
+     * without it the language button carried the current slug into the other
+     * language and landed on a recipe that does not exist there.
+     *
+     * Cleared when the recipe is absent rather than left standing, so a 404
+     * does not offer a translation of a page there is none of.
+     */
+    effect(() => {
+      const loaded = this.recipe.value();
+      if (loaded) this.alternates.publish(loaded.alternates);
+      else this.alternates.clear();
+    });
+
+    // The service is application-scoped and this page is not, so what it holds
+    // has to go when the page does. Matching on the slug makes a leftover
+    // harmless, but harmless is not the same as gone.
+    inject(DestroyRef).onDestroy(() => this.alternates.clear());
   }
 
   protected onSeek(seconds: number): void {
