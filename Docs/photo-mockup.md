@@ -59,9 +59,19 @@ legible where the image is dark and still washed out where it is bright:
 
 The lever was never the arrival of photographs, so waiting would not have fixed
 it. A `.defocus` layer now throws the photograph out of focus behind the caption
-and only there, masked so it fades rather than ending on a hard edge, leaving
-the top two thirds sharp. Darkening the scrim harder was the other option and it
-would have cost the photograph everywhere the text is not.
+and only there, masked so it fades rather than ending on a hard edge. Darkening
+the scrim harder was the other option and it would have cost the photograph
+everywhere the text is not.
+
+**Its stops are per-breakpoint, because the caption's height is.** The caption
+reaches 50.7% of the slide on a desktop and 76.6% on a phone, where the excerpt
+wraps to four lines. One pair of stops for all three left the phone's kicker
+outside the blur entirely — measurably zero blur behind it, which is exactly
+where it read worst — so each breakpoint sets `--defocus-solid` to the measured
+caption top plus a few points. On a phone that defocuses most of the
+photograph, which is the right trade at 340px: the text is what the hero is for.
+The caption also sits 10px lower than the prototype's `bottom: 36px`, which
+keeps the kicker away from the edge where the mask is still fading.
 
 **Both hero arrows overlapped the caption, and now clear it by 16px.** Measured
 at 1280px: `.arrow--prev` ends at x=144 and `.caption` began at x=138. Pure

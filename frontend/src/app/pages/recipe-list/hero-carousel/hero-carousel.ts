@@ -138,8 +138,29 @@ const AUTOPLAY_MS = 6000;
       pointer-events: none;
       backdrop-filter: blur(9px);
       -webkit-backdrop-filter: blur(9px);
-      -webkit-mask-image: linear-gradient(0deg, #000 0%, #000 44%, transparent 76%);
-      mask-image: linear-gradient(0deg, #000 0%, #000 44%, transparent 76%);
+      /*
+       * The stops are per-breakpoint because the caption's height is, and the
+       * mask has to cover it. The caption reaches 50.7% of the slide on a
+       * desktop and 76.6% on a phone, where the excerpt wraps to four lines —
+       * so a single pair of stops either leaves the phone's kicker outside the
+       * blur entirely, which is what it did, or blurs two thirds of a desktop
+       * hero for no reason. Each pair is the measured caption top plus a few
+       * points of margin.
+       */
+      -webkit-mask-image: linear-gradient(
+        0deg,
+        #000 0%,
+        #000 var(--defocus-solid),
+        transparent var(--defocus-fade)
+      );
+      mask-image: linear-gradient(
+        0deg,
+        #000 0%,
+        #000 var(--defocus-solid),
+        transparent var(--defocus-fade)
+      );
+      --defocus-solid: 54%;
+      --defocus-fade: 82%;
     }
 
     .scrim {
@@ -169,11 +190,16 @@ const AUTOPLAY_MS = 6000;
      * So: arrow right edge + a 16px gap, at each breakpoint. Change either the
      * arrow's size or its offset and this has to move with it.
      */
+    /*
+     * bottom is 10px lower than the prototype's 36px, deliberately. It drops
+     * the kicker further inside the defocus band, away from the edge where the
+     * mask is fading out and the blur is only partly applied.
+     */
     .caption {
       position: absolute;
       left: 78px;
       right: 78px;
-      bottom: 36px;
+      bottom: 26px;
       max-width: 520px;
       /* Fixed light colours: this text sits on a photo in both themes. */
       color: var(--on-photo);
@@ -270,6 +296,12 @@ const AUTOPLAY_MS = 6000;
         right: 78px;
       }
 
+      /* The slide is shorter but the caption is not, so it reaches higher. */
+      .defocus {
+        --defocus-solid: 60%;
+        --defocus-fade: 86%;
+      }
+
       .caption h2 {
         font-size: 32px;
       }
@@ -284,7 +316,18 @@ const AUTOPLAY_MS = 6000;
       .caption {
         left: 62px;
         right: 62px;
-        bottom: 28px;
+        bottom: 20px;
+      }
+
+      /*
+       * The excerpt wraps to four lines here, so the caption covers three
+       * quarters of a 340px slide and the band has to follow it up. Most of
+       * the photograph ends up defocused on a phone, which is the right trade
+       * at this size: the text is what the hero is for.
+       */
+      .defocus {
+        --defocus-solid: 80%;
+        --defocus-fade: 98%;
       }
 
       .caption h2 {
