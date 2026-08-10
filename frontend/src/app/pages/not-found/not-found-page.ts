@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, resource } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { LocaleService } from '../../core/i18n/locale.service';
+import { RECIPE_API } from '../../core/api/recipe-api';
 
 /**
  * The page a visitor reaches by mistake, and by design.
@@ -30,7 +31,21 @@ import { LocaleService } from '../../core/i18n/locale.service';
 
       <a class="btn btn-primary" [routerLink]="home()">{{ 'error.backHome' | transloco }}</a>
 
-      <p class="hint">{{ 'error.trySearch' | transloco }}</p>
+      <!--
+        Two sentences rather than one with a hole in it. The suggestion needs a
+        request, and a request can be slow, empty or refused — interpolating the
+        link into a single string would leave "…or try" hanging on its own the
+        one time this page most needs to look deliberate.
+      -->
+      <p class="hint">
+        @if (suggestion(); as pick) {
+          {{ 'error.trySearchOr' | transloco }}
+          <a [routerLink]="recipeLink(pick.slug)">{{ pick.title }}</a
+          >.
+        } @else {
+          {{ 'error.trySearch' | transloco }}
+        }
+      </p>
     </section>
   `,
   styles: `
@@ -92,5 +107,36 @@ import { LocaleService } from '../../core/i18n/locale.service';
 })
 export class NotFoundPage {
   private readonly locale = inject(LocaleService);
+  private readonly api = inject(RECIPE_API);
+
   protected readonly home = computed(() => this.locale.link());
+
+  /** LocaleService already builds this; there is no second way to spell it. */
+  protected recipeLink(slug: string): unknown[] {
+    return this.locale.recipeLink(slug);
+  }
+
+  private readonly recipes = resource({
+    params: () => ({ locale: this.locale.locale() }),
+    loader: ({ params }) => this.api.list({ locale: params.locale }),
+  });
+
+  /**
+   * Drawn once per visit, not once per render.
+   *
+   * The roll is fixed when the component is constructed and only the list is
+   * reactive, so the suggestion cannot change while somebody is reading it —
+   * `Math.random()` inside the computed would re-roll on any recomputation and
+   * the link would appear to flicker between recipes. A new visit builds a new
+   * component and therefore a new roll, which is the randomness that was asked
+   * for.
+   */
+  private readonly roll = Math.random();
+
+  protected readonly suggestion = computed(() => {
+    const items = this.recipes.value()?.items ?? [];
+    if (!items.length) return null;
+
+    return items[Math.floor(this.roll * items.length)] ?? null;
+  });
 }

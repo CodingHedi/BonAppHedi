@@ -74,8 +74,6 @@
     "byAuthor": "By {{author}}",
     "ratingSummary": "{{average}} / 5",
     "reviews": "{count, plural, =0 {no reviews} one {# review} other {# reviews}}",
-    "notFound": "This recipe could not be found.",
-    "notFoundAction": "Back to recipes",
     "quoteStep": "Quote step {{number}} in a comment",
     "quoteDescription": "Quote the description in a comment"
   },
@@ -277,6 +275,7 @@
     "pageNotFound": "Page not found",
     "pageNotFoundBody": "The page you are looking for does not exist or has moved.",
     "backHome": "Back to home",
-    "trySearch": "Looking for a particular recipe? The search is at the top of the page."
+    "trySearch": "Looking for a particular recipe? The search is at the top of the page.",
+    "trySearchOr": "Looking for a particular recipe? The search is at the top of the page or try"
   }
 }

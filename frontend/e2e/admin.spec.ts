@@ -100,8 +100,14 @@ test.describe('drafts are genuinely unpublished', () => {
 
   test('a draft’s own URL is a 404, not merely unlisted', async ({ page }) => {
     // Otherwise "unpublished" would mean nothing more than "hard to find".
+    //
+    // Now literally the 404 page, which is what makes a draft indistinguishable
+    // from a typo: a page that said "this recipe is missing" confirmed a recipe
+    // was there to be missing.
     await page.goto(DRAFT_SLUG);
-    await expect(page.getByText('Cette recette est introuvable.')).toBeVisible();
+
+    await expect(page.getByText('404', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Page introuvable');
   });
 
   test('publishing one puts it on the public site', async ({ page }) => {

@@ -234,8 +234,14 @@ test.describe('recipe detail', () => {
   });
 
   test('an unknown slug offers a way back rather than an error', async ({ page }) => {
+    // The site's own 404, not a second one written into this page. It used to
+    // be a bare heading and a button here, while the designed 404 was reachable
+    // only by mistyping a path that was not a recipe at all.
     await page.goto('/fr/recettes/nexiste-pas');
-    await expect(page.getByText('Cette recette est introuvable.')).toBeVisible();
+
+    await expect(page.getByText('404', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Page introuvable');
+    await expect(page.getByRole('link', { name: "Retour à l'accueil" })).toBeVisible();
   });
 
   test('breadcrumb returns to the list in the right locale', async ({ page }) => {
