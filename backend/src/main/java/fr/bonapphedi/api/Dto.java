@@ -21,8 +21,25 @@ public final class Dto {
 
     private Dto() {}
 
-    /** Null until real photography exists, which is the current state. */
-    public record ImageRef(String url, String alt) {}
+    /**
+     * A recipe's photograph (ADR 8).
+     *
+     * <p>{@code url} is null only for a recipe that has none — an unphotographed
+     * draft — and the client draws its placeholder panel then. Everything else
+     * is null exactly when {@code url} is.
+     *
+     * <p>{@code width} and {@code height} exist so the client can reserve the
+     * box before the bytes arrive; {@code image.ts} reserves with aspect-ratio
+     * and cannot do that from the file alone. {@code dominant} is the average
+     * colour, so the reserved box is tinted rather than empty while it loads.
+     */
+    public record ImageRef(String url, String alt, Integer width, Integer height, String dominant) {
+
+        /** The shape a recipe with no photograph takes. */
+        public static ImageRef none(String alt) {
+            return new ImageRef(null, alt, null, null, null);
+        }
+    }
 
     public record Tag(String slug, String label, String colorVariant, Integer count) {}
 
