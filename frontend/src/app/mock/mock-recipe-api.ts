@@ -205,12 +205,15 @@ export class MockRecipeApi implements RecipeApi {
   }
 
   /**
-   * Null for everything the real API is also null for, which is still all of it
-   * — `RecipeQueryDao` hardcodes `ImageRef(null, title)` and no image column
-   * exists. `mockImageUrl` is set on two recipes so the design can be seen with
-   * photography in it; see Docs/photo-mockup.md.
+   * The same shape the real API returns since ADR 8: url, geometry and tint
+   * from the recipe, alt from the translation.
+   *
+   * Alt is the only part assembled here rather than stored, and that is the
+   * whole of what differs per language — which is why the photograph lives on
+   * `recipe` in the database and not on `recipe_translation`.
    */
   private image(recipe: SeedRecipe, locale: Locale): ImageRef {
-    return { url: recipe.mockImageUrl ?? null, alt: recipe.t[locale].title };
+    const alt = recipe.t[locale].title;
+    return recipe.mockImage ? { ...recipe.mockImage, alt } : { url: null, alt };
   }
 }
