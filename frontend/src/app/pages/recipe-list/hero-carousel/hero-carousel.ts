@@ -39,6 +39,7 @@ const AUTOPLAY_MS = 6000;
               [attr.aria-hidden]="i === index() ? null : 'true'"
             >
               <bah-image [image]="slide.image" [label]="slide.title" [priority]="i === 0" />
+              <div class="defocus"></div>
               <div class="scrim"></div>
 
               <div class="caption">
@@ -114,6 +115,33 @@ const AUTOPLAY_MS = 6000;
       height: 440px;
     }
 
+    /*
+     * Throws the photograph out of focus behind the caption, and only there.
+     *
+     * The scrim below darkens, which is enough on a dark photograph and not
+     * enough on a bright one: the kicker is --color-accent-300, a light tint,
+     * and over the lit crust of a loaf it disappeared. Darkening harder would
+     * have cost the photograph; blurring costs only the part of it the text
+     * already covers, and the top two thirds stay sharp.
+     *
+     * Masked rather than sized so the blur fades out instead of ending on a
+     * visible horizontal edge. Separate from .scrim because masking that
+     * element would mask its gradient too, and that gradient is the
+     * prototype's — this layer is the deviation, kept where it can be seen.
+     *
+     * Degrades honestly: a browser without backdrop-filter simply gets the
+     * scrim it got before, which is the current behaviour and not a break.
+     */
+    .defocus {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      backdrop-filter: blur(9px);
+      -webkit-backdrop-filter: blur(9px);
+      -webkit-mask-image: linear-gradient(0deg, #000 0%, #000 44%, transparent 76%);
+      mask-image: linear-gradient(0deg, #000 0%, #000 44%, transparent 76%);
+    }
+
     .scrim {
       position: absolute;
       inset: 0;
@@ -126,10 +154,25 @@ const AUTOPLAY_MS = 6000;
       );
     }
 
+    /*
+     * left clears the previous arrow, and that is a constraint rather than a
+     * spacing choice. The arrow is vertically centred and the kicker is the
+     * caption's first line, so the two land in the same band: at the
+     * prototype's 56px the arrow (left:18px + 44px wide = 62px) covered the
+     * kicker's first glyph by 6px, and at the 640px breakpoint's 20px it
+     * covered 26px of it.
+     *
+     * Invisible for as long as the hero was a pale placeholder panel — a
+     * translucent disc over a flat panel reads as a disc, not as something
+     * eating a letter. The first photograph made it obvious.
+     *
+     * So: arrow right edge + a 16px gap, at each breakpoint. Change either the
+     * arrow's size or its offset and this has to move with it.
+     */
     .caption {
       position: absolute;
-      left: 56px;
-      right: 56px;
+      left: 78px;
+      right: 78px;
       bottom: 36px;
       max-width: 520px;
       /* Fixed light colours: this text sits on a photo in both themes. */
@@ -221,9 +264,10 @@ const AUTOPLAY_MS = 6000;
         height: 380px;
       }
 
+      /* Arrow is unchanged here (18px + 44px), so the same 78px clears it. */
       .caption {
-        left: 32px;
-        right: 32px;
+        left: 78px;
+        right: 78px;
       }
 
       .caption h2 {
@@ -236,9 +280,10 @@ const AUTOPLAY_MS = 6000;
         height: 340px;
       }
 
+      /* Arrow shrinks to 36px at left:10px, so it ends at 46px. */
       .caption {
-        left: 20px;
-        right: 20px;
+        left: 62px;
+        right: 62px;
         bottom: 28px;
       }
 

@@ -50,19 +50,33 @@ placeholder cards beside two photographed ones is the clearest argument for
 ADR 8 that exists; the photographed cards look like the prototype and the
 placeholders look like what they are.
 
-**ADR 9's prediction about the hero kicker is only half right.** It says the
-kicker is illegible because there is no photography — every hero is the light
-placeholder panel — and that it "should resolve when real photographs land".
-With a photograph behind it, the kicker is legible where the image is dark and
-still washed out where it is bright: `--color-accent-300` (`#dfa0b0`) over the
-lit crust of a loaf. So the lever is the scrim, not the arrival of photographs,
-and it will need deciding per-image or by strengthening the gradient at the
-kicker's position rather than by waiting.
+**ADR 9's prediction about the hero kicker was only half right, and is now
+fixed.** It says the kicker is illegible because there is no photography — every
+hero is the light placeholder panel — and that it "should resolve when real
+photographs land". It did not. With a photograph behind it the kicker was
+legible where the image is dark and still washed out where it is bright:
+`--color-accent-300` over the lit crust of a loaf.
 
-**The previous-slide arrow overlaps the kicker by 6px.** Measured at 1280px:
-the arrow's box ends at x=144 and the kicker's begins at x=138, on every slide,
-which makes it a pre-existing layout bug rather than anything photography
-caused. It was invisible while the hero was a pale placeholder panel and the
-first glyph sat under a translucent disc; against a photograph the arrow reads
-as solid and eats the "P" of "Petit-déjeuner copieux". Worth fixing with ADR 8
-rather than before it, since the hero's whole treatment is in scope there.
+The lever was never the arrival of photographs, so waiting would not have fixed
+it. A `.defocus` layer now throws the photograph out of focus behind the caption
+and only there, masked so it fades rather than ending on a hard edge, leaving
+the top two thirds sharp. Darkening the scrim harder was the other option and it
+would have cost the photograph everywhere the text is not.
+
+**Both hero arrows overlapped the caption, and now clear it by 16px.** Measured
+at 1280px: `.arrow--prev` ends at x=144 and `.caption` began at x=138. Pure
+arithmetic rather than bad luck — the caption's `left: 56px` against an arrow at
+`left: 18px` that is `44px` wide — and it was worse at the 640px breakpoint,
+where a `20px` caption sat under an arrow ending at `46px`, a 26px overlap. The
+right-hand side had the mirror of it against `.arrow--next`.
+
+A pre-existing layout bug, not one photography caused. It stayed invisible for
+as long as the hero was a pale placeholder panel, because a translucent disc
+over a flat panel reads as a disc rather than as something eating a letter. The
+first photograph put a bright crust behind the arrow and the missing "P" of
+"Petit-déjeuner copieux" became obvious.
+
+The caption is now offset to the arrow's outer edge plus 16px at each of the
+three breakpoints. **That coupling is the thing to remember**: change an arrow's
+size or offset and the caption has to move with it, which is why the numbers are
+written next to each other in the component rather than left to be re-derived.
