@@ -10,7 +10,23 @@ is probably not wanted — say so and remove it rather than letting the list rot
 
 ---
 
-## `the focus request does not linger` fails about half the time, on a console error
+## ~~`the focus request does not linger` fails about half the time~~ — gone
+
+**Resolved 2026-08-11, by deletion rather than by either fix below.** The
+header's magnifier stopped navigating to the recipe list: it now opens a quick
+search in place. `SearchFocusService` existed only to carry "focus the box"
+from the header to the filter bar, so it went, and the three specs covering the
+hand-off went with it — this one among them.
+
+Worth keeping the analysis below rather than deleting the entry outright. The
+mechanism is not specific to that spec: **any** spec that navigates back inside
+a frame of arriving can abort a view transition, and the fixture will fail it on
+the console error. Nothing else does that today. If something starts to, the
+diagnosis is already written down.
+
+---
+
+### The analysis, as it stood
 
 **Measured 2026-08-10: 4 failures in 8 runs**, `--repeat-each=8 --workers=1`,
 against a clean `main` with everything else stashed. Then 1 in 5 with an
