@@ -118,15 +118,29 @@ export interface SeedRecipe {
   /** Position in the hero carousel; absent means not featured. */
   readonly featuredRank?: number;
   /**
-   * MOCKUP ONLY — a photograph under `public/images/`, served from the app's
-   * own origin because the CSP allows `img-src 'self'` and nothing else.
+   * The photograph, mirroring what the real API returns since ADR 8 — the same
+   * `/media/<file>` address and the same geometry, so a mocked build and a live
+   * one disagree about nothing.
    *
-   * Absent means the placeholder panel, which is still every recipe's real
-   * state: the API hardcodes `ImageRef(null, title)` and there is no image
-   * column in the database, so this field exists to see the design with
-   * photography in it and cannot reach production. See Docs/photo-mockup.md.
+   * The files live under `public/media/` for the mocked build, because there is
+   * no backend to serve them there. In production the same paths are answered
+   * by `MediaController` from disk. Two servers, one URL shape.
+   *
+   * **The dimensions are not decoration.** `image.ts` reserves its box from
+   * them, which is what makes a photograph cost zero layout shift, and
+   * `dominant` tints that box while the bytes are in flight. A mock carrying
+   * only the URL would leave both untested here and working only in production
+   * — the wrong way round, since this is the build the suite runs against.
+   *
+   * Absent means the placeholder panel, which is what an unphotographed recipe
+   * still gets.
    */
-  readonly mockImageUrl?: string;
+  readonly mockImage?: {
+    readonly url: string;
+    readonly width: number;
+    readonly height: number;
+    readonly dominant: string;
+  };
   readonly ratingSum: number;
   readonly ratingCount: number;
   readonly reactionCount: number;
@@ -167,7 +181,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     /** The step offsets below fall within its runtime; see PLACEHOLDER_VIDEO. */
     youtubeVideoId: PLACEHOLDER_VIDEO,
     featuredRank: 1,
-    mockImageUrl: '/images/babka-au-chocolat.jpg',
+    mockImage: { url: '/media/babka-au-chocolat.jpg', width: 1600, height: 738,  dominant: '#908271' },
     ratingSum: 4,
     ratingCount: 1,
     reactionCount: 0,
@@ -283,7 +297,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     baseServings: 2,
     youtubeVideoId: PLACEHOLDER_VIDEO,
     featuredRank: 2,
-    mockImageUrl: '/images/chakchouka.jpg',
+    mockImage: { url: '/media/chakchouka.jpg', width: 1600, height: 1062, dominant: '#251c17' },
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
@@ -376,7 +390,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     baseServings: 2,
     youtubeVideoId: PLACEHOLDER_VIDEO,
     featuredRank: 3,
-    mockImageUrl: '/images/pain-au-levain.jpg',
+    mockImage: { url: '/media/pain-au-levain.jpg', width: 1600, height: 1332, dominant: '#8d653c' },
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
@@ -457,7 +471,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     difficulty: 2,
     baseServings: 2,
     youtubeVideoId: PLACEHOLDER_VIDEO,
-    mockImageUrl: '/images/cheesecake-basque.jpg',
+    mockImage: { url: '/media/cheesecake-basque.jpg', width: 1205, height: 1600, dominant: '#8b796b' },
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
@@ -538,7 +552,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     difficulty: 2,
     baseServings: 2,
     youtubeVideoId: PLACEHOLDER_VIDEO,
-    mockImageUrl: '/images/tajine-de-boeuf.jpg',
+    mockImage: { url: '/media/tajine-de-boeuf.jpg', width: 1600, height: 1200, dominant: '#b6513c' },
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
@@ -637,7 +651,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     difficulty: 1,
     baseServings: 2,
     youtubeVideoId: PLACEHOLDER_VIDEO,
-    mockImageUrl: '/images/jus-grenade-orange.jpg',
+    mockImage: { url: '/media/jus-grenade-orange.jpg', width: 1200, height: 1600, dominant: '#96857f' },
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
