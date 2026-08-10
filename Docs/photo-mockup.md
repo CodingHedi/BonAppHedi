@@ -1,7 +1,20 @@
 # The photography mockup
 
-Two recipes carry a real photograph in the **mocks only**, so the design can be
-looked at with photography in it before ADR 8 builds the real thing.
+Every recipe carries a photograph and a video in the **mocks only**, so the
+design can be looked at with both in it before ADR 8 builds the real thing.
+
+## One video, six recipes
+
+`PLACEHOLDER_VIDEO` in `seed-data.ts` is Big Buck Bunny, and every recipe points
+at it. Six recipes want six videos; exactly one video clears the licensing bar
+`CLAUDE.md` sets — openly licensed, unmistakably not a cookery video — so the
+mockup repeats that one rather than reaching for six real cookery videos nobody
+holds the rights to. It is a named constant so that reads as a decision rather
+than as six copies of a coincidence.
+
+Only the babka's step timestamps are timed against its runtime. The other five
+show the play facade and no step jumps, which is the correct behaviour for a
+recipe whose steps carry no offsets.
 
 ## It cannot reach production, by construction
 
@@ -22,17 +35,33 @@ The seam is one field, `SeedRecipe.mockImageUrl`, read in one place,
 
 ## The images
 
-Both are **CC0** — public domain dedication, no attribution required. They are
-credited here anyway, because "where did this file come from" is a question the
+All six are **CC0 or public domain** — no attribution required. They are
+credited anyway, because "where did this file come from" is a question the
 repository should be able to answer.
 
-| File | Source | Author | Licence |
-|---|---|---|---|
-| `public/images/chakchouka.jpg` | [Shakshuka (Unsplash).jpg](https://commons.wikimedia.org/wiki/File:Shakshuka_(Unsplash).jpg) | via Unsplash | CC0 |
-| `public/images/pain-au-levain.jpg` | [Loaf of sourdough bread cooling.jpg](https://commons.wikimedia.org/wiki/File:Loaf_of_sourdough_bread_cooling.jpg) | Nutrition, Food Safety & Health | CC0 |
+| File | Source | Licence |
+|---|---|---|
+| `chakchouka.jpg` | [Shakshuka (Unsplash).jpg](https://commons.wikimedia.org/wiki/File:Shakshuka_(Unsplash).jpg) | CC0 |
+| `pain-au-levain.jpg` | [Loaf of sourdough bread cooling.jpg](https://commons.wikimedia.org/wiki/File:Loaf_of_sourdough_bread_cooling.jpg) | CC0 |
+| `babka-au-chocolat.jpg` | [Kranz (cake).jpg](https://commons.wikimedia.org/wiki/File:Kranz_(cake).jpg) | Public domain |
+| `cheesecake-basque.jpg` | [Chestnut Basque Cheesecake - MOGUMOGU 2024-11-02.jpg](https://commons.wikimedia.org/wiki/File:Chestnut_Basque_Cheesecake_-_MOGUMOGU_2024-11-02.jpg) | CC0 |
+| `tajine-de-boeuf.jpg` | [Couscous with Chicken and Vegetable Stew.JPG](https://commons.wikimedia.org/wiki/File:Couscous_with_Chicken_and_Vegetable_Stew.JPG) | CC0 |
+| `jus-grenade-orange.jpg` | [Pomegranate Juice Fresh.JPG](https://commons.wikimedia.org/wiki/File:Pomegranate_Juice_Fresh.JPG) | Public domain |
 
-Both were downloaded from Wikimedia Commons at 1920px, resized to 1600px wide
-and re-encoded at JPEG quality 78 — 304 KB and 416 KB respectively.
+All from Wikimedia Commons, scaled so the longest side is 1600px and re-encoded
+at JPEG quality 78. Together they are about 1.5 MB.
+
+**Two of them are compromises, and should not be read as chosen:**
+
+- `tajine-de-boeuf.jpg` **is not a beef tagine.** It is couscous with a chicken
+  and vegetable stew. No CC0 or public-domain photograph of a tagine exists on
+  Commons that is the dish rather than an empty pot or a 17th-century painting,
+  and the licence bar is not negotiable. It is North African and it is
+  appetising; it is also wrong, and anyone replacing these should start here.
+- `babka-au-chocolat.jpg` is a *Kranz*, the braided yeast cake a babka is a form
+  of, in a foil tin in someone's kitchen. It reads as the right thing where the
+  actual CC0 babka photographs did not — one is a bun in a Tupperware, another a
+  hand holding a pastry in a café.
 
 **CC0 was a requirement, not a preference**, and it is the same bar the
 placeholder video clears: `CLAUDE.md` records that Big Buck Bunny was chosen

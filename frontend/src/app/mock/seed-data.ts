@@ -135,6 +135,26 @@ export interface SeedRecipe {
   readonly t: Record<Locale, SeedRecipeTranslation>;
 }
 
+/**
+ * PLACEHOLDER — one video, shared by every recipe, replaced per recipe when
+ * real ones are filmed.
+ *
+ * The Blender Foundation's "Big Buck Bunny", chosen deliberately because it is
+ * openly licensed and unmistakably not a cookery video, so nobody can mistake
+ * it for finished content. It exists so the video facade and the step-timestamp
+ * jumps are exercisable end to end.
+ *
+ * **Shared rather than one per recipe on purpose.** Six recipes want six
+ * videos and there is exactly one that clears the licensing bar CLAUDE.md
+ * sets, so the honest mockup repeats it rather than reaching for six real
+ * cookery videos nobody holds the rights to. A constant says that out loud;
+ * six copies of the same id would have looked like a coincidence.
+ *
+ * Only the babka's step offsets are timed against its runtime — the other
+ * recipes have no step timestamps, so they show the facade and nothing else.
+ */
+const PLACEHOLDER_VIDEO = 'YE7VzlLtp-4';
+
 export const SEED_RECIPES: readonly SeedRecipe[] = [
   {
     key: 'babka',
@@ -144,17 +164,10 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     cookMinutes: 45,
     difficulty: 1,
     baseServings: 2,
-    /**
-     * PLACEHOLDER — replace when a real babka video is filmed.
-     *
-     * This is the Blender Foundation's "Big Buck Bunny", chosen deliberately
-     * because it is openly licensed and unmistakably not a cookery video, so
-     * nobody can mistake it for finished content. It exists so the video
-     * facade and the step-timestamp jumps are exercisable end to end; the step
-     * offsets below fall within its runtime.
-     */
-    youtubeVideoId: 'YE7VzlLtp-4',
+    /** The step offsets below fall within its runtime; see PLACEHOLDER_VIDEO. */
+    youtubeVideoId: PLACEHOLDER_VIDEO,
     featuredRank: 1,
+    mockImageUrl: '/images/babka-au-chocolat.jpg',
     ratingSum: 4,
     ratingCount: 1,
     reactionCount: 0,
@@ -268,7 +281,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     cookMinutes: 25,
     difficulty: 1,
     baseServings: 2,
-    youtubeVideoId: null,
+    youtubeVideoId: PLACEHOLDER_VIDEO,
     featuredRank: 2,
     mockImageUrl: '/images/chakchouka.jpg',
     ratingSum: 0,
@@ -361,7 +374,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     cookMinutes: 45,
     difficulty: 3,
     baseServings: 2,
-    youtubeVideoId: null,
+    youtubeVideoId: PLACEHOLDER_VIDEO,
     featuredRank: 3,
     mockImageUrl: '/images/pain-au-levain.jpg',
     ratingSum: 0,
@@ -443,7 +456,8 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     cookMinutes: 50,
     difficulty: 2,
     baseServings: 2,
-    youtubeVideoId: null,
+    youtubeVideoId: PLACEHOLDER_VIDEO,
+    mockImageUrl: '/images/cheesecake-basque.jpg',
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
@@ -523,7 +537,8 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     cookMinutes: 150,
     difficulty: 2,
     baseServings: 2,
-    youtubeVideoId: null,
+    youtubeVideoId: PLACEHOLDER_VIDEO,
+    mockImageUrl: '/images/tajine-de-boeuf.jpg',
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
@@ -621,7 +636,8 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     cookMinutes: null,
     difficulty: 1,
     baseServings: 2,
-    youtubeVideoId: null,
+    youtubeVideoId: PLACEHOLDER_VIDEO,
+    mockImageUrl: '/images/jus-grenade-orange.jpg',
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
