@@ -58,8 +58,16 @@ public class RecipeQueryDao {
             LEFT JOIN author_translation at ON at.author_id = a.id AND at.locale = :locale
             """;
 
-    /** Published, and translated into the language asked for. Both halves matter. */
-    private static final String PUBLIC_WHERE = " WHERE r.status = 'PUBLISHED' AND rt.title <> '' ";
+    /**
+     * Published, and translated into the language asked for. Both halves matter.
+     *
+     * <p>Public so {@code FeedDao} builds the sitemap and the feeds on the same
+     * rule rather than a copy of it. The two must agree exactly: an entry the
+     * API would answer 404 for is an invitation to a page that does not exist,
+     * and a recipe the rule drops here quietly stops being findable. It assumes
+     * the aliases {@code r} and {@code rt}, which is the price of sharing it.
+     */
+    public static final String PUBLIC_WHERE = " WHERE r.status = 'PUBLISHED' AND rt.title <> '' ";
 
     public List<Dto.RecipeSummary> list(String locale, String tagSlug, String authorSlug, String sort) {
         StringBuilder sql = new StringBuilder(SUMMARY_COLUMNS).append(PUBLIC_WHERE);
