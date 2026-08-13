@@ -126,7 +126,7 @@ Recorded because each one cost time once:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 247 tests
+.\mvnw.cmd test          # 290 tests
 ```
 
 **One assertion cannot live in `AuthApiTest`, and it is worth knowing why.**
@@ -149,6 +149,30 @@ Each test class points `spring.datasource.url` at its own file under `target/`,
 so the classes do not share state — but those files **persist between runs**,
 which is why the classes that write also reset in `@BeforeEach`. A test that
 forgets to is a test that can pass on last run's leftovers.
+
+**"Each test class" is a rule two classes broke, and the cost was four red
+merges.** `RecipeImageTest` and `RecipeMetadataTest` shipped in milestone 3
+without a `@TestPropertySource`, so both fell back to the default datasource —
+`backend/data/bonapphedi.db`, the developer's own dev database. Locally that
+mostly worked, while quietly running the suite against real data. In CI there is
+no `backend/data` at all, Flyway cannot open a file inside a directory that does
+not exist, and both classes died at `SQLITE_CANTOPEN`. A class that declares no
+database is not isolated by accident; it is sharing one nobody chose.
+
+The same fix surfaced a second one. `RecipeMetadataTest` reads the served shell,
+which `IndexHtmlController` loads **once at context startup**, and
+`SpaFallbackTest` used to write its stand-in `index.html` into
+`target/test-classes/static` in a `@BeforeAll`. Which of the two won came down
+to which booted its context first — green in CI, six of seven red locally, on
+run order alone. The stand-ins are committed test resources now, and nothing
+writes to the classpath during a run. **If a suite depends on a file another
+suite writes, it is not a suite, it is a race.**
+
+Milestone 3 added four backend classes worth knowing by name:
+`RecipeImageTest` (photographs reach the JSON), `RecipeMetadataTest` (ADR 4's
+metadata in the served HTML, including that an edit invalidates it),
+`SitemapAndRssTest` (the sitemap, both feeds and `robots.txt`) and
+`PhotoUploadTest` (the upload, and every limit ADR 8 said was not optional).
 
 ### What the plan asked for, and what actually exists
 
