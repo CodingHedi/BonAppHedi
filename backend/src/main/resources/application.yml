@@ -30,6 +30,21 @@ spring:
   jackson:
     default-property-inclusion: always
 
+  servlet:
+    multipart:
+      # Deliberately above bah.media.max-upload-bytes, which is 8MB. The
+      # application's own cap is the one that should refuse an oversized
+      # photograph, because it can answer 413 with a reason and is covered by
+      # the suite; this ceiling exists for what the parser should not even
+      # buffer. Setting the two equal would make the untestable path the usual
+      # one. See UploadLimitAdvice.
+      #
+      # Spring's defaults are 1MB and 10MB, and a photograph off a modern phone
+      # clears 1MB comfortably - the default would read as "uploads are broken"
+      # rather than as a limit.
+      max-file-size: 12MB
+      max-request-size: 16MB
+
   session:
     jdbc:
       # Spring Session has no SQLite script to run, so its tables are created by

@@ -205,6 +205,17 @@ public final class Dto {
             List<StepDraft> steps,
             Map<String, TranslationDraft> t) {}
 
+    /**
+     * What an upload produces, handed straight back so the editor can show the
+     * photograph it just stored without re-reading the recipe.
+     *
+     * <p>Not an {@link ImageRef}: that carries alt text, which is assembled per
+     * locale from the translated title and is meaningless in an answer that has
+     * no locale. A field filled with something plausible is worse than a field
+     * that is not there.
+     */
+    public record AdminPhoto(String url, int width, int height, String dominant) {}
+
     /** A row in the admin's recipe table. Drafts included - that is the point. */
     public record AdminRecipeRow(
             String key,
