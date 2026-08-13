@@ -72,6 +72,18 @@ bah:
     # demotes that account the next time it signs in.
     emails: ${BAH_ADMIN_EMAILS:}
 
+  media:
+    # Beside the database, resolved against the working directory exactly as
+    # ./data is - which for the dev loop is backend/, because that is where
+    # dev.ps1 and `mvnw spring-boot:run` start from.
+    #
+    # Declared here rather than left to the @Value default in MediaStorage, and
+    # that is the whole point of the line: every other bah.* setting is stated
+    # in this file, so a reader looking for the paths the application writes to
+    # finds them all in one place. This one was not, and the deployed profile
+    # went without it long enough to ship a site of broken images.
+    dir: ${BAH_MEDIA_DIR:./data/images}
+
   security:
     # Salts the HMAC that identifies a visitor's network address without storing
     # it. Blank means a random salt is generated at startup and a warning is
