@@ -185,3 +185,33 @@ should be re-read after this milestone rather than before it.
 gap here closes by writing code. This one closes by cooking, shooting and
 editing, and no amount of upload machinery substitutes for it — the milestone is
 not done when the pipeline works, it is done when there are photographs in it.
+
+## Amendment, 2026-08-14: one derivative size, not a set
+
+The decision above asks for "a bounded set of generated derivative sizes" as one
+of the four costs of accepting an upload. `PhotoIngest` generates **one**: the
+longest side capped at 1600px, JPEG quality 78, matching the six seeded
+photographs exactly so an uploaded one and a seeded one are the same kind of
+file rather than two conventions in one directory.
+
+The reason is that nothing consumes a second. `shared/ui/image/image.ts` renders
+a single `<img>` with no `srcset` and no `sizes`, so a 800px and a 400px
+derivative would be bytes on disk that no markup ever asks for — and bytes on
+disk are now bytes in a backup, since the same milestone made the upload
+directory part of what `backup.sh` carries.
+
+**The other three costs are paid in full**, and each has a test: a size cap, a
+content type decided by decoding rather than by believing the request, and a
+serving path that cannot be walked. A fourth was added that this ADR did not
+ask for — a cap on decoded pixels, because a few hundred bytes of flat colour
+can declare a bitmap of gigabytes and the byte cap does not see it coming.
+
+**What this defers, and where it lands when it stops being deferred.**
+Responsive images are a rendering decision that belongs with the one
+`Docs/backlog.md` is already holding on the list page — the same grid, the same
+measurement. `PhotoIngest.accept` is the single place a second size gets
+generated, and it returns a record rather than a URL specifically so that
+adding one does not change its callers.
+
+It is worth being plain that this is narrower than what was written above,
+rather than letting "bounded" quietly come to mean "one".
