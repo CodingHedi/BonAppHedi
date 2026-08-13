@@ -86,6 +86,25 @@ class ProductionProfileTest {
     }
 
     @Test
+    void putsThePhotographsSomewhereTheServiceMayActuallyWrite() {
+        // The same trap as the database above, and it had already been sprung
+        // once: the systemd unit sets ProtectSystem=strict with
+        // ReadWritePaths=/var/lib/bonapphedi /var/log/bonapphedi, so everything
+        // else on the disk - including WorkingDirectory - is read-only to the
+        // service.
+        //
+        // bah.media.dir defaulted to ./data/images and was declared nowhere but
+        // a @Value in MediaStorage, so it resolved under /opt/bonapphedi and
+        // could not be created at all. That failure is silent by design:
+        // installSeedImages logs and carries on, and because image_file is
+        // populated in the database the site then serves <img> tags whose
+        // requests 404. Broken pictures, not placeholders.
+        assertThat(PROD.getProperty("bah.media.dir"))
+                .as("must sit inside the unit's ReadWritePaths")
+                .startsWith("${BAH_MEDIA_DIR:/var/lib/bonapphedi/");
+    }
+
+    @Test
     void holdsNoSecrets() {
         // Credentials come from the environment through the systemd unit, so a
         // copy of the jar carries none. This fails if somebody ever pastes a

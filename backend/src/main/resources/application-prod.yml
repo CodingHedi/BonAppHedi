@@ -67,6 +67,24 @@ spring:
     # Change one of these two and change the other.
     url: jdbc:sqlite:file:${BAH_DB:/var/lib/bonapphedi/bonapphedi.db}?foreign_keys=on&busy_timeout=5000
 
+bah:
+  media:
+    # Beside the database, and for a harder reason than tidiness: the systemd
+    # unit runs with ProtectSystem=strict and
+    # ReadWritePaths=/var/lib/bonapphedi /var/log/bonapphedi, so every other
+    # path on the disk is read-only to the service - WorkingDirectory included.
+    #
+    # Left at its ./data/images default this resolves under /opt/bonapphedi and
+    # cannot be created at all. That fails quietly: MediaStorage logs and
+    # carries on, and since image_file is already populated in the database the
+    # site serves <img> tags whose requests then 404. Broken pictures rather
+    # than the placeholder panel, which is the one outcome the placeholder
+    # exists to prevent.
+    #
+    # It is also the directory that ends BACKUP.md's "the database and nothing
+    # else": photographs arrive by upload and exist nowhere else (ADR 8).
+    dir: ${BAH_MEDIA_DIR:/var/lib/bonapphedi/images}
+
   session:
     jdbc:
       initialize-schema: never
