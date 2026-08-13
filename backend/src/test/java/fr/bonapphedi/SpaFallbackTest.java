@@ -5,9 +5,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -25,9 +22,27 @@ import org.springframework.test.web.servlet.MockMvc;
  * link answers 404. It cannot be caught in development either — {@code ng serve}
  * has its own fallback — so the failure would first appear on the deployed jar.
  *
- * <p>A stand-in {@code index.html} is written into the classpath before the
- * context starts, because the real one only exists after {@code -Pweb} has run
- * the Angular build. What is under test is the routing rule, not the bundle.
+ * <p>A stand-in {@code index.html} and a stand-in hashed bundle live in
+ * {@code src/test/resources/static}, because the real ones only exist after
+ * {@code -Pweb} has run the Angular build. What is under test is the routing
+ * rule, not the bundle.
+ *
+ * <p><b>They are committed rather than written by a {@code @BeforeAll}, and that
+ * is not tidiness.</b> This class used to write them into
+ * {@code target/test-classes/static} at run time, which quietly made the shell a
+ * shared mutable file: {@code IndexHtmlController} reads {@code index.html}
+ * <em>once, at context startup</em>, so whether {@code RecipeMetadataTest} saw a
+ * real shell or a one-line stub came down to which class booted its context
+ * first. It failed six of its seven tests locally and passed in CI, on nothing
+ * but run order.
+ *
+ * <p>The original reason for writing at run time still stands and is why these
+ * files are under {@code src/test/resources} and not {@code src/main/resources}:
+ * under {@code -Pweb} the Angular build is copied into
+ * {@code target/classes/static} during {@code process-resources}, and a stand-in
+ * landing there would be packaged into the jar in place of the application.
+ * Surefire puts {@code test-classes} ahead of {@code classes}, so these win
+ * during the run and are never part of the artefact.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -45,33 +60,15 @@ import org.springframework.test.web.servlet.MockMvc;
         })
 class SpaFallbackTest {
 
-    private static final String MARKER = "<!-- stand-in index for SpaFallbackTest -->";
+    /**
+     * The application shell, in the one form both stand-ins and the real Angular
+     * build agree on. Asserting on the element Angular boots into is what makes
+     * "this is the index page" mean the same thing here and under {@code -Pweb}.
+     */
+    private static final String MARKER = "<bah-root>";
 
     @Autowired
     private MockMvc mvc;
-
-    /**
-     * Written to {@code target/test-classes}, and the directory matters.
-     *
-     * <p>The obvious place is {@code target/classes/static}, which is where the
-     * real build lands — and it is a trap. Under {@code -Pweb} the Angular build
-     * is copied there during {@code process-resources}, tests run after that,
-     * and this method would overwrite {@code index.html} with the stand-in
-     * before {@code package} zipped it up. The jar would ship a one-line stub
-     * instead of the application, the enforcer would see an {@code index.html}
-     * and pass, and nothing would say so until the site was live and blank.
-     *
-     * <p>Surefire puts {@code test-classes} ahead of {@code classes} on the
-     * classpath, so a stand-in here still wins for {@code classpath:/static/}
-     * during the run, and is never part of the artefact.
-     */
-    @BeforeAll
-    static void standInForTheAngularBuild() throws Exception {
-        Path staticDir = Path.of("target/test-classes/static");
-        Files.createDirectories(staticDir);
-        Files.writeString(staticDir.resolve("index.html"), "<html><body>" + MARKER + "</body></html>");
-        Files.writeString(staticDir.resolve("main-TEST123.js"), "console.log('bundle');");
-    }
 
     @Test
     void servesTheApplicationAtTheRoot() throws Exception {
