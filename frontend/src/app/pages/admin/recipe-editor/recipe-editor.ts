@@ -189,6 +189,67 @@ import type { IngredientDraft, RecipeDraft, StepDraft } from '../../../core/api/
           </div>
         </section>
 
+        <section class="shared">
+          <h2>{{ 'admin.photo' | transloco }}</h2>
+          <p class="muted hint">{{ 'admin.photoHint' | transloco }}</p>
+
+          @if (isNew()) {
+            <!--
+              The upload is addressed by recipe key, so there is nothing to
+              attach a photograph to until the recipe exists. Saying so beats
+              offering a control that would 404.
+            -->
+            <p class="muted">{{ 'admin.photoAfterSave' | transloco }}</p>
+          } @else {
+            <div class="photo">
+              @if (m.photo; as photo) {
+                <img
+                  class="photo-preview"
+                  [src]="photo.url"
+                  alt=""
+                  [style.background-color]="photo.dominant"
+                />
+                <p class="muted">{{ photo.width }}&times;{{ photo.height }}</p>
+              } @else {
+                <p class="muted">{{ 'admin.photoNone' | transloco }}</p>
+              }
+
+              <div class="photo-actions">
+                <!--
+                  A label rather than a button, because a file input cannot be
+                  opened programmatically without a user gesture and does not
+                  need to be: clicking its label is the gesture.
+                -->
+                <label class="btn">
+                  {{ (m.photo ? 'admin.photoReplace' : 'admin.photoChoose') | transloco }}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    [disabled]="photoBusy()"
+                    (change)="choosePhoto($event)"
+                  />
+                </label>
+
+                @if (m.photo) {
+                  <button
+                    type="button"
+                    class="btn"
+                    [disabled]="photoBusy()"
+                    (click)="removePhoto()"
+                  >
+                    {{ 'admin.photoRemove' | transloco }}
+                  </button>
+                }
+              </div>
+
+              @if (photoFailed()) {
+                <p class="error" role="alert">{{ 'admin.photoFailed' | transloco }}</p>
+              }
+            </div>
+          }
+        </section>
+
         <section class="rows">
           <h2>{{ 'recipe.ingredients' | transloco }}</h2>
           @for (ingredient of m.ingredients; track $index) {
@@ -359,6 +420,44 @@ import type { IngredientDraft, RecipeDraft, StepDraft } from '../../../core/api/
       font-size: 14px;
     }
 
+    .photo {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    /*
+      The 3:2 box the cards use, so what the editor shows is the shape the site
+      will crop to rather than the shape the file happens to be. The tint under
+      it is the stored dominant colour, which is what fills the box on the site
+      while the bytes are in flight.
+    */
+    .photo-preview {
+      width: 100%;
+      max-width: 320px;
+      aspect-ratio: 3 / 2;
+      object-fit: cover;
+      border-radius: var(--radius-md, 8px);
+      border: 1px solid var(--color-divider);
+    }
+
+    .photo-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* A label doing a button's job still has to look and focus like one. */
+    .photo-actions .btn {
+      cursor: pointer;
+    }
+
+    .photo-actions .btn:focus-within {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+
     .row {
       display: flex;
       gap: 10px;
@@ -431,6 +530,17 @@ export class RecipeEditorComponent {
   protected readonly busy = signal(false);
   protected readonly failed = signal(false);
   protected readonly saved = signal(false);
+
+  /**
+   * Separate from `busy`/`failed`, which belong to the save.
+   *
+   * An upload is not part of saving the form — it has already happened on the
+   * server by the time it reports back — so sharing the flags would let a
+   * refused photograph read as a failed save, and a successful one clear the
+   * message from a save that really did fail.
+   */
+  protected readonly photoBusy = signal(false);
+  protected readonly photoFailed = signal(false);
 
   protected readonly isNew = computed(() => this.key() === undefined);
 
@@ -599,6 +709,53 @@ export class RecipeEditorComponent {
       this.failed.set(true);
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  protected async choosePhoto(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const current = this.model();
+    if (!file || !current || this.photoBusy()) return;
+
+    this.photoBusy.set(true);
+    this.photoFailed.set(false);
+
+    try {
+      const photo = await this.api.uploadPhoto(current.key, file);
+
+      // Re-read rather than closing over `current`: the form is editable while
+      // the upload is in flight, and writing back the copy taken before it
+      // would silently undo whatever was typed in the meantime.
+      const latest = this.model();
+      if (latest) this.model.set({ ...latest, photo });
+    } catch {
+      this.photoFailed.set(true);
+    } finally {
+      this.photoBusy.set(false);
+
+      // Cleared so that choosing the same file again still fires `change`. A
+      // file input compares against its current value, so the second attempt
+      // after a failure would otherwise do nothing at all.
+      input.value = '';
+    }
+  }
+
+  protected async removePhoto(): Promise<void> {
+    const current = this.model();
+    if (!current || this.photoBusy()) return;
+
+    this.photoBusy.set(true);
+    this.photoFailed.set(false);
+
+    try {
+      await this.api.removePhoto(current.key);
+      const latest = this.model();
+      if (latest) this.model.set({ ...latest, photo: null });
+    } catch {
+      this.photoFailed.set(true);
+    } finally {
+      this.photoBusy.set(false);
     }
   }
 

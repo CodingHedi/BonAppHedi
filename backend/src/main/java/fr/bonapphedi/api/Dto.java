@@ -203,7 +203,15 @@ public final class Dto {
             String youtubeVideoId,
             List<IngredientDraft> ingredients,
             List<StepDraft> steps,
-            Map<String, TranslationDraft> t) {}
+            Map<String, TranslationDraft> t,
+            /**
+             * Read-only, and the only field here that is. A photograph is
+             * uploaded through its own endpoint rather than typed into the
+             * form, so a save ignores whatever arrives in this field — but the
+             * editor still has to be told whether there is one, or it cannot
+             * tell "no photograph" from "a photograph I cannot see".
+             */
+            AdminPhoto photo) {}
 
     /**
      * What an upload produces, handed straight back so the editor can show the

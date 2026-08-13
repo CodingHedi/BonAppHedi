@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { LOCALES, type Locale } from '../core/i18n/locale';
 import type { AdminApi } from '../core/api/admin-api';
 import type {
+  AdminPhoto,
   AdminRecipeRow,
   AdminStats,
   AdminTopRecipe,
@@ -78,6 +79,9 @@ export class MockAdminApi implements AdminApi {
         },
       ],
       t: empty(() => ({ slug: '', title: '', excerpt: '', bodyMarkdown: '' })),
+      // A recipe that does not exist yet cannot have one: the upload takes a
+      // key, so there is nothing to attach a photograph to until the first save.
+      photo: null,
     };
   }
 
@@ -103,6 +107,11 @@ export class MockAdminApi implements AdminApi {
       // new recipe starts at zero and dated now.
       publishedAt: existing?.publishedAt ?? new Date().toISOString(),
       featuredRank: existing?.featuredRank,
+      // Carried forward for the same reason, and the reason is sharper here
+      // because the draft *does* have a photo field: it is read-only, the
+      // server ignores it on a save, and taking it from the draft would let a
+      // stale form drop a photograph somebody uploaded a moment earlier.
+      mockImage: existing?.mockImage,
       ratingSum: existing?.ratingSum ?? 0,
       ratingCount: existing?.ratingCount ?? 0,
       reactionCount: existing?.reactionCount ?? 0,
@@ -134,6 +143,46 @@ export class MockAdminApi implements AdminApi {
         heroExcerpt: existing?.t[locale]?.heroExcerpt,
       })),
     });
+  }
+
+  /**
+   * The upload, as far as a build with no server can honestly go.
+   *
+   * The photograph is kept as an object URL of the very file that was chosen,
+   * so the design can be judged with a real picture in it, and the geometry is
+   * measured rather than invented — `image.ts` reserves its box from those
+   * numbers, so making them up would test the layout against a fiction.
+   *
+   * **The refusal here is weaker than the server's and deliberately so.** This
+   * checks the declared type, which the server pointedly does not believe; it
+   * decides by decoding. A mock cannot sniff a file usefully, so what it stands
+   * in for is the *shape* of a rejection — that one arrives, and that the
+   * editor says so — not the rule behind it.
+   */
+  async uploadPhoto(key: string, file: File): Promise<AdminPhoto> {
+    await latency();
+
+    if (!file.type.startsWith('image/')) throw new Error('not an image');
+
+    const bitmap = await createImageBitmap(file);
+    const longest = Math.max(bitmap.width, bitmap.height);
+    const ratio = longest > 1600 ? 1600 / longest : 1;
+
+    const photo: AdminPhoto = {
+      url: URL.createObjectURL(file),
+      width: Math.round(bitmap.width * ratio),
+      height: Math.round(bitmap.height * ratio),
+      dominant: '#8d7f6f',
+    };
+    bitmap.close();
+
+    this.store.setImage(key, photo);
+    return photo;
+  }
+
+  async removePhoto(key: string): Promise<void> {
+    await latency();
+    this.store.setImage(key, null);
   }
 
   async setStatus(key: string, status: RecipeStatus): Promise<void> {
@@ -248,6 +297,7 @@ export class MockAdminApi implements AdminApi {
         excerpt: recipe.t[locale]?.excerpt ?? '',
         bodyMarkdown: recipe.t[locale]?.bodyMarkdown ?? '',
       })),
+      photo: recipe.mockImage ?? null,
     };
   }
 }

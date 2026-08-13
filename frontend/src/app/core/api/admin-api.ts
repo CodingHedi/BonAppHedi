@@ -1,6 +1,7 @@
 import { InjectionToken } from '@angular/core';
 import type { Locale } from '../i18n/locale';
 import type {
+  AdminPhoto,
   AdminRecipeRow,
   AdminStats,
   ModerationItem,
@@ -38,6 +39,18 @@ export interface AdminApi {
   save(draft: RecipeDraft): Promise<void>;
 
   setStatus(key: string, status: RecipeStatus): Promise<void>;
+
+  /**
+   * Replaces the recipe's photograph, because a recipe has one.
+   *
+   * The server decides what is an image — the file's name and type are both
+   * written here and neither is believed — so a rejection is a normal outcome
+   * rather than a bug, and the editor has to be able to say why.
+   */
+  uploadPhoto(key: string, file: File): Promise<AdminPhoto>;
+
+  /** Back to the generated placeholder panel. */
+  removePhoto(key: string): Promise<void>;
 
   pending(locale: Locale): Promise<readonly ModerationItem[]>;
 
