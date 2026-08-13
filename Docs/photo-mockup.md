@@ -1,7 +1,17 @@
 # The photography mockup
 
-Every recipe carries a photograph and a video in the **mocks only**, so the
-design can be looked at with both in it before ADR 8 builds the real thing.
+Every recipe carries a photograph and a video, so the design can be looked at
+with both in it.
+
+**The photographs are no longer a mockup and this file is no longer only about
+one.** It was written while they existed in the mocks alone; ADR 8 has since
+given them a column, a migration, a DAO mapping and a serving path, and the same
+six now come back from the real API. What survives here is what only this file
+records: where each photograph came from, which two are compromises, and what
+looking at the design with photographs in it changed. `V8__recipe_image.sql`
+cites this file for exactly that.
+
+The video is still a mockup, and the next section is the part that stayed true.
 
 ## One video, six recipes
 
@@ -16,22 +26,24 @@ Only the babka's step timestamps are timed against its runtime. The other five
 show the play facade and no step jumps, which is the correct behaviour for a
 recipe whose steps carry no offsets.
 
-## It cannot reach production, by construction
+## The photographs reached production, and the mock follows the API now
 
-`RecipeQueryDao` hardcodes `new Dto.ImageRef(null, title)` and there is no image
-column in the schema. The production build sets `useMocks: false`, so the live
-site takes its data from that API and every `image.url` is null there — exactly
-as it was before this file existed.
+This section used to say the opposite, and said it well: `RecipeQueryDao`
+hardcoded `new Dto.ImageRef(null, title)`, there was no image column, and the
+photographs could therefore be seen in `npm start` and in the two suites and
+nowhere else. Every clause of that is now false. The column exists, the six are
+copied out of the jar on startup by `MediaStorage`, and the live site serves
+them from its own origin.
 
-The photographs are therefore visible in `npm start`, in both test suites and in
-any `useMocks: true` build, and nowhere else. Deploying this changes nothing on
-`bonapphedi.fr`. That is the point: it is a way to answer "does the design work
-with photographs in it" without first building the column, the migration, the
-DAO mapping, the upload path and the resizing that ADR 8 actually needs.
+**The direction of the copying reversed with it.** `SeedRecipe.mockImage` and
+`MockRecipeApi.image()` are still the seam, but they exist to mirror what the
+API returns rather than to stand in for it — same url, same geometry, same
+tint, alt assembled per locale. Deleting them no longer removes a mockup; it
+makes the mocked build disagree with the real one, which is what the suites are
+pinned to (ADR 1).
 
-The seam is one field, `SeedRecipe.mockImageUrl`, read in one place,
-`MockRecipeApi.image()`. Deleting both and the two files under
-`frontend/public/images/` removes the mockup completely.
+The files live in `frontend/public/media/`, matching the `/media/` prefix
+`MediaStorage` serves, so the same six addresses answer in both builds.
 
 ## The images
 
