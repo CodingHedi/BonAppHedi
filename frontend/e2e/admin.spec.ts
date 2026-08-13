@@ -224,6 +224,69 @@ test.describe('recipe editor', () => {
   });
 });
 
+test.describe('the recipe photograph', () => {
+  test.beforeEach(async ({ page }) => signedInAs(page, 'admin'));
+
+  /** A one-pixel PNG, which is a real image and therefore a real upload. */
+  const PIXEL = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  );
+
+  test('shows the photograph the recipe already has', async ({ page }) => {
+    // Without this the editor cannot tell "no photograph" from "one I cannot
+    // see", and the only way to find out would be to overwrite it.
+    await page.goto('/fr/admin/recipes/babka');
+
+    await expect(page.locator('.photo-preview')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Retirer la photo' })).toBeVisible();
+  });
+
+  test('uploading one replaces what was there', async ({ page }) => {
+    await page.goto('/fr/admin/recipes/babka');
+
+    const before = await page.locator('.photo-preview').getAttribute('src');
+
+    await page.locator('input[type=file]').setInputFiles({
+      name: 'pixel.png',
+      mimeType: 'image/png',
+      buffer: PIXEL,
+    });
+
+    await expect(page.locator('.photo-preview')).not.toHaveAttribute('src', before ?? '');
+  });
+
+  test('removing one returns the recipe to its placeholder', async ({ page }) => {
+    await page.goto('/fr/admin/recipes/babka');
+    await page.getByRole('button', { name: 'Retirer la photo' }).click();
+
+    await expect(page.getByText("Aucune photographie pour l'instant.")).toBeVisible();
+    await expect(page.locator('.photo-preview')).toHaveCount(0);
+  });
+
+  test('says why rather than failing silently when the file is not an image', async ({ page }) => {
+    // The server decides what is an image by decoding it, so a refusal is a
+    // normal outcome and the editor has to be able to say so.
+    await page.goto('/fr/admin/recipes/babka');
+
+    await page.locator('input[type=file]').setInputFiles({
+      name: 'notes.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('this is not a photograph'),
+    });
+
+    await expect(page.getByRole('alert')).toBeVisible();
+  });
+
+  test('offers no upload until a new recipe has been saved', async ({ page }) => {
+    // The upload is addressed by key, so there is nothing to attach one to yet.
+    await page.goto('/fr/admin/recipes/new');
+
+    await expect(page.getByText('Enregistrez la recette avant')).toBeVisible();
+    await expect(page.locator('input[type=file]')).toHaveCount(0);
+  });
+});
+
 test.describe('moderation', () => {
   test.beforeEach(async ({ page }) => signedInAs(page, 'admin'));
 

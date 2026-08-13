@@ -2,6 +2,7 @@ package fr.bonapphedi.admin;
 
 import fr.bonapphedi.api.Dto;
 import fr.bonapphedi.content.MarkdownRenderer;
+import fr.bonapphedi.media.MediaStorage;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -168,7 +169,26 @@ public class AdminDao {
                 head.video(),
                 ingredientDrafts(id),
                 stepDrafts(id),
-                translations);
+                translations,
+                photoOf(id));
+    }
+
+    /** Null when the recipe has no photograph, which is what the placeholder means. */
+    private Dto.AdminPhoto photoOf(long id) {
+        return jdbc.sql("SELECT image_file, image_width, image_height, image_dominant FROM recipe WHERE id = ?")
+                .param(id)
+                .query((rs, n) -> {
+                    String file = rs.getString("image_file");
+                    return file == null
+                            ? null
+                            : new Dto.AdminPhoto(
+                                    MediaStorage.urlFor(file),
+                                    rs.getInt("image_width"),
+                                    rs.getInt("image_height"),
+                                    rs.getString("image_dominant"));
+                })
+                .optional()
+                .orElse(null);
     }
 
     private List<Dto.IngredientDraft> ingredientDrafts(long recipeId) {
@@ -264,7 +284,11 @@ public class AdminDao {
                 null,
                 List.of(new Dto.IngredientDraft(null, "g", true, ingredientText)),
                 List.of(new Dto.StepDraft(null, null, stepText)),
-                translations);
+                translations,
+                // A recipe that does not exist yet cannot have a photograph:
+                // the upload endpoint takes a key, so there is nothing to
+                // attach one to until the first save.
+                null);
     }
 
     // --- saving -----------------------------------------------------------

@@ -192,6 +192,50 @@ class PhotoUploadTest {
                 .andExpect(jsonPath("$.image.url").doesNotExist());
     }
 
+    // --- what the editor needs --------------------------------------------
+
+    @Test
+    void showsTheEditorThePhotographTheRecipeAlreadyHas() throws Exception {
+        // Without this the editor cannot tell "no photograph" from "a
+        // photograph I cannot see", and the only way to find out is to upload
+        // one and overwrite whatever was there.
+        String url = upload("sourdough", png(600, 400, Color.LIGHT_GRAY));
+
+        mvc.perform(get("/api/admin/recipes/sourdough").with(oauth2Login().oauth2User(admin())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photo.url").value(url))
+                .andExpect(jsonPath("$.photo.width").value(600));
+    }
+
+    @Test
+    void keepsThePhotographThroughAnOrdinarySave() throws Exception {
+        // The trap AdminApiTest already documents for published_at and
+        // featured_rank, one field further on: the draft is what an author
+        // owns, the photograph is not in it, and a save that spread the draft
+        // over the row would drop the photograph on the first typo fixed.
+        //
+        // The draft is read and put straight back, which is exactly what the
+        // editor does.
+        String url = upload("basque-cheesecake", png(500, 500, Color.WHITE));
+
+        String draft = mvc.perform(get("/api/admin/recipes/basque-cheesecake")
+                        .with(oauth2Login().oauth2User(admin())))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .put("/api/admin/recipes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draft)
+                        .with(oauth2Login().oauth2User(admin()))
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/recipes/cheesecake-basque").param("locale", "fr"))
+                .andExpect(jsonPath("$.image.url").value(url));
+    }
+
     // --- the wiring that is easy to leave out ------------------------------
 
     @Test

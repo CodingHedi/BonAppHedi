@@ -255,6 +255,31 @@ export interface RecipeDraft {
   readonly ingredients: readonly IngredientDraft[];
   readonly steps: readonly StepDraft[];
   readonly t: Record<Locale, TranslationDraft>;
+  /**
+   * Read-only, and the only field here that is. A photograph is uploaded
+   * through its own endpoint rather than typed into the form, so a save ignores
+   * whatever is sent back in it — but the editor has to be told whether there
+   * is one, or it cannot tell "no photograph" from "a photograph I cannot see".
+   *
+   * Null on a recipe that has none, and always null on `blank()`: the upload
+   * takes a key, so there is nothing to attach one to until the first save.
+   */
+  readonly photo: AdminPhoto | null;
+}
+
+/**
+ * What an upload produces, handed straight back so the editor can show the
+ * photograph it just stored without re-reading the recipe.
+ *
+ * Not an {@link ImageRef}: that carries alt text, which is assembled per locale
+ * from the translated title and would be meaningless in an answer that has no
+ * locale.
+ */
+export interface AdminPhoto {
+  readonly url: string;
+  readonly width: number;
+  readonly height: number;
+  readonly dominant: string;
 }
 
 /** A row in the admin's recipe table. Drafts included — that is the point. */

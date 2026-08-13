@@ -289,6 +289,34 @@ describe('HttpAdminApi', () => {
     await promise;
   });
 
+  it('uploads a photograph as multipart and lets the browser set the type', async () => {
+    const file = new File(['not really a jpeg'], 'photo.jpg', { type: 'image/jpeg' });
+    const promise = api.uploadPhoto('babka', file);
+
+    const request = http.expectOne('/api/admin/recipes/babka/photo');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toBeInstanceOf(FormData);
+    expect((request.request.body as FormData).get('file')).toBe(file);
+
+    // The header must be absent, not merely unset by accident. A hand-written
+    // multipart/form-data carries no boundary - the browser generates that with
+    // the body - and the server then parses nothing at all.
+    expect(request.request.headers.has('Content-Type')).toBe(false);
+
+    request.flush({ url: '/media/babka-abcd1234.jpg', width: 1600, height: 900, dominant: '#8d7f6f' });
+    expect((await promise).url).toBe('/media/babka-abcd1234.jpg');
+  });
+
+  it('removes a photograph with DELETE', async () => {
+    const promise = api.removePhoto('babka');
+
+    const request = http.expectOne('/api/admin/recipes/babka/photo');
+    expect(request.request.method).toBe('DELETE');
+
+    request.flush(null);
+    await promise;
+  });
+
   it('changes a status without sending a whole draft', async () => {
     const promise = api.setStatus('babka', 'ARCHIVED');
 

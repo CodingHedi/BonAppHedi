@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import type { AdminApi } from '../core/api/admin-api';
 import type {
+  AdminPhoto,
   AdminRecipeRow,
   AdminStats,
   ModerationItem,
@@ -63,6 +64,28 @@ export class HttpAdminApi implements AdminApi {
   async setStatus(key: string, status: RecipeStatus): Promise<void> {
     await firstValueFrom(
       this.http.put<void>(`/api/admin/recipes/${encodeURIComponent(key)}/status`, { status }),
+    );
+  }
+
+  /**
+   * `FormData` and no `Content-Type` header, deliberately. Setting it by hand
+   * is the classic way to break a multipart request: the boundary is generated
+   * with the body, so a hand-written `multipart/form-data` arrives without one
+   * and the server parses nothing. Leaving it unset lets the browser write
+   * both.
+   */
+  async uploadPhoto(key: string, file: File): Promise<AdminPhoto> {
+    const body = new FormData();
+    body.append('file', file);
+
+    return firstValueFrom(
+      this.http.put<AdminPhoto>(`/api/admin/recipes/${encodeURIComponent(key)}/photo`, body),
+    );
+  }
+
+  async removePhoto(key: string): Promise<void> {
+    await firstValueFrom(
+      this.http.delete<void>(`/api/admin/recipes/${encodeURIComponent(key)}/photo`),
     );
   }
 

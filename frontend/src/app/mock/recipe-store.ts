@@ -65,6 +65,19 @@ export class RecipeStore {
     );
   }
 
+  /**
+   * Sets or clears the photograph, leaving the rest of the recipe alone.
+   *
+   * Separate from {@link save} for the same reason the endpoint is separate
+   * from the one that saves a draft: the photograph is not a field of the form,
+   * and a save must not be able to drop it.
+   */
+  setImage(key: string, image: SeedRecipe['mockImage'] | null): void {
+    this.recipes = this.recipes.map((recipe) =>
+      recipe.key === key ? { ...recipe, mockImage: image ?? undefined } : recipe,
+    );
+  }
+
   /** Replaces a recipe wholesale. Creating one is the same call with a new key. */
   save(recipe: SeedRecipe): void {
     const index = this.recipes.findIndex((candidate) => candidate.key === recipe.key);
