@@ -145,12 +145,23 @@ a footer permanently out of reach.
 ### So
 
 Revisit on a **rendering measurement**, not a recipe count — profile the grid at
-two or three hundred and find out whether it is actually slow. **Measure it
-after milestone 3, not before** (ADR 8): every card in the grid is a CSS
-placeholder panel today, and a grid of real photographs is a different
-measurement in both directions — decoding and memory go up, and `loading="lazy"`
-starts doing work that the panels never needed. Profiling the panels would
-answer a question nobody is going to ask again. If it is slow:
+two or three hundred and find out whether it is actually slow.
+
+**The thing this was waiting for has arrived, as of 2026-08-13.** The entry used
+to say "measure it after milestone 3, not before", because every card was a CSS
+placeholder panel and profiling those would have answered a question nobody was
+going to ask again. Every card now carries a real photograph, in the mocked
+build and the live one alike, so the measurement is finally worth taking:
+decoding and memory go up, and `loading="lazy"` is doing work the panels never
+needed.
+
+Two things to measure alongside the frame times, because they are the reason
+photographs change the answer rather than merely the numbers: how much of the
+grid is decoded before it is scrolled to, and whether `image.ts` reserving its
+box from the stored geometry is in fact costing zero layout shift at width. The
+second is claimed in several places and asserted nowhere.
+
+If it is slow:
 virtualise rather than infinite-scroll, and keep crawlable paginated URLs
 alongside for Googlebot. That bounds the DOM, keeps search instant, and leaves
 the footer reachable.
