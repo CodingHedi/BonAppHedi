@@ -1,11 +1,17 @@
 package fr.bonapphedi.api;
 
 import fr.bonapphedi.admin.AdminDao;
+import fr.bonapphedi.media.MediaStorage;
+import fr.bonapphedi.media.PhotoIngest;
+import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,7 +19,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -46,9 +54,15 @@ public class AdminController {
      */
     private final ApplicationEventPublisher events;
 
-    public AdminController(AdminDao dao, ApplicationEventPublisher events) {
+    private final MediaStorage storage;
+    private final PhotoIngest ingest;
+
+    public AdminController(
+            AdminDao dao, ApplicationEventPublisher events, MediaStorage storage, PhotoIngest ingest) {
         this.dao = dao;
         this.events = events;
+        this.storage = storage;
+        this.ingest = ingest;
     }
 
     public record StatusRequest(String status) {}
@@ -118,6 +132,91 @@ public class AdminController {
         // withdrawn must stop being visible to them.
         events.publishEvent(new RecipeChanged());
         return ResponseEntity.noContent().build();
+    }
+
+    // --- photographs ------------------------------------------------------
+
+    /**
+     * The first untrusted file this site accepts (ADR 8).
+     *
+     * <p>A PUT and not a POST: a recipe has one photograph, and uploading again
+     * replaces it rather than adding a second. Nothing about the upload is
+     * believed — {@link PhotoIngest} decides what is an image, and the name the
+     * file is stored under is built here from the recipe key and a digest of
+     * what was actually written, never from what the caller called it.
+     *
+     * <p>The digest in the name is doing two jobs. It cannot collide across
+     * recipes, and it changes whenever the bytes do, which is what lets
+     * {@link fr.bonapphedi.media.MediaController} cache aggressively without a
+     * replacement being invisible behind it.
+     */
+    @PutMapping(value = "/recipes/{key}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Dto.AdminPhoto photo(@PathVariable String key, @RequestPart("file") MultipartFile file) throws IOException {
+        if (dao.recipeIdFor(key).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        PhotoIngest.Photograph photo;
+        try {
+            photo = ingest.accept(file.getBytes());
+        } catch (PhotoIngest.Refused refused) {
+            throw new ResponseStatusException(refused.status, refused.getMessage());
+        }
+
+        String name = fileNameFor(key, photo.jpeg());
+        Optional<String> previous = dao.imageFileFor(key);
+
+        // Written before the row moves, so the row never names a file that is
+        // not there yet. The other order fails as a broken image on the live
+        // site; this one fails as an orphan nobody sees.
+        storage.store(name, photo.jpeg());
+        dao.setImage(key, name, photo.width(), photo.height(), photo.dominant());
+        previous.filter(old -> !old.equals(name)).ifPresent(storage::delete);
+
+        // og:image, the JSON-LD image and the sitemap all carry this, and all
+        // three are cached.
+        events.publishEvent(new RecipeChanged());
+
+        return new Dto.AdminPhoto(MediaStorage.urlFor(name), photo.width(), photo.height(), photo.dominant());
+    }
+
+    /** Back to the generated placeholder panel, which is what no photograph looks like. */
+    @DeleteMapping("/recipes/{key}/photo")
+    public ResponseEntity<Void> removePhoto(@PathVariable String key) {
+        Optional<String> previous = dao.imageFileFor(key);
+        if (!dao.clearImage(key)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        previous.ifPresent(storage::delete);
+        events.publishEvent(new RecipeChanged());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Keys are slugs and have always been, so this changes nothing today. It is
+     * here because the name reaches the filesystem: the day a key is allowed a
+     * character that means something to a path, this is what stops it meaning
+     * it.
+     */
+    private static String fileNameFor(String key, byte[] jpeg) {
+        String safe = key.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9-]", "");
+        if (safe.isBlank()) safe = "photo";
+
+        return safe + '-' + digest(jpeg) + ".jpg";
+    }
+
+    private static String digest(byte[] bytes) {
+        try {
+            byte[] sum = java.security.MessageDigest.getInstance("SHA-256").digest(bytes);
+            StringBuilder hex = new StringBuilder(8);
+            for (int i = 0; i < 4; i++) hex.append(String.format("%02x", sum[i]));
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            // SHA-256 is required of every JVM, so this is unreachable rather
+            // than unhandled.
+            throw new IllegalStateException(e);
+        }
     }
 
     // --- moderation -------------------------------------------------------

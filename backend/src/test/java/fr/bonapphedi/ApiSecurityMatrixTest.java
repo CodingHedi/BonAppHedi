@@ -94,6 +94,8 @@ class ApiSecurityMatrixTest {
             "GET /api/admin/recipes/{key}",
             "PUT /api/admin/recipes",
             "PUT /api/admin/recipes/{key}/status",
+            "PUT /api/admin/recipes/{key}/photo",
+            "DELETE /api/admin/recipes/{key}/photo",
             "GET /api/admin/comments/pending",
             "POST /api/admin/comments/{id}/moderate",
             "GET /api/admin/stats");

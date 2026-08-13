@@ -489,6 +489,54 @@ public class AdminDao {
                 > 0;
     }
 
+    // --- photographs ------------------------------------------------------
+
+    /**
+     * The file currently on the recipe, if any. Read before a replacement so
+     * the one being replaced can be deleted: uploads are the first state here
+     * that grows without bound, and every copy of it has to be backed up.
+     */
+    public Optional<String> imageFileFor(String key) {
+        return jdbc.sql("SELECT image_file FROM recipe WHERE key = ?")
+                .param(key)
+                .query(String.class)
+                .optional();
+    }
+
+    /**
+     * A bare filename, never a path — the schema comment on
+     * {@code V8__recipe_image.sql} is the contract, and the serving side
+     * resolves it against one directory and refuses anything that escapes.
+     */
+    public boolean setImage(String key, String file, int width, int height, String dominant) {
+        return jdbc.sql(
+                                """
+                                UPDATE recipe SET image_file = :file, image_width = :width,
+                                                  image_height = :height, image_dominant = :dominant
+                                WHERE key = :key
+                                """)
+                        .param("file", file)
+                        .param("width", width)
+                        .param("height", height)
+                        .param("dominant", dominant)
+                        .param("key", key)
+                        .update()
+                > 0;
+    }
+
+    /** All four columns together: geometry describing no photograph is worse than none. */
+    public boolean clearImage(String key) {
+        return jdbc.sql(
+                                """
+                                UPDATE recipe SET image_file = NULL, image_width = NULL,
+                                                  image_height = NULL, image_dominant = NULL
+                                WHERE key = :key
+                                """)
+                        .param("key", key)
+                        .update()
+                > 0;
+    }
+
     // --- moderation -------------------------------------------------------
 
     /** Oldest first: a queue is worked through, unlike a thread, which is read. */

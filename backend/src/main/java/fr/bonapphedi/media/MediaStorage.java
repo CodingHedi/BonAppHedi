@@ -99,6 +99,39 @@ public class MediaStorage {
     }
 
     /**
+     * Writes a photograph under a name this class has resolved, replacing any
+     * file already there.
+     *
+     * <p>The name is checked the same way a read is, and for a stronger reason:
+     * a write that escapes the directory does not return the wrong bytes, it
+     * puts attacker-chosen bytes at an attacker-chosen path. Callers here build
+     * the name themselves rather than taking it from the upload, so this is the
+     * second lock again — but it is the one that would matter.
+     */
+    public void store(String name, byte[] bytes) throws IOException {
+        Path target = resolve(name);
+        if (target == null) throw new IOException("refusing to write outside the media directory: " + name);
+
+        Files.createDirectories(root);
+        Files.write(target, bytes);
+    }
+
+    /** Quietly does nothing for a name that is absent or not ours to delete. */
+    public void delete(String name) {
+        Path target = resolve(name);
+        if (target == null) return;
+
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException e) {
+            // Worth saying and not worth failing an upload over: the row has
+            // already moved on, so the consequence is an orphaned file rather
+            // than a photograph nobody can see.
+            log.error("Could not delete the photograph {}", target, e);
+        }
+    }
+
+    /**
      * Resolves a name to a readable file inside the directory, or empty.
      *
      * <p>Empty covers "does not exist" and "is not inside the directory" alike,
@@ -112,11 +145,23 @@ public class MediaStorage {
      * lock rather than the only one.
      */
     public Optional<Path> find(String name) {
-        Path candidate = root.resolve(name).toAbsolutePath().normalize();
+        Path candidate = resolve(name);
 
-        if (!candidate.startsWith(root)) return Optional.empty();
+        if (candidate == null) return Optional.empty();
         if (!Files.isRegularFile(candidate) || !Files.isReadable(candidate)) return Optional.empty();
 
         return Optional.of(candidate);
+    }
+
+    /**
+     * The containment check itself, shared by every path in and out. Null means
+     * the name resolved outside the directory, whatever it did to get there — a
+     * name carrying separators, a symlink out of the tree, an absolute path.
+     */
+    private Path resolve(String name) {
+        if (name == null || name.isBlank()) return null;
+
+        Path candidate = root.resolve(name).toAbsolutePath().normalize();
+        return candidate.startsWith(root) ? candidate : null;
     }
 }
