@@ -117,6 +117,28 @@ class SitemapAndRssTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_XML));
     }
 
+    @Test
+    void tellsCrawlersWhereTheSitemapIs() throws Exception {
+        // The conventional way a sitemap is found at all. Search Console is the
+        // other, and it only covers the one crawler that has been told.
+        mvc.perform(get("/robots.txt"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN))
+                // Absolute, which the directive requires - a relative path is
+                // ignored rather than resolved.
+                .andExpect(content().string(containsString("Sitemap: https://bonapphedi.fr/sitemap.xml")));
+    }
+
+    @Test
+    void invitesCrawlersToTheWholeSite() throws Exception {
+        // Worth asserting rather than assuming: a stray "Disallow: /" is the
+        // single line that removes a site from search entirely, and nothing
+        // else in the application would notice it had.
+        Assertions.assertThat(body(get("/robots.txt")))
+                .contains("User-agent: *")
+                .doesNotContain("Disallow: /\n");
+    }
+
     // --- the feeds --------------------------------------------------------
 
     @Test
