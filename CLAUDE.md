@@ -141,14 +141,24 @@ can happen by accident:
 
 ```powershell
 # useMocks: false in src/environments/environment.development.ts, then
-.\scripts\dev.ps1 -Fresh
+.\scripts\dev.ps1 -Fresh -Acceptance
 cd frontend ; $env:PW_TARGET = 'real' ; npx playwright test --workers=1
 ```
 
-**88 of 132 as of 2026-07-28**, and every failure accounted for in TESTING.md —
-40 need a session, 2 want a second provider, 2 trip over state the run itself
-left. Without `PW_TARGET=real` the suite serves its own mocked build on 4300 and
-measures nothing; without `-Fresh` the number drifts.
+**153 of 154 as of 2026-08-08**, the single remaining failure left red on
+purpose — it asserts something true of a mock and false of real OAuth. TESTING.md
+has the detail and is the copy to trust.
+
+Three flags, and dropping any one of them measures nothing. Without
+`PW_TARGET=real` the suite serves its own mocked build on 4300; without `-Fresh`
+the number drifts, because the previous run left state behind; without
+`-Acceptance` sign-in points at Google rather than the local OIDC issuer and
+every spec needing a session dies at a consent screen no automated browser is
+allowed to pass.
+
+**The suite has grown since that measurement** — 169 specs now — so the next
+real run will report different totals. Re-measure rather than adjusting the
+number here to match.
 
 Flipping `environment.development.ts` is how you point the *dev loop* at the real
 API, and leaving it flipped is harmless — `verify` is pinned to the mocks by port
@@ -179,7 +189,7 @@ what it needs on first run:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 247 tests
+.\mvnw.cmd test          # 290 tests
 .\mvnw.cmd spring-boot:run
 ```
 
