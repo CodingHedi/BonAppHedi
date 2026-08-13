@@ -2,14 +2,24 @@ package fr.bonapphedi;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import fr.bonapphedi.api.RecipeChanged;
+import fr.bonapphedi.auth.AppUser;
+import fr.bonapphedi.auth.AppUserPrincipal;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -33,6 +43,35 @@ class RecipeMetadataTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private JdbcClient jdbc;
+
+    @Autowired
+    private ApplicationEventPublisher events;
+
+    /**
+     * One test withdraws a recipe, so the seeded status is put back rather than
+     * assumed — otherwise the second run of the suite starts where the first one
+     * stopped, and the failure lands on whichever test happens to read that
+     * recipe first.
+     *
+     * <p>The row alone is not enough. The metadata cache outlives a write that
+     * goes round the admin endpoint, so restoring by SQL and not saying so would
+     * leave the cache holding the withdrawn page and fail the next test for a
+     * reason that has nothing to do with it.
+     */
+    @BeforeEach
+    void putTheWithdrawnRecipeBack() {
+        jdbc.sql("UPDATE recipe SET status = 'PUBLISHED' WHERE key = 'shakshuka'")
+                .update();
+        jdbc.sql("DELETE FROM recipe WHERE key LIKE 'test-%'").update();
+        events.publishEvent(new RecipeChanged());
+    }
+
+    private static AppUserPrincipal admin() {
+        return new AppUserPrincipal(new AppUser(1, "google", "g-1", "Hédi", "hedi@example.com", true));
+    }
 
     @Test
     void putsTheRecipeInTheTitleAndDescription() throws Exception {
@@ -89,6 +128,96 @@ class RecipeMetadataTest {
         mvc.perform(get("/fr/recettes/pas-une-recette"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("application/ld+json"))));
+    }
+
+    @Test
+    void anEditReachesTheServedHtml() throws Exception {
+        // The cache is keyed per (slug, locale) and the shell never changes, so
+        // without invalidation a stale title outlives the edit until the next
+        // restart — invisible from the admin, which reads the API and never the
+        // served HTML.
+        //
+        // Withdrawing rather than renaming, because it exercises the harder
+        // half: the metadata has to *stop* being emitted, and a cache that only
+        // refreshed on content would happily keep serving a withdrawn recipe to
+        // exactly the crawlers this layer feeds.
+        mvc.perform(get("/fr/recettes/chakchouka"))
+                .andExpect(content().string(containsString("application/ld+json")));
+
+        setStatus("shakshuka", "DRAFT");
+
+        mvc.perform(get("/fr/recettes/chakchouka"))
+                .andExpect(content().string(not(containsString("application/ld+json"))));
+
+        // And back, because a cache that empties once is not the same as one
+        // that tracks. Publishing has to reach the served HTML too - a recipe
+        // that went live and stayed invisible to crawlers is the failure this
+        // layer exists to prevent.
+        setStatus("shakshuka", "PUBLISHED");
+
+        mvc.perform(get("/fr/recettes/chakchouka"))
+                .andExpect(content().string(containsString("application/ld+json")));
+    }
+
+    @Test
+    void aNewRecipeReachesAnAddressSomebodyHasAlreadyVisited() throws Exception {
+        // The save path rather than the status one, and a URL that was read
+        // before the recipe existed. An unknown slug is answered with the plain
+        // shell and that answer is cached like any other, so without
+        // invalidation here a newly published recipe stays invisible at exactly
+        // the address that was shared before it went up - and stays that way
+        // until the next restart.
+        mvc.perform(get("/fr/recettes/tarte-de-test"))
+                .andExpect(content().string(not(containsString("application/ld+json"))));
+
+        mvc.perform(put("/api/admin/recipes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draft())
+                        .with(oauth2Login().oauth2User(admin()))
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(get("/fr/recettes/tarte-de-test"))
+                .andExpect(content().string(containsString("<title>Tarte de test")))
+                .andExpect(content().string(containsString("application/ld+json")));
+    }
+
+    private static String draft() {
+        return """
+                {
+                  "key": "test-metadata",
+                  "status": "PUBLISHED",
+                  "tagKeys": ["dessert"],
+                  "prepMinutes": 20,
+                  "cookMinutes": 40,
+                  "difficulty": 2,
+                  "baseServings": 4,
+                  "youtubeVideoId": null,
+                  "ingredients": [
+                    {"baseQuantity": 250, "unit": "g", "scalable": true,
+                     "t": {"fr": {"name": "Farine", "note": null}, "en": {"name": "Flour", "note": null}}}
+                  ],
+                  "steps": [
+                    {"durationMinutes": 10, "videoOffsetSeconds": null,
+                     "t": {"fr": {"body": "Mélanger."}, "en": {"body": "Mix."}}}
+                  ],
+                  "t": {
+                    "fr": {"slug": "tarte-de-test", "title": "Tarte de test", "excerpt": "Un dessert",
+                           "bodyMarkdown": "Avec du **beurre**."},
+                    "en": {"slug": "test-tart", "title": "Test tart", "excerpt": "A dessert",
+                           "bodyMarkdown": "With **butter**."}
+                  }
+                }
+                """;
+    }
+
+    private void setStatus(String key, String status) throws Exception {
+        mvc.perform(put("/api/admin/recipes/" + key + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"" + status + "\"}")
+                        .with(oauth2Login().oauth2User(admin()))
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
     }
 
     @Test

@@ -3,6 +3,7 @@ package fr.bonapphedi.api;
 import fr.bonapphedi.admin.AdminDao;
 import java.util.List;
 import java.util.Set;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,8 +37,18 @@ public class AdminController {
 
     private final AdminDao dao;
 
-    public AdminController(AdminDao dao) {
+    /**
+     * An event rather than a call into whatever caches recipes, so this class
+     * keeps knowing only about saving. {@code IndexHtmlController} holds a
+     * per-recipe metadata cache and has to drop it here — a stale
+     * {@code <title>} outlives the edit that changed it and is invisible from
+     * the admin, because the editor reads the API and never the served HTML.
+     */
+    private final ApplicationEventPublisher events;
+
+    public AdminController(AdminDao dao, ApplicationEventPublisher events) {
         this.dao = dao;
+        this.events = events;
     }
 
     public record StatusRequest(String status) {}
@@ -85,6 +96,7 @@ public class AdminController {
         }
 
         dao.save(draft);
+        events.publishEvent(new RecipeChanged());
         return ResponseEntity.noContent().build();
     }
 
@@ -100,6 +112,11 @@ public class AdminController {
         if (!dao.setStatus(key, body.status())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
+        // Publishing and unpublishing both change what the metadata layer may
+        // emit, so this matters at least as much as an edit: a draft that was
+        // published must stop being invisible to crawlers, and one that was
+        // withdrawn must stop being visible to them.
+        events.publishEvent(new RecipeChanged());
         return ResponseEntity.noContent().build();
     }
 
