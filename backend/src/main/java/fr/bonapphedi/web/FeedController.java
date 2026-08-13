@@ -70,6 +70,30 @@ public class FeedController {
         cache.clear();
     }
 
+    /**
+     * How the sitemap is found at all.
+     *
+     * <p>Served here rather than committed to {@code frontend/public} because
+     * the {@code Sitemap:} directive has to be absolute — a relative path is
+     * ignored rather than resolved — and {@link SiteUrls} is where this
+     * application's absolute addresses live. A static file would be a second
+     * copy of the domain, in the one place nobody would think to change it.
+     *
+     * <p>Nothing is disallowed, deliberately. The admin is behind a role and
+     * naming its paths here would only advertise them; {@code /api} is linked
+     * from nowhere, so no crawler reaches it to begin with; and {@code /media}
+     * is photography of food on a recipe site, which is exactly the thing worth
+     * having in image search.
+     */
+    @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
+    ResponseEntity<String> robots() {
+        String body = "User-agent: *\nAllow: /\n\nSitemap: " + urls.base() + "/sitemap.xml\n";
+
+        return ResponseEntity.ok()
+                .contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8))
+                .body(body);
+    }
+
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
     ResponseEntity<String> sitemap() {
         return xml(cache.computeIfAbsent("sitemap", key -> renderSitemap()), MediaType.APPLICATION_XML);
