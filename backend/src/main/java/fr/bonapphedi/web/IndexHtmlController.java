@@ -2,6 +2,7 @@ package fr.bonapphedi.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.bonapphedi.api.Dto;
+import fr.bonapphedi.api.RecipeChanged;
 import fr.bonapphedi.api.RecipeQueryDao;
 import fr.bonapphedi.api.Viewer;
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -83,8 +85,17 @@ public class IndexHtmlController {
         }
     }
 
-    /** Invalidated on save, which is the only thing that can change a recipe. */
-    public void forget() {
+    /**
+     * Invalidated on save, which is the only thing that can change a recipe.
+     *
+     * <p>Driven by an event rather than called from the admin controller, so
+     * that class keeps knowing only about saving. Without it a stale
+     * {@code <title>} outlives the edit that changed it until the next restart,
+     * and nothing in the admin would show it: the editor reads the API, never
+     * the served HTML.
+     */
+    @EventListener
+    public void forget(RecipeChanged changed) {
         cache.clear();
     }
 
