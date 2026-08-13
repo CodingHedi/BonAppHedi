@@ -10,6 +10,19 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
     <!--
+      How a reader finds the feeds. Both are declared rather than only the
+      French one: a reader on an English page that is offered the French feed
+      has been offered the wrong thing, and there is no negotiation step in
+      which it could find out.
+
+      Served by FeedController, so they answer in the deployed jar and 404
+      under `ng serve` - which is correct rather than unfortunate. Nothing in
+      the app requests them, so no suite is misled by their absence.
+    -->
+    <link rel="alternate" type="application/rss+xml" hreflang="fr" title="Bon App' Hédi" href="/fr/rss.xml" />
+    <link rel="alternate" type="application/rss+xml" hreflang="en" title="Bon App' Hédi" href="/en/rss.xml" />
+
+    <!--
       Blocking, and deliberately placed before the stylesheet.
 
       Without this the page paints in light mode and then snaps to dark once

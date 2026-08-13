@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.MediaType;
@@ -47,7 +46,7 @@ public class IndexHtmlController {
 
     private final RecipeQueryDao recipes;
     private final ObjectMapper json;
-    private final String siteUrl;
+    private final SiteUrls urls;
 
     /**
      * Read once at startup. Null when the jar was built without the frontend —
@@ -64,14 +63,10 @@ public class IndexHtmlController {
      */
     private final Map<String, String> cache = new ConcurrentHashMap<>();
 
-    public IndexHtmlController(
-            RecipeQueryDao recipes,
-            ObjectMapper json,
-            ResourceLoader loader,
-            @Value("${bah.site.url:https://bonapphedi.fr}") String siteUrl) {
+    public IndexHtmlController(RecipeQueryDao recipes, ObjectMapper json, ResourceLoader loader, SiteUrls urls) {
         this.recipes = recipes;
         this.json = json;
-        this.siteUrl = siteUrl.endsWith("/") ? siteUrl.substring(0, siteUrl.length() - 1) : siteUrl;
+        this.urls = urls;
         this.shell = readShell(loader);
     }
 
@@ -124,17 +119,15 @@ public class IndexHtmlController {
         if (found.isEmpty()) return shell;
 
         Dto.RecipeDetail r = found.get();
-        String url = siteUrl + '/' + locale + '/' + (locale.equals("en") ? "recipes" : "recettes") + '/' + r.slug();
+        String url = urls.recipe(locale, r.slug());
 
         StringBuilder head = new StringBuilder(1024);
         head.append("<meta name=\"description\" content=\"").append(escape(r.excerpt())).append("\">\n");
         head.append("<link rel=\"canonical\" href=\"").append(escape(url)).append("\">\n");
 
         for (Dto.LocaleAlternate alt : r.alternates()) {
-            String other = alt.locale();
-            String segment = other.equals("en") ? "recipes" : "recettes";
-            head.append("<link rel=\"alternate\" hreflang=\"").append(other)
-                    .append("\" href=\"").append(escape(siteUrl + '/' + other + '/' + segment + '/' + alt.slug()))
+            head.append("<link rel=\"alternate\" hreflang=\"").append(alt.locale())
+                    .append("\" href=\"").append(escape(urls.recipe(alt.locale(), alt.slug())))
                     .append("\">\n");
         }
 
@@ -148,7 +141,7 @@ public class IndexHtmlController {
         head.append(meta("name", "twitter:description", r.excerpt()));
 
         if (r.image() != null && r.image().url() != null) {
-            String image = siteUrl + r.image().url();
+            String image = urls.base() + r.image().url();
             head.append(meta("property", "og:image", image));
             head.append(meta("property", "og:image:alt", r.image().alt()));
             head.append(meta("name", "twitter:image", image));
@@ -178,7 +171,7 @@ public class IndexHtmlController {
         node.put("recipeYield", String.valueOf(r.baseServings()));
 
         if (r.image() != null && r.image().url() != null) {
-            node.put("image", List.of(siteUrl + r.image().url()));
+            node.put("image", List.of(urls.base() + r.image().url()));
         }
         // ISO-8601 durations, which is the only form Google accepts.
         if (r.prepMinutes() != null) node.put("prepTime", "PT" + r.prepMinutes() + "M");
@@ -223,8 +216,6 @@ public class IndexHtmlController {
 
     /** Attribute-safe. These strings are author-controlled, not visitor-controlled, but they are still content. */
     private static String escape(String value) {
-        return value == null
-                ? ""
-                : value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+        return Xml.escape(value);
     }
 }
