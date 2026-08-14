@@ -28,6 +28,15 @@ npm run verify:prod     # same, e2e against a production build
 
 Reserved for logic that is easy to get subtly wrong and cheap to pin down.
 
+**`npm test` runs once and exits; `npm run test:watch` is the one that stays.**
+That is worth stating because the underlying default does not: Angular's
+`unit-test` builder documents `--watch` as defaulting to *"`true` in TTY
+environments and `false` otherwise"*, so `ng test` on its own ran once in CI and
+sat waiting for a keypress in a terminal. Every chain that contains it —
+`verify`, `verify:prod`, and therefore every deploy — stopped dead after the
+unit tests passed, on a developer's machine and nowhere else. The flag is now
+explicit, so how the command was launched no longer decides what it does.
+
 - **`src/app/shared/format.spec.ts`** — relative time in *both* languages,
   durations, video timestamps. Asserts exact output strings (`il y a 1 mois`,
   `1 month ago`) because the design copy depends on them, and because
