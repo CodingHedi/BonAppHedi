@@ -1,7 +1,13 @@
 import { ChangeDetectionStrategy, Component, input, model } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { UnitLabelPipe } from '../../../shared/pipes';
-import { MAX_SERVINGS, MIN_SERVINGS, clampServings, scaleQuantity } from '../../../shared/scaling';
+import {
+  MAX_SERVINGS,
+  MIN_SERVINGS,
+  type ScaledMeasure,
+  clampServings,
+  scaleMeasure,
+} from '../../../shared/scaling';
 import type { Ingredient } from '../../../core/api/models';
 
 @Component({
@@ -51,8 +57,13 @@ import type { Ingredient } from '../../../core/api/models';
 
             <span class="leader" aria-hidden="true"></span>
 
-            @if (amount(ingredient); as value) {
-              <span class="amount">{{ value }} {{ ingredient.unit | unitLabel }}</span>
+            <!--
+              The unit comes from the scaled measure, not from the ingredient:
+              scaling up can carry a quantity into a bigger unit, and reading
+              ingredient.unit here would print "1.5 g".
+            -->
+            @if (amount(ingredient); as measure) {
+              <span class="amount">{{ measure.value }} {{ measure.unit | unitLabel }}</span>
             }
           </li>
         }
@@ -191,8 +202,8 @@ export class IngredientPanelComponent {
    * Derived on every render rather than stored, so there is exactly one source
    * of truth for a quantity: the base amount and the current serving count.
    */
-  protected amount(ingredient: Ingredient): string | null {
-    return scaleQuantity(
+  protected amount(ingredient: Ingredient): ScaledMeasure | null {
+    return scaleMeasure(
       ingredient.baseQuantity,
       this.baseServings(),
       this.servings(),
