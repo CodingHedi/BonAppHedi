@@ -142,29 +142,64 @@ French site, `check:legal` is a deploy gate because that page once shipped
 incomplete while the site was live, and infinite scroll is the pattern that puts
 a footer permanently out of reach.
 
-### So
+### So — measured 2026-08-17, and the answer is leave it alone
 
-Revisit on a **rendering measurement**, not a recipe count — profile the grid at
-two or three hundred and find out whether it is actually slow.
+`scripts/grid-perf.mjs` profiles the production build against a synthesised
+catalogue. 1440×900, images served locally, three sizes in one run:
 
-**The thing this was waiting for has arrived, as of 2026-08-13.** The entry used
-to say "measure it after milestone 3, not before", because every card was a CSS
-placeholder panel and profiling those would have answered a question nobody was
-going to ask again. Every card now carries a real photograph, in the mocked
-build and the live one alike, so the measurement is finally worth taking:
-decoding and memory go up, and `loading="lazy"` is doing work the panels never
-needed.
+| Recipes | DOM nodes | Load | Frame p50 / p95 / worst | Frames > 32ms | Long tasks |
+|---|---|---|---|---|---|
+| 6 | 278 | 661 ms | 16.7 / 16.8 / 16.8 ms | 0 | none |
+| 100 | 2 346 | 692 ms | 16.7 / 16.7 / 16.8 ms | 0 | none |
+| 300 | 6 746 | 777 ms | 16.7 / 16.7 / 16.8 ms | 0 | one, 55 ms |
 
-Two things to measure alongside the frame times, because they are the reason
-photographs change the answer rather than merely the numbers: how much of the
-grid is decoded before it is scrolled to, and whether `image.ts` reserving its
-box from the stored geometry is in fact costing zero layout shift at width. The
-second is claimed in several places and asserted nowhere.
+**The grid is not slow at 300, and it is not close.** A locked 60 fps through a
+full scroll of the catalogue, not one dropped frame, and 116 ms of extra load
+time for fifty times the recipes. The rendering constraint this entry was
+waiting to find is not there at the sizes this site will plausibly reach, so
+nothing below it triggers: no virtualisation, no infinite scroll, no
+server-side search. Client-side filtering over a whole fetched catalogue is
+comfortably the right design and stays.
 
-If it is slow:
-virtualise rather than infinite-scroll, and keep crawlable paginated URLs
-alongside for Googlebot. That bounds the DOM, keeps search instant, and leaves
-the footer reachable.
+**Lazy loading bounds the decode, and does it independently of catalogue
+size.** 24 of 300 images decoded before a scroll — the same 24 as at 100 — for
+43 MP and 6.8 MB. That is what `loading="lazy"` is worth here, and it means the
+first view costs the same whether the site has a hundred recipes or a thousand.
+
+**Zero layout shift from the cards is real. The reason given for it was not.**
+The page's shift is 0.067 at 6 cards and 0.083 at 300 — essentially flat, and
+no shift is ever attributed to an image, a card or `bah-image`. But three
+places said this worked because `image.ts` reserved the box from the stored
+`width`/`height`, and `image.ts` reads neither. The box is the *caller's*: a
+flat `height: 190px` on the card, `aspect-ratio: 16/9` on the detail page. All
+three comments now say so, and `recipe-list.spec.ts` asserts the box rather
+than the consequence — confirmed to fail by removing the height, which turns
+five identical 190px boxes into five image-shaped ones.
+
+### What the measurement did find
+
+**Bytes, not frames.** A full scroll of 300 recipes transfers 76.6 MB and
+decodes 539 MP, because every card downloads a full-size photograph — 1600px
+wide, 150–425 KB — to fill a box 190px tall. Even the first view is 6.8 MB
+before the visitor touches the wheel. Nothing here is slow on a desktop with a
+local server, and all of it would be felt on a phone.
+
+That is the `srcset` that ADR 8 asked for and did not get: it wants "a bounded
+set of generated derivative sizes", the bound is currently one, and
+`PhotoIngest` records the narrowing. **This is the entry that should be picked
+up next**, and it is a different piece of work from anything above — it belongs
+to the images, not to the list.
+
+**The footer is most of the page's CLS**, at every catalogue size: 0.066 of the
+0.083, attributed to `bah-site-footer` at ~100 ms, when the loading skeleton is
+replaced by content taller than it and the footer stops sitting at the bottom
+of the viewport. Under the 0.1 "good" threshold and therefore not urgent, but
+it is the largest single shift on the page and it has nothing to do with the
+grid.
+
+If a rendering constraint ever does appear: virtualise rather than
+infinite-scroll, and keep crawlable paginated URLs alongside for Googlebot.
+That bounds the DOM, keeps search instant, and leaves the footer reachable.
 
 If search ever does have to move, the middle path is worth remembering: fetch a
 **slim index** for searching — `slug`, `title`, `searchText`, about a third the
