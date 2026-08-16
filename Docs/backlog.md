@@ -41,9 +41,12 @@ console.error: AbortError: Transition was skipped
 ```
 
 The spec presses the magnifier, clicks a card, then `goBack()` immediately. The
-back navigation supersedes the view transition the forward one started, the
-browser aborts it, and Angular surfaces that as an unhandled rejection. Nothing
-about focus is wrong when this happens.
+back navigation supersedes the view transition the forward one started and the
+browser aborts it. Nothing about focus is wrong when this happens.
+
+*(This paragraph used to end "and Angular surfaces that as an unhandled
+rejection". It does not — see the correction below, which is the reason the
+queued fix was never built.)*
 
 ### Two things this entry used to say that the measurement contradicts
 
@@ -61,23 +64,46 @@ changing** — a spec asserting the right thing is being failed by an error the
 page logged, which is the fixture working as designed on a genuine console
 error.
 
-### The fix is a decision, not a diagnosis
+### The fix that was queued here should not be built — checked 2026-08-17
 
-Two ways, and they are not equivalent:
+This entry used to offer two fixes and recommend the second: *stop a superseded
+transition surfacing as an unhandled error*, on the grounds that it would fix
+"the console of anyone using the site". Both halves of that turn out to be
+wrong, and the recommendation with them.
 
-- **Wait for the transition to settle before `goBack()`.** Confined to the
-  spec, changes no production code, and is arguably honest — no real visitor
-  navigates back within a frame of arriving. It also makes this one spec quiet
-  while leaving every other back-navigation free to log the same error.
-- **Stop a superseded transition surfacing as an unhandled error.** Fixes the
-  cause for every spec and for the console of anyone using the site, which is
-  where it actually belongs — a transition that was skipped because a newer
-  navigation replaced it is normal, not a fault.
+**It is not an unhandled rejection.** `createViewTransition` in
+`@angular/router` already attaches a `.catch()` to all three of
+`updateCallbackDone`, `ready` and `finished`. What it does inside those
+handlers is `console.error(error)` — deliberately, and **only when `ngDevMode`
+is true**:
 
-The second is almost certainly right, and it is the one that needs care: it
-touches what the e2e fixture guarantees, and `CLAUDE.md` calls failing on
-console errors the highest-value behaviour in the suite. Narrow it to this
-rejection rather than relaxing the fixture.
+```js
+transition.finished.catch(error => {
+  if (typeof ngDevMode === 'undefined' || ngDevMode) {
+    console.error(error);
+  }
+});
+```
+
+So there is nothing to catch that Angular has not caught. A `.catch()` of our
+own, in `onViewTransitionCreated` or anywhere else, attaches to a different
+promise chain and would not stop Angular logging on its own.
+
+**And it cannot reach a visitor.** `ngDevMode` is false in a production build,
+so the message exists in the e2e configuration and in `npm start`, and nowhere
+that anyone visits. The argument for putting production code in the way of it
+was the one thing that made this worth doing, and it was not true.
+
+**It also no longer reproduces.** Eight runs on 2026-08-17, `--workers=1`,
+clicking a card and calling `history.back()` inside the same frame — a harder
+provocation than the deleted spec ever applied — logged nothing at all.
+
+So: build nothing. If it does come back, the answer is a narrowly worded entry
+in `IGNORED` in `frontend/e2e/fixtures.ts`, which is what that list is for and
+is now a justified use of it rather than the fixture-weakening this entry once
+called it: a framework logging a normal navigation outcome, in dev builds only,
+is browser noise by the definition already written there. What must not happen
+is production code added to suppress a message production never emits.
 
 ## Infinite scroll, virtualisation, and what would force search server-side
 
