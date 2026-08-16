@@ -126,11 +126,15 @@ export interface SeedRecipe {
    * no backend to serve them there. In production the same paths are answered
    * by `MediaController` from disk. Two servers, one URL shape.
    *
-   * **The dimensions are not decoration.** `image.ts` reserves its box from
-   * them, which is what makes a photograph cost zero layout shift, and
-   * `dominant` tints that box while the bytes are in flight. A mock carrying
-   * only the URL would leave both untested here and working only in production
-   * — the wrong way round, since this is the build the suite runs against.
+   * **The dimensions mirror the API and nothing on this side reads them.**
+   * This used to say `image.ts` reserved its box from them and that `dominant`
+   * tinted that box; neither is true — `image.ts` takes only `url` and `alt`,
+   * the box belongs to whichever slot the image sits in, and the placeholder
+   * tint is a hue hashed from the label. Checked 2026-08-17.
+   *
+   * They are still worth carrying, for the reason the rest of this comment
+   * gives: a mock that disagrees with the API in shape is a mock that stops
+   * being able to catch the day something starts reading them.
    *
    * Absent means the placeholder panel, which is what an unphotographed recipe
    * still gets.

@@ -10,8 +10,18 @@ import type { ImageRef } from '../../../core/api/models';
  * look deliberate rather than broken: a warm washed panel, a dashed inner
  * border and the subject's name, echoing the prototype's own placeholder.
  *
- * The box always reserves its space via `aspect-ratio`, so dropping in real
- * photos later causes zero layout shift.
+ * **The box is the caller's, not this component's.** Every slot gives it a
+ * definite size — the card's `.media` a flat 190px, the detail page's a 16/9
+ * `aspect-ratio`, an avatar a pixel square — and the image is stretched to fill
+ * whatever that is. Which is what makes a photograph arriving cost zero layout
+ * shift, measured 2026-08-17 at 6, 100 and 300 cards (`scripts/grid-perf.mjs`):
+ * the page's shift was identical at all three and never once attributed to an
+ * image.
+ *
+ * This used to claim the reservation happened here, via `aspect-ratio`. It does
+ * not, and the distinction matters to anyone adding a fourth slot: put
+ * `bah-image` in a box of indeterminate height and nothing in this file will
+ * save you. `width` and `height` on the `ImageRef` are not read at all.
  */
 @Component({
   selector: 'bah-image',

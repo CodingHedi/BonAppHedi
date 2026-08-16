@@ -228,4 +228,37 @@ test.describe('recipe list', () => {
     await page.locator('bah-recipe-card').filter({ hasText: 'Babka au chocolat' }).click();
     await expect(page).toHaveURL(/\/fr\/recettes\/babka-au-chocolat$/);
   });
+
+  test('a card reserves its image box whether or not the photograph arrives', async ({ page }) => {
+    // Why this is asserted on the box and not on a layout-shift number: a
+    // photograph costing zero shift is the *consequence*, and it cannot be made
+    // to fail here. Removing the reservation does not produce a shift, it
+    // produces a card that is the wrong size from the first paint onwards - so
+    // a CLS assertion stays green through exactly the regression it was written
+    // for. Measured 2026-08-17 by breaking it on purpose; see
+    // scripts/grid-perf.mjs, which found the page's shift identical at 6, 100
+    // and 300 cards and never once attributed to an image.
+    //
+    // The mechanism is .media's fixed 190px, not anything image.ts does with
+    // the stored width and height - it never reads them. So the box is asserted
+    // directly: 190 regardless of what is inside it, which is what makes the
+    // arrival of a photograph a non-event.
+    //
+    // Blocking the images to prove the point is what the fixture is for and
+    // must not be worked around: an aborted request logs a console error, and
+    // that is a genuine failure signal being borrowed for a convenience.
+    // The photographs here have three different aspect ratios, so a box sized
+    // by its image could not be 190 for all of them anyway.
+    const cards = page.locator('bah-recipe-card');
+    await expect(cards.first()).toBeVisible();
+
+    const heights = await cards
+      .locator('.media')
+      .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
+
+    // Five seeded published recipes, five identical boxes. Written out rather
+    // than derived from `heights`, so an empty grid fails here instead of
+    // satisfying the assertion with nothing in it.
+    expect(heights).toEqual([190, 190, 190, 190, 190]);
+  });
 });
