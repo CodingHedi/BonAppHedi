@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, resource } from '@angular/c
 import { TranslocoPipe } from '@jsverse/transloco';
 import { ADMIN_API } from '../../../core/api/admin-api';
 import { LocaleService } from '../../../core/i18n/locale.service';
+import { decimal } from '../../../shared/format';
 
 /**
  * What the site has accumulated.
@@ -137,7 +138,10 @@ export class AnalyticsComponent {
     loader: ({ params }) => this.api.stats(params.locale),
   });
 
+  // Same rule as the recipe page, and the same reason: these tiles render
+  // through `recipe.ratingSummary`, so a toFixed here would print "4.5 / 5" on
+  // a console that writes every other number French.
   protected average(value: number): string {
-    return value.toFixed(1);
+    return decimal(value, this.locale.locale(), 1, 1);
   }
 }

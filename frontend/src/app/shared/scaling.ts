@@ -11,31 +11,28 @@
  *     reads "375 g" rather than "375.0 g"
  */
 
+import type { Locale } from '../core/i18n/locale';
+import { decimal } from './format';
+
 /** Units counted in whole items rather than measured. */
 const COUNTABLE_UNITS = new Set(['pc', 'pcs']);
 
 /**
- * Metric units that have a bigger sibling to graduate into once a scaled-up
- * recipe crosses 1000 of them.
+ * Metric units that have a bigger sibling to graduate into, and how many of
+ * the small one make up the big one.
  *
- * Deliberately only these two. `cl` has a litre above it as well, but nothing
- * asked for that and adding it would silently restate amounts on recipes nobody
- * complained about; the same goes downward, where 0.5 g does not become 500 mg.
- * A new row here is a decision, not a completion.
+ * The ratio is per-row rather than a shared 1000, because centilitres reach a
+ * litre at 100. Getting that wrong would hold 5 litres of stock at "500 cl".
+ *
+ * Only these three graduate. Nothing goes downward — 0.5 g does not become
+ * 500 mg — and the units without a metric sibling (tbsp, pinch, pc) are left
+ * alone. A new row here is a decision, not a completion.
  */
 const METRIC_STEPS: readonly { from: string; to: string; per: number }[] = [
   { from: 'g', to: 'kg', per: 1000 },
   { from: 'ml', to: 'l', per: 1000 },
+  { from: 'cl', to: 'l', per: 100 },
 ];
-
-/**
- * Up to two decimals, never padded. One is not enough: 1234 g shown as "1.2 kg"
- * quietly loses 34 g of flour, which is the kind of error a scaled-up bake
- * actually notices.
- */
-function formatConverted(value: number): string {
-  return String(Number(value.toFixed(2)));
-}
 
 export const MIN_SERVINGS = 1;
 export const MAX_SERVINGS = 12;
@@ -72,6 +69,7 @@ export function scaleMeasure(
   baseServings: number,
   servings: number,
   unit: string,
+  locale: Locale,
   scalable = true,
 ): ScaledMeasure | null {
   if (baseQuantity === null) return null;
@@ -80,14 +78,16 @@ export function scaleMeasure(
   const perServing = baseServings > 0 ? baseQuantity / baseServings : baseQuantity;
   const value = scalable ? perServing * servings : baseQuantity;
 
-  if (COUNTABLE_UNITS.has(unit)) return { value: String(Math.round(value)), unit };
+  if (COUNTABLE_UNITS.has(unit)) return { value: decimal(Math.round(value), locale, 0), unit };
 
   // The unit field in the editor is free text, so 'G' and 'mL' both get here.
   const key = unit.trim().toLowerCase();
   const step = METRIC_STEPS.find((s) => s.from === key);
   if (step && value >= step.per) {
-    return { value: formatConverted(value / step.per), unit: step.to };
+    // Two decimals rather than the one used below: 1234 g shown as "1,2 kg"
+    // quietly loses 34 g of flour, which a scaled-up bake notices.
+    return { value: decimal(value / step.per, locale, 2), unit: step.to };
   }
 
-  return { value: Number.isInteger(value) ? String(value) : value.toFixed(1), unit };
+  return { value: decimal(value, locale), unit };
 }

@@ -263,9 +263,9 @@
   "units": {
     "g": "g",
     "kg": "kg",
-    "ml": "ml",
-    "cl": "cl",
-    "l": "l",
+    "ml": "mL",
+    "cl": "cL",
+    "l": "L",
     "pc": "pc",
     "tbsp": "c. à s.",
     "tsp": "c. à c.",
