@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input, model } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, model } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { LocaleService } from '../../../core/i18n/locale.service';
 import { UnitLabelPipe } from '../../../shared/pipes';
 import {
   MAX_SERVINGS,
@@ -186,6 +187,8 @@ import type { Ingredient } from '../../../core/api/models';
   `,
 })
 export class IngredientPanelComponent {
+  private readonly locale = inject(LocaleService);
+
   protected readonly MIN = MIN_SERVINGS;
   protected readonly MAX = MAX_SERVINGS;
 
@@ -208,6 +211,7 @@ export class IngredientPanelComponent {
       this.baseServings(),
       this.servings(),
       ingredient.unit,
+      this.locale.locale(),
       ingredient.scalable,
     );
   }

@@ -82,17 +82,17 @@ test.describe('rating', () => {
     await page.goto(BABKA);
 
     // Seeded at 4.0 from a single vote.
-    await expect(page.locator('.meta')).toContainText('4.0 / 5');
+    await expect(page.locator('.meta')).toContainText('4,0 / 5');
     await expect(page.locator('.meta')).toContainText('1 avis');
 
     await page.getByRole('radio', { name: '5 étoiles' }).click();
     await expect(page.locator('.meta')).toContainText('2 avis');
-    await expect(page.locator('.meta')).toContainText('4.5 / 5');
+    await expect(page.locator('.meta')).toContainText('4,5 / 5');
 
     // Changing your mind must move the average without adding a third vote.
     await page.getByRole('radio', { name: '2 étoiles' }).click();
     await expect(page.locator('.meta')).toContainText('2 avis');
-    await expect(page.locator('.meta')).toContainText('3.0 / 5');
+    await expect(page.locator('.meta')).toContainText('3,0 / 5');
   });
 
   test('the stars show your own score back, not the crowd average', async ({ page }) => {

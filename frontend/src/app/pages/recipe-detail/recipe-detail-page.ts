@@ -25,6 +25,7 @@ import { ReactionBarComponent } from './reaction-bar/reaction-bar';
 import { CommentSectionComponent } from './comment-section/comment-section';
 import { TagChipComponent } from '../../shared/ui/tag-chip/tag-chip';
 import { MarkdownComponent } from '../../shared/ui/markdown/markdown';
+import { decimal } from '../../shared/format';
 import { RelativeTimePipe } from '../../shared/pipes';
 import { clampServings } from '../../shared/scaling';
 import { StarRatingComponent } from './star-rating/star-rating';
@@ -452,7 +453,11 @@ export class RecipeDetailPage {
     () => this.reactionOverride() ?? this.recipe.value()?.reactions ?? { count: 0, reacted: false },
   );
 
-  protected readonly average = computed(() => this.rating().average.toFixed(1));
+  // toFixed would print "4.5" on the French page, where a rating is written
+  // "4,5" like every other decimal on it.
+  protected readonly average = computed(() =>
+    decimal(this.rating().average, this.localeService.locale(), 1, 1),
+  );
 
   constructor() {
     // Reset to the recipe's own base count when a different recipe loads, so a

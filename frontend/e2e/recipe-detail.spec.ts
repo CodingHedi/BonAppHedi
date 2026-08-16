@@ -11,7 +11,7 @@ test.describe('recipe detail', () => {
     await page.goto(BABKA);
 
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Babka au chocolat');
-    await expect(page.getByText('4.0 / 5')).toBeVisible();
+    await expect(page.getByText('4,0 / 5')).toBeVisible();
     await expect(page.getByText('Par Hédi')).toBeVisible();
     await expect(page.locator('bah-step-list li')).toHaveCount(5);
     await expect(page.locator('bah-ingredient-panel li')).toHaveCount(7);
@@ -67,7 +67,7 @@ test.describe('recipe detail', () => {
         '7 g',
         '2 pc',
         '40 g',
-        '80 ml',
+        '80 mL',
       ]);
 
       await page.getByRole('button', { name: 'Augmenter le nombre de portions' }).click();
@@ -76,10 +76,10 @@ test.describe('recipe detail', () => {
         '375 g',
         '150 g',
         '90 g',
-        '10.5 g',
+        '10,5 g',
         '3 pc',
         '60 g',
-        '120 ml',
+        '120 mL',
       ]);
     });
 
@@ -128,11 +128,11 @@ test.describe('recipe detail', () => {
 
       for (let i = 0; i < 4; i++) await increase.click();
       await expect(servings).toHaveText('12');
-      await expect(flour).toHaveText('1.5 kg');
+      await expect(flour).toHaveText('1,5 kg');
 
       // The milk is the millilitre half of the same rule: 80 ml at 2 servings
       // never reaches a litre on this recipe, so it must stay in millilitres.
-      await expect(page.locator('bah-ingredient-panel .amount').nth(6)).toHaveText('480 ml');
+      await expect(page.locator('bah-ingredient-panel .amount').nth(6)).toHaveText('480 mL');
     });
   });
 

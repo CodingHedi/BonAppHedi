@@ -1,6 +1,33 @@
 import type { Locale } from '../core/i18n/locale';
 
 /**
+ * A number as the reader's language writes it: French uses a comma for the
+ * decimal mark, so 10.5 g of yeast is "10,5 g" on the French page and
+ * "10.5 g" on the English one.
+ *
+ * `useGrouping: false` on purpose. Turning it on would also restyle the
+ * thousands — "1 500 pc" where the page has always said "1500 pc" — and that
+ * is a separate decision from the decimal mark.
+ *
+ * The minimum defaults to 0, so a trailing zero is never padded on and 2 stays
+ * "2" rather than becoming "2,0". A rating passes 1 for both, because "4,0 / 5"
+ * is how that control is drawn and dropping to "4 / 5" would make the score
+ * jump a character wider and narrower as votes land.
+ */
+export function decimal(
+  value: number,
+  locale: Locale,
+  maximumFractionDigits = 1,
+  minimumFractionDigits = 0,
+): string {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits,
+    maximumFractionDigits,
+    useGrouping: false,
+  }).format(value);
+}
+
+/**
  * Relative time, e.g. "il y a 4 jours" / "4 days ago".
  *
  * `numeric: 'always'` is load-bearing. With the default 'auto', Intl produces

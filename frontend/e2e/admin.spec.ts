@@ -176,7 +176,7 @@ test.describe('recipe editor', () => {
     // Scoped to the detail page: `.meta` also exists on every list card, so an
     // unscoped locator matches five things and asserts nothing.
     const meta = page.locator('bah-recipe-detail-page .meta');
-    await expect(meta).toContainText('4.0 / 5');
+    await expect(meta).toContainText('4,0 / 5');
     await expect(meta).toContainText('1 avis');
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { relativeTime, splitDuration, videoTimestamp } from './format';
+import { decimal, relativeTime, splitDuration, videoTimestamp } from './format';
 
 const NOW = new Date('2026-07-25T12:00:00.000Z');
 const ago = (ms: number) => new Date(NOW.getTime() - ms).toISOString();
@@ -8,6 +8,39 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
+
+describe('decimal', () => {
+  it('writes the decimal mark the way each language does', () => {
+    expect(decimal(10.5, 'fr')).toBe('10,5');
+    expect(decimal(10.5, 'en')).toBe('10.5');
+  });
+
+  it('never pads a trailing zero by default', () => {
+    // "375,0 g" of flour is a quantity nobody writes down.
+    expect(decimal(375, 'fr')).toBe('375');
+    expect(decimal(375, 'en')).toBe('375');
+  });
+
+  it('pads when a minimum is asked for, which is what a rating needs', () => {
+    // "4 / 5" and "4,5 / 5" side by side would make the score jump a character
+    // wider and narrower as votes land.
+    expect(decimal(4, 'fr', 1, 1)).toBe('4,0');
+    expect(decimal(4, 'en', 1, 1)).toBe('4.0');
+  });
+
+  it('never groups the thousands', () => {
+    // The French grouping separator is a narrow no-break space and the English
+    // one a comma — and a comma there reads as a decimal mark to a French
+    // reader, which is the exact confusion this helper exists to remove.
+    expect(decimal(1500, 'fr')).toBe('1500');
+    expect(decimal(1500, 'en')).toBe('1500');
+  });
+
+  it('rounds to the requested number of decimals rather than truncating', () => {
+    expect(decimal(1.239, 'en', 2)).toBe('1.24');
+    expect(decimal(1.25, 'en', 1)).toBe('1.3');
+  });
+});
 
 describe('relativeTime', () => {
   it('returns null under a minute so the caller can say "just now"', () => {
