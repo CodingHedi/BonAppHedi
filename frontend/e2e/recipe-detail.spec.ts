@@ -110,6 +110,30 @@ test.describe('recipe detail', () => {
       await expect(output).toHaveText('12');
       await expect(increase).toBeDisabled();
     });
+
+    test('graduates into kilograms and litres as the recipe grows', async ({ page }) => {
+      await page.goto(BABKA);
+      const increase = page.getByRole('button', { name: 'Augmenter le nombre de portions' });
+      const servings = page.locator('bah-ingredient-panel output');
+      const flour = page.locator('bah-ingredient-panel .amount').first();
+
+      // The specs above stop at 3 servings, where every amount is still small.
+      // Nothing covered what the panel does once a quantity passes 1000, and
+      // the answer used to be "1500 g".
+      await expect(flour).toHaveText('250 g');
+
+      for (let i = 0; i < 6; i++) await increase.click();
+      await expect(servings).toHaveText('8');
+      await expect(flour).toHaveText('1 kg');
+
+      for (let i = 0; i < 4; i++) await increase.click();
+      await expect(servings).toHaveText('12');
+      await expect(flour).toHaveText('1.5 kg');
+
+      // The milk is the millilitre half of the same rule: 80 ml at 2 servings
+      // never reaches a litre on this recipe, so it must stay in millilitres.
+      await expect(page.locator('bah-ingredient-panel .amount').nth(6)).toHaveText('480 ml');
+    });
   });
 
   test.describe('video facade', () => {
