@@ -4,7 +4,7 @@
  * French copy is transcribed VERBATIM from Docs/Design/index.html (lines
  * 170-186) and recipe.html — it is final design copy, not placeholder text.
  * English is a translation written for this project and should be reviewed by
- * Hédi; it aims to match the French voice (warm, concise, sensory) rather than
+ * Hedi; it aims to match the French voice (warm, concise, sensory) rather than
  * translate it literally.
  *
  * Deliberately shaped like the database will be: a language-neutral record
@@ -71,7 +71,7 @@ export const SEED_TAGS: readonly SeedTag[] = [
 
 export const SEED_AUTHOR = {
   slug: 'hedi',
-  displayName: 'Hédi',
+  displayName: 'Hedi',
   avatarUrl: null,
   t: {
     fr: { bio: 'Je cuisine, je note, je recommence.' },

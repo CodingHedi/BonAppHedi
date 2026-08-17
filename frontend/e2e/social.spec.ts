@@ -155,7 +155,7 @@ test.describe('comments', () => {
     await page.getByRole('button', { name: 'Publier' }).click();
 
     await expect(page.locator('bah-comment-section h2')).toHaveText('3 commentaires');
-    await expect(page.locator('bah-comment-section .comment').first()).toContainText('Hédi');
+    await expect(page.locator('bah-comment-section .comment').first()).toContainText('Hedi');
     await expect(page.locator('bah-comment-section .comment strong').first()).toHaveText(
       'Excellente',
     );

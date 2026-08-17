@@ -181,10 +181,10 @@ describe('PluralTranspiler', () => {
 
     expect(
       say('{{ who }} left {count, plural, one {# note} other {# notes}} today', {
-        who: 'Hédi',
+        who: 'Hedi',
         count: 3,
       }),
-    ).toBe('Hédi left 3 notes today');
+    ).toBe('Hedi left 3 notes today');
   });
 
   it('resolves several plurals in one string, repeatably', () => {

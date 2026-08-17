@@ -54,7 +54,7 @@ async function signedIn(page: Page, avatar: string | null = null) {
       if (localStorage.getItem('bah-mock-session')) return;
       localStorage.setItem(
         'bah-mock-session',
-        JSON.stringify({ id: 'e2e', displayName: 'Hédi', avatar: token, isAdmin: false }),
+        JSON.stringify({ id: 'e2e', displayName: 'Hedi', avatar: token, isAdmin: false }),
       );
     },
     [avatar],
@@ -381,7 +381,7 @@ test.describe('choosing an avatar', () => {
     await page.getByRole('button', { name: 'Publier' }).click();
 
     const own = page.locator('bah-comment-section .comment').first();
-    await expect(own).toContainText('Hédi');
+    await expect(own).toContainText('Hedi');
     await expect(own.locator('bah-avatar .disc svg')).toBeVisible();
   });
 
@@ -409,7 +409,7 @@ test.describe('choosing a display name', () => {
     // A field pre-filled with the provider's name would make the two states
     // indistinguishable and every save a write.
     await expect(nameField(page)).toHaveValue('');
-    await expect(nameField(page)).toHaveAttribute('placeholder', 'Hédi');
+    await expect(nameField(page)).toHaveAttribute('placeholder', 'Hedi');
     await expect(nameBlock(page).getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
   });
 
@@ -465,7 +465,7 @@ test.describe('choosing a display name', () => {
 
     const own = page.locator('bah-comment-section .comment').first();
     await expect(own).toContainText('Le Gourmand');
-    await expect(own).not.toContainText('Hédi');
+    await expect(own).not.toContainText('Hedi');
 
     // Camille is seeded and belongs to nobody, so a rename that reached beyond
     // this account would show up here.
@@ -489,12 +489,12 @@ test.describe('choosing a display name', () => {
     await expect(nameStatus(page)).toHaveText('Nom enregistré.');
 
     await expect(nameField(page)).toHaveValue('');
-    await expect(page.locator('.lead')).toContainText('Hédi');
+    await expect(page.locator('.lead')).toContainText('Hedi');
 
     await page.goto(BABKA);
     await page.locator('bah-comment-section textarea').fill('Un mot.');
     await page.getByRole('button', { name: 'Publier' }).click();
-    await expect(page.locator('bah-comment-section .comment').first()).toContainText('Hédi');
+    await expect(page.locator('bah-comment-section .comment').first()).toContainText('Hedi');
   });
 
   test('Save is inert until the name has actually changed', async ({ page }) => {
@@ -531,7 +531,7 @@ test.describe('choosing a display name', () => {
     // have to be translated — and `getByRole('region', ...)` resolving at all is
     // the assertion that the heading was.
     await expect(nameBlock(page)).toBeVisible();
-    await expect(nameBlock(page).getByRole('textbox')).toHaveAttribute('placeholder', 'Hédi');
+    await expect(nameBlock(page).getByRole('textbox')).toHaveAttribute('placeholder', 'Hedi');
     await expect(nameBlock(page).getByRole('button', { name: 'Save' })).toBeVisible();
   });
 

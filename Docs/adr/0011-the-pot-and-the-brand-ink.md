@@ -100,9 +100,25 @@ to a dark tab strip, so a single static image has to pick the common case.
 **The site is written `BonApp' Hedi`.** No space, no accent — matching the
 wordmark as drawn. This is less of a decision than it looks: the prototypes'
 own logo `aria-label` already read `BonApp' Hedi`, so the app was the thing out
-of step. **Hédi the person keeps the accent** — the recipe author, the publisher
-in the legal notice, the seeded display name. Renaming a person to match a logo
-would be a different and worse change.
+of step.
+
+> **Superseded on 2026-08-18.** This paragraph continued: *"Hédi the person
+> keeps the accent — the recipe author, the publisher in the legal notice, the
+> seeded display name. Renaming a person to match a logo would be a different
+> and worse change."*
+>
+> It was overruled by the person in question, which is the right way for that
+> argument to end. **The byline is `Hedi` too**, everywhere the site writes it:
+> the author row, the legal notice, the mocks. What the paragraph was actually
+> defending was not making the decision *for* him, and that still holds.
+>
+> Two things stay accented and neither is the site's name.
+> `V2__seed.sql` still writes `Hédi`, because it has run in production and
+> Flyway records its checksum — `V9__author_name_without_accent.sql` corrects
+> the row immediately after. And the accent survives in the tests that exist to
+> prove an accented name works at all: `fold('Hédi') == 'hedi'`,
+> `DisplayName.normalise`, and the OAuth fixtures that carry a
+> provider-supplied name through session serialization into JSON.
 
 **The Konami code re-colours the logo**, from the proof sheet's palette, on
 every load and every click of it. Scoped to the logo and nothing else: the same
