@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-35.1 -43.15 450.09 450.09" role="img" aria-label="Bon App' Hédi">
+  <title>Bon App' Hédi</title>
+  <!--
+    The pot alone, cropped square out of the lockup.
+
+    The viewBox is the mark's own bounding box (0, 2.61, 379.88 × 358.56)
+    squared off on its longer side and inset by the proof sheet's 7.8%
+    breathing room, centred. Those numbers are measured rather than eyeballed —
+    a favicon that touches its own edges reads as clipped at 16px.
+
+    Ink on light chrome, Cream on dark. This is the one place the mark is NOT
+    Orange: a favicon sits on browser chrome rather than on a site surface, so
+    it is judged against a tab strip, and the pair chosen on the proof sheet's
+    favicon bench is the one that survives both. The header lockup keeps Orange
+    (`A·C·A` / `A·I·A`) — the two are answering different questions.
+
+    `prefers-color-scheme` inside an SVG favicon follows the browser's own
+    setting, which is what makes this adapt without any script. It is inert in
+    a browser that does not support SVG icons; those fall back to favicon.ico.
+  -->
+  <style>
+    path { fill: #1e1a1b; }
+    @media (prefers-color-scheme: dark) {
+      path { fill: #efe6d6; }
+    }
+  </style>
+  <path d="M267.15,231.22c-0.11-0.08-0.21-0.13-0.32-0.21c-7.65-4.59-17.63-2.23-22.67,5.13 c-15.08,21.98-17.74,53.8-17.74,53.8c21.06-15.67,28.82-37.89,28.82-37.89c3.09,11.99-2.15,22.62-2.15,22.62 c10.65-6.76,16.53-15.38,19.62-21.49C276.57,245.47,274.45,235.81,267.15,231.22z"/>
+  <path d="M379.1,200.39l-7.97-18c-1.95-4.41-7.03-6.52-11.53-4.79l-48.33,18.58l14.6-11.89 c2.5-2.04,3.73-5.23,3.22-8.42l-0.7-4.48c-0.83-5.1-5.72-8.45-10.73-7.33c-0.08,0.02-0.16,0.04-0.24,0.05 c-13.57,3.02-25.58-9.52-21.88-22.92c2.09-7.58,5.38-14.85,9.78-21.55c13.83-21.05,28.72-53.5,13.84-81.15 C294.78-6.75,244.07-2.7,206.56,15.23c-37.51,17.95-56.21,66.09-146,90.78c0,0,28.95,13.23,78.7-21.44 c49.72-34.67,84.55-68.99,129.47-51.04c44.92,17.92,31.21,72.8,3.3,89.78c0,0,6.81-37.94-37.83-54.61 c0,0,14.95,16.96,0.35,50.72c0,0-81.25-3.94-128.88,37.7c3.41-1.61,79.67-37.75,168.64-9.63l4.48,24.05c0,0,0,0,0,0 c-66.07,11.08-138.96,15.78-185.76,17.74c0,0-0.01,0-0.01-0.01l-9.95-34.94c-53.05,2.15-57.45-31.37-55.25-41.99 c5.26-40.01,82.54-32.31,82.54-32.31C14.57,58.86,9.71,114.62,15.08,135.28c5.42,17.07,17.52,25.97,29.41,30.58 c5.29,2.05,10.26,4.71,14.8,7.89c7.27,5.1,3.55,16.61-5.33,16.79c-0.05,0-0.11,0-0.16,0c-5.29,0.11-9.31,4.78-8.64,10.04 l0.54,4.32c0.83,6.71-4.8,12.45-11.54,11.78l-22.43-2.33C5.47,213.7,0,218.61,0,224.91v16.96c0,5.13,3.65,9.53,8.69,10.47 l38.37,7.16c3.78,0.7,6.9,3.41,8.08,7.08l6.98,21.31c14.81,45.29,57.96,75.02,105.59,73.2c33.65-1.29,61.66-5.96,84.34-11.81 c44.54-11.51,76.42-50.66,79.13-96.57l0.86-14.52c0.3-4.75,3.25-8.96,7.62-10.84l34.75-14.97 C379.02,210.37,381.14,204.97,379.1,200.39z M291.78,253.62c-5.15,19.54-22.65,53.1-81.71,63.19 c-31.5,4.59-78.57,8-113.58-36.25c-1.1-1.39-1.69-3.17-1.69-4.96c0-1.02,0.83-1.72,1.69-1.72c0.35,0,0.7,0.11,0.99,0.32 c9.85,7.19,45.56,30.48,86.67,23.91c12.56-2.01,22.59-11.7,25.49-24.1c2.39-10.2,6.14-23.45,11.78-36.14 c8.91-20.18,32.23-30.56,52.51-21.9c0.8,0.32,1.61,0.7,2.39,1.1C289.56,223.76,295.59,239.29,291.78,253.62z"/>
+</svg>

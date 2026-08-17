@@ -7,6 +7,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Un carnet de recettes tenu à la main." />
     <meta name="theme-color" content="#f8f5f4" />
+    <!--
+      Order matters and is the whole mechanism: a browser that understands SVG
+      icons takes the first line and never asks for the .ico, and one that does
+      not ignores it and falls back to the second. Only the SVG adapts to the
+      browser's light/dark setting — the .ico is a single static image and
+      cannot.
+    -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
     <!--

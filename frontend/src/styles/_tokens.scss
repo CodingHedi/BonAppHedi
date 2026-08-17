@@ -38,6 +38,18 @@
   --color-text: #1e1a1b;
   --color-divider: rgba(30, 26, 27, 0.13);
 
+  // --- Brand ink -------------------------------------------------------------
+  // Orange, and the one colour here that is NOT part of either ramp and NOT
+  // redeclared by the dark theme. It belongs to the logo rather than to the UI:
+  // the chosen lockups are A·C·A on Umber and A·I·A on Paper, and the A in both
+  // is this. Carried by both palettes on purpose — it is what stays put when
+  // the theme changes, so the mark is recognisably the same mark in either.
+  //
+  // Not for text or controls. It has never been through the contrast work the
+  // accent ramps have, and it has no stops precisely so that reaching for
+  // `--color-brand-600` fails rather than quietly inventing a ninth wine.
+  --color-brand: #e87e13;
+
   // --- Accent: wine (primary), LIGHT THEME ----------------------------------
   // Not inherited by the dark theme, which redeclares this ramp as Umber's
   // rust. Editing a stop here changes the light theme only.
