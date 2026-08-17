@@ -29,10 +29,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class MediaController {
 
-    private final MediaStorage storage;
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MediaController.class);
 
-    public MediaController(MediaStorage storage) {
+    private final MediaStorage storage;
+    private final PhotoIngest ingest;
+
+    public MediaController(MediaStorage storage, PhotoIngest ingest) {
         this.storage = storage;
+        this.ingest = ingest;
     }
 
     /**
@@ -43,6 +47,7 @@ public class MediaController {
     @GetMapping(MediaStorage.PREFIX + "{name:.+}")
     ResponseEntity<Resource> photograph(@PathVariable String name) throws IOException {
         Optional<Path> found = storage.find(name);
+        if (found.isEmpty()) found = generate(name);
         if (found.isEmpty()) return ResponseEntity.notFound().build();
 
         Path file = found.get();
@@ -58,5 +63,49 @@ public class MediaController {
                 .contentType(MediaType.parseMediaType(contentType))
                 .contentLength(Files.size(file))
                 .body(new FileSystemResource(file));
+    }
+
+    /**
+     * Writes a derivative the first time a browser asks for one.
+     *
+     * <p>Made here rather than at upload, which is what let this ship on top of
+     * photographs already on the server: nothing had to be backfilled, and there
+     * was no window in which the API offered a {@code srcset} entry for a file
+     * that did not exist. The cost is one slow response per size per photograph,
+     * once, after which it is an ordinary file with the same immutable caching
+     * as any other.
+     *
+     * <p>Empty for anything that is not a derivative of a width on the ladder,
+     * or whose original is not on disk. That is the whole guard: a name has to
+     * decode to a width this application offers and to a file it already wrote,
+     * so there is nothing here to point at an arbitrary size or an arbitrary
+     * source.
+     *
+     * <p>A failed write is not a failed request. If the disk refuses — which is
+     * exactly the shape of the {@code bah.media.dir} defect that shipped a site
+     * of broken images — the bytes are already in hand, so it logs and serves
+     * them from the original instead of turning a slow path into a 404.
+     */
+    private Optional<Path> generate(String name) throws IOException {
+        Optional<MediaStorage.Derivative> asked = MediaStorage.parseDerivative(name);
+        if (asked.isEmpty()) return Optional.empty();
+
+        MediaStorage.Derivative derivative = asked.get();
+        Optional<Path> original = storage.find(derivative.original());
+        if (original.isEmpty()) return Optional.empty();
+
+        Optional<byte[]> smaller = ingest.derive(Files.readAllBytes(original.get()), derivative.width());
+        // The original is already at or below this width. Serving it is right:
+        // the address stays valid and the bytes are the smallest that exist.
+        if (smaller.isEmpty()) return original;
+
+        try {
+            storage.store(name, smaller.get());
+        } catch (IOException e) {
+            log.error("Could not write the derivative {}; serving the original instead", name, e);
+            return original;
+        }
+
+        return storage.find(name);
     }
 }

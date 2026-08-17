@@ -31,6 +31,8 @@ import type { ImageRef } from '../../../core/api/models';
     @if (src(); as url) {
       <img
         [src]="url"
+        [attr.srcset]="srcset()"
+        [attr.sizes]="srcset() ? sizes() : null"
         [alt]="alt()"
         [attr.loading]="priority() ? 'eager' : 'lazy'"
         [attr.fetchpriority]="priority() ? 'high' : null"
@@ -147,6 +149,18 @@ export class ImageComponent {
   /** Avatar-sized slots: show an initial rather than the full panel treatment. */
   readonly compact = input(false);
 
+  /**
+   * How wide this slot will actually be, for the browser to pick a source with.
+   *
+   * The default describes a card in the grid: about a third of a 1200px page,
+   * and the full width of a phone. **A wrong `sizes` is worse than none** — it
+   * is a promise the browser trusts before layout, so understating it fetches a
+   * blurry file and overstating it fetches the large one and undoes the whole
+   * point. Every caller that is not a grid card should say so; the detail page
+   * does.
+   */
+  readonly sizes = input('(max-width: 700px) 100vw, 33vw');
+
   protected readonly initial = computed(() =>
     (this.label() || this.alt() || '?').trim().charAt(0).toUpperCase(),
   );
@@ -155,6 +169,26 @@ export class ImageComponent {
 
   protected readonly src = computed(() => this.image()?.url ?? null);
   protected readonly alt = computed(() => this.image()?.alt ?? '');
+
+  /**
+   * The candidates, as `srcset` spells them: `url 400w, url 800w, …`.
+   *
+   * Null rather than empty when there is nothing to offer, so the attribute is
+   * absent altogether — a photograph with one size renders exactly the `<img>`
+   * this component rendered before any of this existed. `sizes` is bound to
+   * null in the same case, because a `sizes` without a `srcset` is a promise
+   * about a decision the browser is not making.
+   *
+   * A single candidate is also dropped: `foo.jpg 1600w` and a `sizes` telling
+   * the browser the slot is 400px wide is an instruction to downscale the only
+   * file there is, which is what it would have done anyway.
+   */
+  protected readonly srcset = computed(() => {
+    const sources = this.image()?.sources ?? [];
+    if (sources.length < 2) return null;
+
+    return sources.map((source) => `${source.url} ${source.width}w`).join(', ');
+  });
 
   /** Stable pseudo-random hue derived from the label, so it never flickers. */
   protected readonly hue = computed(() => {

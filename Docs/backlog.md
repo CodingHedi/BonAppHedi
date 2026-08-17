@@ -204,17 +204,25 @@ five identical 190px boxes into five image-shaped ones.
 
 ### What the measurement did find
 
-**Bytes, not frames.** A full scroll of 300 recipes transfers 76.6 MB and
-decodes 539 MP, because every card downloads a full-size photograph — 1600px
-wide, 150–425 KB — to fill a box 190px tall. Even the first view is 6.8 MB
-before the visitor touches the wheel. Nothing here is slow on a desktop with a
-local server, and all of it would be felt on a phone.
+**Bytes, not frames — and this one has since been fixed.** A full scroll of 300
+recipes transferred 76.6 MB and decoded 539 MP, because every card downloaded a
+full-size photograph — 1600px wide, 150–425 KB — to fill a box 190px tall. Even
+the first view was 6.8 MB before the visitor touched the wheel.
 
-That is the `srcset` that ADR 8 asked for and did not get: it wants "a bounded
-set of generated derivative sizes", the bound is currently one, and
-`PhotoIngest` records the narrowing. **This is the entry that should be picked
-up next**, and it is a different piece of work from anything above — it belongs
-to the images, not to the list.
+That was the `srcset` ADR 8 asked for and had not got. It shipped on
+2026-08-17; the same harness, same catalogue, same viewport:
+
+| | Before | After |
+|---|---|---|
+| Transferred, full scroll | 76.6 MB | **25.8 MB** |
+| Decoded, full scroll | 539 MP | **60.5 MP** |
+| Transferred before scrolling | 6.8 MB | **2.7 MB** |
+| Frame p50 / p95 | 16.7 / 16.7 ms | 16.7 / 16.7 ms |
+
+Nine times fewer pixels decoded and three times fewer bytes, for no change in
+frame times — which is the shape you would expect, since frames were never the
+problem. See ADR 8's amendment for how, and `MediaDerivativeTest` for what
+holds it in place.
 
 **The footer is most of the page's CLS**, at every catalogue size: 0.066 of the
 0.083, attributed to `bah-site-footer` at ~100 ms, when the loading skeleton is

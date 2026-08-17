@@ -33,13 +33,32 @@ public final class Dto {
      * and cannot do that from the file alone. {@code dominant} is the average
      * colour, so the reserved box is tinted rather than empty while it loads.
      */
-    public record ImageRef(String url, String alt, Integer width, Integer height, String dominant) {
+    public record ImageRef(
+            String url,
+            String alt,
+            Integer width,
+            Integer height,
+            String dominant,
+            java.util.List<ImageSource> sources) {
 
         /** The shape a recipe with no photograph takes. */
         public static ImageRef none(String alt) {
-            return new ImageRef(null, alt, null, null, null);
+            return new ImageRef(null, alt, null, null, null, java.util.List.of());
         }
     }
+
+    /**
+     * One address for a photograph, and how wide it is there.
+     *
+     * <p>The list is given explicitly rather than left to the client to build
+     * from a naming rule, and that is the decision worth recording. A rule would
+     * be less code and would be wrong in one specific case that is guaranteed to
+     * happen: a photograph narrower than a ladder step has no derivative at that
+     * step and never will, so a client following the rule would ask confidently
+     * for a file the server will always refuse. Listing them means the server
+     * decides what exists and the client renders what it is told.
+     */
+    public record ImageSource(String url, int width) {}
 
     public record Tag(String slug, String label, String colorVariant, Integer count) {}
 

@@ -34,6 +34,12 @@ export interface Author {
   readonly bio?: string;
 }
 
+/** One address for a photograph, and how wide it is there. */
+export interface ImageSource {
+  readonly url: string;
+  readonly width: number;
+}
+
 export interface ImageRef {
   /** Null until real photography exists, which is the current state. */
   readonly url: string | null;
@@ -42,6 +48,17 @@ export interface ImageRef {
   readonly height?: number;
   /** Average colour, used to tint the placeholder so it does not read as broken. */
   readonly dominant?: string;
+  /**
+   * The same photograph at every width the server has, smallest first, ending
+   * at `url` itself. Empty for a recipe with no photograph, and empty for one
+   * stored before a width was recorded — both render as a plain `<img>`.
+   *
+   * Sent rather than derived from a naming rule, and that is deliberate: a
+   * photograph narrower than a ladder step has no smaller copy and never will,
+   * so a client applying the rule would confidently request a file the server
+   * is always going to refuse.
+   */
+  readonly sources?: readonly ImageSource[];
 }
 
 export interface RatingSummary {

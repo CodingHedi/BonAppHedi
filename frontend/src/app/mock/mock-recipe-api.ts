@@ -1,3 +1,4 @@
+import { imageSources } from '../core/api/image-sources';
 import { Injectable, inject } from '@angular/core';
 import type { Locale } from '../core/i18n/locale';
 import { LOCALES } from '../core/i18n/locale';
@@ -214,6 +215,16 @@ export class MockRecipeApi implements RecipeApi {
    */
   private image(recipe: SeedRecipe, locale: Locale): ImageRef {
     const alt = recipe.t[locale].title;
-    return recipe.mockImage ? { ...recipe.mockImage, alt } : { url: null, alt };
+    if (!recipe.mockImage) return { url: null, alt };
+
+    // Synthesised here rather than written into the seed six times over. The
+    // real API sends this list; there is no server in the mocked build, so it
+    // is reconstructed from the same ladder the server uses — see
+    // `image-sources.ts` for why that mirror is guarded by a backend test.
+    return {
+      ...recipe.mockImage,
+      alt,
+      sources: imageSources(recipe.mockImage.url, recipe.mockImage.width),
+    };
   }
 }

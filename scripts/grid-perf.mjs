@@ -134,6 +134,34 @@ const TAGS = [
 
 const AUTHOR = { slug: 'hedi', displayName: 'Hédi', avatarUrl: null, bio: 'Je cuisine.' };
 
+/** Must match MediaStorage.WIDTH_LADDER, or this measures a site nobody ships. */
+const WIDTH_LADDER = [400, 800];
+
+/**
+ * The photograph as the API now returns it: every width, smallest first.
+ *
+ * The cache-buster rides on each candidate separately so the 300 cards stay 300
+ * distinct resources at whichever size the browser picks — without it the
+ * derivative URLs would collide and the decode cost, which is the interesting
+ * half, would vanish exactly as it would for the originals.
+ */
+function sourcedImage(photo, title, i) {
+  const bust = `?r=${i}`;
+  const stem = photo.file.replace(/\.jpg$/, '');
+  const sources = WIDTH_LADDER.filter((w) => w < photo.width).map((w) => ({
+    url: `/media/${stem}@${w}.jpg${bust}`,
+    width: w,
+  }));
+
+  return {
+    url: `/media/${photo.file}${bust}`,
+    alt: title,
+    width: photo.width,
+    height: photo.height,
+    sources: [...sources, { url: `/media/${photo.file}${bust}`, width: photo.width }],
+  };
+}
+
 function catalogue(count) {
   const items = [];
   for (let i = 0; i < count; i++) {
@@ -147,7 +175,7 @@ function catalogue(count) {
       slug: `recette-${i + 1}`,
       title,
       excerpt,
-      image: { url: `/media/${photo.file}?r=${i}`, alt: title, width: photo.width, height: photo.height },
+      image: sourcedImage(photo, title, i),
       tags,
       author: AUTHOR,
       publishedAt: new Date(Date.UTC(2026, 0, 1 + (i % 200))).toISOString(),
