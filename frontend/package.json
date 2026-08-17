@@ -16,8 +16,9 @@
     "format": "prettier --write \"src/**/*.{ts,html,scss,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,scss,json}\"",
     "check:legal": "node ../scripts/check-legal.mjs",
+    "check:favicon": "node ../scripts/check-favicon.mjs",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build && npm run test:e2e",
-    "verify:prod": "npm run check:legal && npm run lint && npm run typecheck && npm run test && npm run build && cross-env PW_TARGET=prod playwright test"
+    "verify:prod": "npm run check:legal && npm run check:favicon && npm run lint && npm run typecheck && npm run test && npm run build && cross-env PW_TARGET=prod playwright test"
   },
   "private": true,
   "packageManager": "npm@11.16.0",
