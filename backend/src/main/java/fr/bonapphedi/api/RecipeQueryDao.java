@@ -352,7 +352,30 @@ public class RecipeQueryDao {
                 alt,
                 width,
                 height,
-                rs.getString("image_dominant"));
+                rs.getString("image_dominant"),
+                sourcesFor(file, width));
+    }
+
+    /**
+     * The srcset entries for a photograph: the ladder widths below the stored
+     * one, then the original.
+     *
+     * <p>Empty when the width was never recorded. That is a real row rather than
+     * a hypothetical — {@code image_width} is nullable and the seeded rows filled
+     * it, but a photograph stored before it existed would not have — and an
+     * empty list renders as a plain {@code <img>}, which is what the site did
+     * before any of this. Guessing a width instead would offer a derivative
+     * scaled from a number nobody measured.
+     */
+    private static java.util.List<Dto.ImageSource> sourcesFor(String file, Integer width) {
+        if (width == null || width <= 0) return java.util.List.of();
+
+        return fr.bonapphedi.media.MediaStorage.widthsFor(width).stream()
+                .map(w -> new Dto.ImageSource(
+                        fr.bonapphedi.media.MediaStorage.urlFor(
+                                w.equals(width) ? file : fr.bonapphedi.media.MediaStorage.derivativeName(file, w)),
+                        w))
+                .toList();
     }
 
     private record Row(

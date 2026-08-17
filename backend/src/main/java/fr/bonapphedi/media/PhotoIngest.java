@@ -33,12 +33,20 @@ import org.springframework.stereotype.Component;
  * Decoding to pixels and writing a new file drops all of it, along with any
  * payload hidden in a segment a decoder elsewhere might read.
  *
- * <p><b>One output size, and that is narrower than ADR 8 imagined.</b> That ADR
- * asks for "a bounded set of generated derivative sizes"; the bound here is
- * one, because nothing consumes a second. {@code image.ts} renders a single
- * {@code <img>} with no {@code srcset}, so a second file would be storage and
- * code with no reader — and this is the one place a second size can be added
- * when the markup asks for it.
+ * <p><b>The bound is no longer one.</b> This class used to say so, and said that
+ * a second size would be storage with no reader because {@code image.ts}
+ * rendered a bare {@code <img>}. The markup asks now — see
+ * {@link MediaStorage#WIDTH_LADDER} — so {@link #derive} exists, and ADR 8's
+ * "bounded set of generated derivative sizes" is finally what ships. What made
+ * it worth doing was a measurement rather than a principle: every card was
+ * fetching a 1600px photograph to fill a box 190px tall.
+ *
+ * <p><b>Derivatives are made on request, not on upload.</b> An upload writes one
+ * file exactly as before; {@link MediaController} asks for a smaller one the
+ * first time a browser does, and it is written to disk and served from there
+ * afterwards. That choice is what makes the change safe to deploy on top of
+ * photographs that are already uploaded: there is no backfill, no migration, and
+ * no window in which the API promises a file that does not exist yet.
  */
 @Component
 public class PhotoIngest {
@@ -111,6 +119,37 @@ public class PhotoIngest {
         return new Photograph(encode(scaled), scaled.getWidth(), scaled.getHeight(), dominant(scaled));
     }
 
+    /**
+     * A smaller copy of a photograph this application already produced.
+     *
+     * <p>Not {@link #accept}: that guards a hostile upload, and this reads a
+     * file we wrote ourselves. The size and pixel caps are therefore not
+     * repeated — they were applied when the original was accepted, and a
+     * derivative is smaller than the thing that already passed them. What is
+     * repeated is the re-encode, because it is the same encoder producing the
+     * same kind of file, and a derivative that kept metadata the original had
+     * stripped would be a hole in the wrong direction.
+     *
+     * <p>Returns empty when the original is already at or below the target, so
+     * the caller serves the original rather than writing a second identical
+     * file under a different name. Enlarging invents detail and costs bytes to
+     * say less.
+     */
+    public java.util.Optional<byte[]> derive(byte[] original, int targetWidth) {
+        BufferedImage source;
+        try {
+            source = ImageIO.read(new ByteArrayInputStream(original));
+        } catch (IOException e) {
+            return java.util.Optional.empty();
+        }
+        if (source == null || source.getWidth() <= targetWidth) return java.util.Optional.empty();
+
+        double ratio = (double) targetWidth / source.getWidth();
+        int targetHeight = Math.max(1, (int) Math.round(source.getHeight() * ratio));
+
+        return java.util.Optional.of(encode(redraw(source, targetWidth, targetHeight)));
+    }
+
     /** Reads the header only, which is all a reader needs to report a size. */
     private void measure(byte[] uploaded) {
         try (ImageInputStream in = ImageIO.createImageInputStream(new ByteArrayInputStream(uploaded))) {
@@ -155,9 +194,17 @@ public class PhotoIngest {
             targetHeight = Math.max(1, (int) Math.round(height * ratio));
         }
 
-        // TYPE_INT_RGB and a white ground in every case, not only when scaling.
-        // JPEG has no alpha, and a transparent PNG written straight out comes
-        // back with black where the transparency was.
+        return redraw(source, targetWidth, targetHeight);
+    }
+
+    /**
+     * Draws an image at a given size onto a fresh opaque canvas.
+     *
+     * <p>TYPE_INT_RGB and a white ground in every case, not only when the size
+     * changes. JPEG has no alpha, and a transparent PNG written straight out
+     * comes back with black where the transparency was.
+     */
+    private static BufferedImage redraw(BufferedImage source, int targetWidth, int targetHeight) {
         BufferedImage target = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = target.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);

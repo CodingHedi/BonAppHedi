@@ -49,7 +49,18 @@ import type { ImageRef } from '../../../core/api/models';
           [height]="540"
         />
       } @else {
-        <bah-image [image]="image()" [label]="title()" [priority]="true" />
+        <!--
+          Not the component's grid-card default. This box is the wide half of a
+          two-column row on a desktop and the full width of a phone, so the
+          default's 33vw would have the browser fetch the 400px file for a slot
+          around 800 and show it soft.
+        -->
+        <bah-image
+          [image]="image()"
+          [label]="title()"
+          [priority]="true"
+          sizes="(max-width: 900px) 100vw, 60vw"
+        />
 
         @if (youtubeVideoId()) {
           <button

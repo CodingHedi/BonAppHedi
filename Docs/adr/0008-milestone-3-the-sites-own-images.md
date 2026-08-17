@@ -215,3 +215,53 @@ adding one does not change its callers.
 
 It is worth being plain that this is narrower than what was written above,
 rather than letting "bounded" quietly come to mean "one".
+
+---
+
+## Amendment, 2026-08-17: the bound is three, and they are made on request
+
+The narrowing above is undone. "A bounded set of generated derivative sizes" is
+now what ships, the bound is `MediaStorage.WIDTH_LADDER` — 400 and 800 beside
+the stored original — and `image.ts` renders a real `srcset`.
+
+**What changed was a measurement, not a principle.** The 2026-08-14 amendment
+was right on its own terms: nothing consumed a second size, so a second size
+would have been bytes on disk and therefore bytes in a backup. Then
+`scripts/grid-perf.mjs` profiled the grid at 300 recipes and found the cost was
+never frame times — a locked 60 fps throughout — but bytes: 76.6 MB and 539
+megapixels for a full scroll, because every card fetched a 1600px photograph to
+fill a box 190px tall. Same harness after the change: 25.8 MB and 60.5 MP.
+
+**Derivatives are made when a browser first asks, not when a photograph is
+uploaded**, and that is the decision worth recording rather than the ladder.
+Generating on upload would have needed a backfill for every photograph already
+on the server, and a window in which the API offered a `srcset` entry naming a
+file that did not exist yet. Neither exists this way: `MediaController` writes
+the file on the first request for it and serves it as an ordinary file
+afterwards. The cost is one slow response per size per photograph, once.
+
+**The API sends the available widths; it does not leave a client to derive
+them.** A naming rule would be less code and would be wrong in one case that is
+certain to occur — a photograph narrower than a ladder step has no smaller copy
+and never will, because `PhotoIngest.derive` refuses to enlarge, so a client
+following the rule would confidently request a file the server will always
+refuse. `Dto.ImageSource` exists for that reason.
+
+**The ladder is closed, and that is a security property rather than a
+preference.** A width outside it is a 404 rather than a new file. An open
+generator is an invitation to fill the disk one URL at a time, and nothing on
+this site needs an arbitrary size.
+
+**It now exists twice**, because the mocked build has no server to generate
+anything and the e2e suite runs against that build. `image-sources.ts` mirrors
+the ladder and `scripts/make-media-derivatives.mjs` writes the committed copies
+for it. The drift would be silent and one-directional — a width offered there
+and not here is a 404 in production that no test requests — so `MediaLadderTest`
+reads the TypeScript and fails when the two disagree, exactly as `AvatarTest`
+does for the avatar vocabulary.
+
+**The backup consequence from the last amendment stands and grew.** Derivatives
+are written into the same directory `backup.sh` carries, so a photograph now
+costs up to three files there rather than one. They are reproducible from the
+original, so losing them costs a slow first request rather than a photograph —
+which is worth knowing before anyone sizes the archive.

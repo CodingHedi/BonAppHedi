@@ -32,6 +32,33 @@ public class MediaStorage {
      */
     public static final String PREFIX = "/media/";
 
+    /**
+     * The widths a browser may ask for, smallest first. ADR 8's "bounded set",
+     * and the bound is these three.
+     *
+     * <p>Chosen against the two slots that exist: a card's media box is 190px
+     * tall in a column roughly 350px wide, and the detail page's is a 16/9 box
+     * up to about 800px. So 400 serves a card at 1× and 800 serves it at 2× or
+     * the detail page at 1×; 1600 is the stored original and covers the rest.
+     *
+     * <p><b>Closed on purpose.</b> A width outside this list is a 404 rather
+     * than a new file: the generator would otherwise be an open invitation to
+     * fill the disk one query string at a time, and nothing this side of the
+     * ladder is asking for arbitrary sizes.
+     */
+    public static final int[] WIDTH_LADDER = {400, 800};
+
+    /**
+     * Separates a base name from a derivative width: {@code babka@400.jpg}.
+     *
+     * <p>An {@code @} rather than a hyphen, and that is not cosmetic. Uploads
+     * are named {@code <slug>-<digest>.jpg} and slugs contain hyphens, so
+     * {@code foo-400.jpg} is ambiguous — it is either a derivative of
+     * {@code foo.jpg} or the original for a recipe whose slug ends in 400.
+     * {@code @} cannot occur in a generated base name, so the split is exact.
+     */
+    private static final char WIDTH_MARK = '@';
+
     private static final Logger log = LoggerFactory.getLogger(MediaStorage.class);
 
     /** Ships in the jar; copied out on startup. See {@link #installSeedImages()}. */
@@ -45,6 +72,68 @@ public class MediaStorage {
 
     public static String urlFor(String file) {
         return PREFIX + file;
+    }
+
+    /** {@code babka.jpg} at 400 → {@code babka@400.jpg}. */
+    public static String derivativeName(String file, int width) {
+        int dot = file.lastIndexOf('.');
+        String stem = dot < 0 ? file : file.substring(0, dot);
+        String extension = dot < 0 ? "" : file.substring(dot);
+        return stem + WIDTH_MARK + width + extension;
+    }
+
+    /** What a derivative name refers to: the original it came from, and its width. */
+    public record Derivative(String original, int width) {}
+
+    /**
+     * Reads {@code babka@400.jpg} back as {@code (babka.jpg, 400)}, or empty if
+     * the name is not a derivative of a width on the ladder.
+     *
+     * <p>Empty covers a name with no mark, a mark with rubbish after it, and a
+     * width nobody offered. The last is the one that matters: it is what keeps
+     * {@code foo@37.jpg} from being generated on demand a thousand times.
+     */
+    public static Optional<Derivative> parseDerivative(String name) {
+        if (name == null) return Optional.empty();
+
+        int mark = name.lastIndexOf(WIDTH_MARK);
+        int dot = name.lastIndexOf('.');
+        if (mark < 1 || dot <= mark) return Optional.empty();
+
+        int width;
+        try {
+            width = Integer.parseInt(name.substring(mark + 1, dot));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+
+        if (java.util.Arrays.stream(WIDTH_LADDER).noneMatch(offered -> offered == width)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new Derivative(name.substring(0, mark) + name.substring(dot), width));
+    }
+
+    /**
+     * Every address for one photograph, smallest first, ending in the original.
+     *
+     * <p>Built from the stored width rather than from what is on disk, because
+     * the files are made on request: a derivative that has never been asked for
+     * does not exist yet, and listing only what exists would mean the first
+     * visitor gets no {@code srcset} and every one after gets one.
+     *
+     * <p>Ladder entries at or above the stored width are dropped. A photograph
+     * 350px wide is offered at 350 and nothing else — upscaling it would cost
+     * bytes to say less, and {@code PhotoIngest.derive} refuses to do it, so
+     * offering an 800 here would promise a file that will never be written.
+     */
+    public static java.util.List<Integer> widthsFor(int storedWidth) {
+        java.util.List<Integer> widths = new java.util.ArrayList<>();
+        for (int width : WIDTH_LADDER) {
+            if (width < storedWidth) widths.add(width);
+        }
+        widths.add(storedWidth);
+        return java.util.List.copyOf(widths);
     }
 
     /**

@@ -38,7 +38,13 @@ const AUTOPLAY_MS = 6000;
               [attr.inert]="i === index() ? null : ''"
               [attr.aria-hidden]="i === index() ? null : 'true'"
             >
-              <bah-image [image]="slide.image" [label]="slide.title" [priority]="i === 0" />
+              <!-- Edge to edge, so the slot is the viewport. -->
+              <bah-image
+                [image]="slide.image"
+                [label]="slide.title"
+                [priority]="i === 0"
+                sizes="100vw"
+              />
               <div class="defocus"></div>
               <div class="scrim"></div>
 
