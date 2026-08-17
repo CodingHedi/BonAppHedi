@@ -26,7 +26,7 @@ import { CommentSectionComponent } from './comment-section/comment-section';
 import { TagChipComponent } from '../../shared/ui/tag-chip/tag-chip';
 import { MarkdownComponent } from '../../shared/ui/markdown/markdown';
 import { decimal } from '../../shared/format';
-import { RelativeTimePipe } from '../../shared/pipes';
+import { TimestampComponent } from '../../shared/ui/timestamp/timestamp';
 import { clampServings } from '../../shared/scaling';
 import { StarRatingComponent } from './star-rating/star-rating';
 import { QuickFactsComponent } from './quick-facts/quick-facts';
@@ -43,7 +43,7 @@ import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.servi
     RouterLink,
     TranslocoPipe,
     NotFoundPage,
-    RelativeTimePipe,
+    TimestampComponent,
     TagChipComponent,
     MarkdownComponent,
     StarRatingComponent,
@@ -102,7 +102,9 @@ import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.servi
           <span aria-hidden="true">·</span>
           <span>{{ 'recipe.byAuthor' | transloco: { author: r.author.displayName } }}</span>
           <span aria-hidden="true">·</span>
-          <time [attr.datetime]="r.publishedAt">{{ r.publishedAt | relativeTime }}</time>
+          <!-- The date leads here: an opened recipe is being read, not scanned
+               for freshness the way a card in the list is. -->
+          <bah-timestamp [iso]="r.publishedAt" initial="date" />
         </div>
       </section>
 

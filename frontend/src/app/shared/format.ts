@@ -1,4 +1,38 @@
-import type { Locale } from '../core/i18n/locale';
+import { LOCALE_IDS, type Locale } from '../core/i18n/locale';
+
+/**
+ * A published date, e.g. "8 juillet 2026" / "8 July 2026".
+ *
+ * **The month is spelled out on purpose, and it is the whole point of this
+ * function.** Every numeric form is ambiguous across the two languages this
+ * site is written in: 8 July 2026 is `08/07/2026` to a French reader and
+ * `7/8/26` to an American one, and neither renders the other unreadable — it
+ * renders it *wrong*, silently, as the 7th of August. A spelled-out month
+ * cannot be misread in either language, which is worth more than the four
+ * characters it costs.
+ *
+ * **`LOCALE_IDS[locale]`, not `locale`.** Passing the bare tag would hand Intl
+ * `'en'`, which resolves to American conventions — "July 8, 2026" — where this
+ * app means `en-GB`. Nothing else in this file has that problem, because a
+ * decimal mark and a relative time are the same in both Englishes and a date
+ * is not.
+ *
+ * No `timeZone`, so the date is the reader's own. That agrees with
+ * `relativeTime`, which works in elapsed milliseconds and is therefore already
+ * in the reader's frame; pinning one to UTC and not the other would let a page
+ * say "yesterday" beside tomorrow's date. The seed timestamps are all midday
+ * UTC, so no realistic offset moves them across midnight.
+ */
+export function absoluteDate(iso: string, locale: Locale): string | null {
+  const parsed = Date.parse(iso);
+  if (Number.isNaN(parsed)) return null;
+
+  return new Intl.DateTimeFormat(LOCALE_IDS[locale], {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(parsed));
+}
 
 /**
  * A number as the reader's language writes it: French uses a comma for the

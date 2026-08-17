@@ -2,16 +2,29 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { RouterLink } from '@angular/router';
 import { ImageComponent } from '../../../shared/ui/image/image';
 import { TagChipComponent } from '../../../shared/ui/tag-chip/tag-chip';
-import { RelativeTimePipe } from '../../../shared/pipes';
+import { TimestampComponent } from '../../../shared/ui/timestamp/timestamp';
 import { LocaleService } from '../../../core/i18n/locale.service';
 import type { RecipeSummary } from '../../../core/api/models';
 
 @Component({
   selector: 'bah-recipe-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, ImageComponent, TagChipComponent, RelativeTimePipe],
+  imports: [RouterLink, ImageComponent, TagChipComponent, TimestampComponent],
   template: `
-    <a class="card elev-sm" [routerLink]="link()">
+    <!--
+      An article with a link stretched across it, rather than one enormous <a>.
+
+      The card holds a button now — the date swaps between "il y a 4 jours" and
+      the published date — and a control inside a link is invalid HTML that
+      browsers resolve by navigating, so the swap could never have fired. The
+      title carries the real link and .title-link::after covers the card, so a
+      press anywhere still opens the recipe while the date is free to be
+      pressed on its own.
+
+      It also improves what a screen reader reads out: the link's name used to
+      be every word on the card, and is now the recipe title.
+    -->
+    <article class="card elev-sm">
       <div class="media washed">
         <bah-image [image]="recipe().image" [label]="recipe().title" />
 
@@ -25,7 +38,9 @@ import type { RecipeSummary } from '../../../core/api/models';
       </div>
 
       <div class="body">
-        <h3>{{ recipe().title }}</h3>
+        <h3>
+          <a class="title-link" [routerLink]="link()">{{ recipe().title }}</a>
+        </h3>
         <p>{{ recipe().excerpt }}</p>
 
         <div class="meta">
@@ -39,32 +54,57 @@ import type { RecipeSummary } from '../../../core/api/models';
             </div>
             <div class="author-text">
               <b>{{ recipe().author.displayName }}</b>
-              <time [attr.datetime]="recipe().publishedAt">
-                {{ recipe().publishedAt | relativeTime }}
-              </time>
+              <!-- Relative first: a list is scanned for what is new. -->
+              <bah-timestamp [iso]="recipe().publishedAt" initial="relative" />
             </div>
           </div>
         </div>
       </div>
-    </a>
+    </article>
   `,
   styles: `
     :host {
       display: block;
     }
 
-    a.card {
+    .card {
+      position: relative;
       padding: 0;
       height: 100%;
-      text-decoration: none;
       color: var(--color-text);
       overflow: hidden;
       transition: transform 0.18s ease;
+      /* Was on a.card, which no longer exists as a wrapper. Kept on :hover of
+         the card itself so the lift still answers the whole surface rather than
+         only the title. */
+      display: flex;
+      flex-direction: column;
     }
 
-    a.card:hover {
+    .card:hover {
       transform: translateY(-4px);
-      color: var(--color-text);
+    }
+
+    .title-link {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    /*
+     * The stretched link: this covers the card, so a press anywhere opens the
+     * recipe. Anything that must stay pressable sits above it — see
+     * bah-timestamp below.
+     */
+    .title-link::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    bah-timestamp {
+      position: relative;
+      z-index: 2;
     }
 
     .media {
@@ -148,7 +188,7 @@ import type { RecipeSummary } from '../../../core/api/models';
       font-weight: 700;
     }
 
-    time {
+    bah-timestamp {
       font-size: 11px;
       opacity: 0.55;
     }
