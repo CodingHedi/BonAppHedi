@@ -4,7 +4,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { ADMIN_API } from '../../../core/api/admin-api';
 import { LocaleService } from '../../../core/i18n/locale.service';
 import { LOCALES } from '../../../core/i18n/locale';
-import { RelativeTimePipe } from '../../../shared/pipes';
+import { TimestampComponent } from '../../../shared/ui/timestamp/timestamp';
 import type { AdminRecipeRow, RecipeStatus } from '../../../core/api/models';
 
 /**
@@ -14,7 +14,7 @@ import type { AdminRecipeRow, RecipeStatus } from '../../../core/api/models';
 @Component({
   selector: 'bah-admin-recipe-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, TranslocoPipe, RelativeTimePipe],
+  imports: [RouterLink, TranslocoPipe, TimestampComponent],
   template: `
     <div class="bar">
       <a class="btn btn-primary" [routerLink]="newLink()">{{ 'admin.newRecipe' | transloco }}</a>
@@ -59,7 +59,7 @@ import type { AdminRecipeRow, RecipeStatus } from '../../../core/api/models';
               <td class="num">{{ row.ratingCount }}</td>
               <td class="num">{{ row.commentCount }}</td>
               <td>
-                <time [attr.datetime]="row.publishedAt">{{ row.publishedAt | relativeTime }}</time>
+                <bah-timestamp [iso]="row.publishedAt" initial="relative" />
               </td>
               <td class="actions">
                 <button

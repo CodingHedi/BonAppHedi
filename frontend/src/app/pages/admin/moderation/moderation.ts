@@ -3,7 +3,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { ADMIN_API } from '../../../core/api/admin-api';
 import { LocaleService } from '../../../core/i18n/locale.service';
 import { MarkdownComponent } from '../../../shared/ui/markdown/markdown';
-import { RelativeTimePipe } from '../../../shared/pipes';
+import { TimestampComponent } from '../../../shared/ui/timestamp/timestamp';
 
 /**
  * The moderation queue.
@@ -18,7 +18,7 @@ import { RelativeTimePipe } from '../../../shared/pipes';
 @Component({
   selector: 'bah-admin-moderation',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslocoPipe, MarkdownComponent, RelativeTimePipe],
+  imports: [TranslocoPipe, MarkdownComponent, TimestampComponent],
   template: `
     @if (queue.isLoading()) {
       <p class="muted">{{ 'admin.loading' | transloco }}</p>
@@ -30,9 +30,7 @@ import { RelativeTimePipe } from '../../../shared/pipes';
               <div class="meta">
                 <b>{{ item.comment.author.displayName }}</b>
                 <span class="on">{{ item.recipeTitle }}</span>
-                <time [attr.datetime]="item.comment.createdAt">
-                  {{ item.comment.createdAt | relativeTime }}
-                </time>
+                <bah-timestamp [iso]="item.comment.createdAt" initial="relative" />
               </div>
 
               <bah-markdown class="body" [markdown]="item.comment.bodyMarkdown" />

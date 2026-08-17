@@ -21,7 +21,7 @@ import { IconComponent } from '../../../core/icons/icon';
 import { AvatarComponent } from '../../../shared/ui/avatar/avatar';
 import { MarkdownComponent } from '../../../shared/ui/markdown/markdown';
 import { SignInRowComponent } from '../../../shared/ui/sign-in-row/sign-in-row';
-import { RelativeTimePipe } from '../../../shared/pipes';
+import { TimestampComponent } from '../../../shared/ui/timestamp/timestamp';
 import { AuthService } from '../../../core/auth/auth.service';
 import type { Comment } from '../../../core/api/models';
 
@@ -51,7 +51,7 @@ const QUOTE_BOX_MAX = 260;
   imports: [
     FormsModule,
     TranslocoPipe,
-    RelativeTimePipe,
+    TimestampComponent,
     IconComponent,
     AvatarComponent,
     MarkdownComponent,
@@ -190,9 +190,7 @@ const QUOTE_BOX_MAX = 260;
               <div class="content">
                 <div class="byline">
                   <b>{{ comment.author.displayName }}</b>
-                  <time [attr.datetime]="comment.createdAt">
-                    {{ comment.createdAt | relativeTime }}
-                  </time>
+                  <bah-timestamp [iso]="comment.createdAt" initial="relative" />
 
                   @if (comment.status === 'PENDING') {
                     <span class="badge-pending">{{ 'comments.pending' | transloco }}</span>

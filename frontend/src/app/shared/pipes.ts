@@ -1,25 +1,17 @@
 import { Pipe, type PipeTransform, inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
-import { LocaleService } from '../core/i18n/locale.service';
-import { relativeTime, splitDuration, videoTimestamp } from './format';
+import { splitDuration, videoTimestamp } from './format';
 
-/**
- * "il y a 4 jours" / "4 days ago".
+/*
+ * `RelativeTimePipe` was here, and is gone rather than merely unused.
  *
- * Impure because the output depends on wall-clock time and on the active
- * locale, neither of which is an argument. The inputs are a handful of dates
- * per page, so the cost is irrelevant.
+ * Every date on the site now renders through `bah-timestamp`, which shows the
+ * relative form *and* the date behind it. Leaving the pipe would leave two ways
+ * to draw a date, one of which silently produces the version that cannot be
+ * swapped — and the next date added to a page would have had a fifty-fifty
+ * chance of being the wrong one. `relativeTime()` in ./format is still the
+ * single implementation; only this second entrance to it is gone.
  */
-@Pipe({ name: 'relativeTime', pure: false })
-export class RelativeTimePipe implements PipeTransform {
-  private readonly locale = inject(LocaleService);
-  private readonly transloco = inject(TranslocoService);
-
-  transform(iso: string | null | undefined): string {
-    if (!iso) return '';
-    return relativeTime(iso, this.locale.locale()) ?? this.transloco.translate('time.justNow');
-  }
-}
 
 /** 45 → "45 min", 90 → "1 h 30" (FR) or "1 hr 30" (EN). */
 @Pipe({ name: 'duration', pure: false })

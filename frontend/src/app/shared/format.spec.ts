@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decimal, relativeTime, splitDuration, videoTimestamp } from './format';
+import { absoluteDate, decimal, relativeTime, splitDuration, videoTimestamp } from './format';
 
 const NOW = new Date('2026-07-25T12:00:00.000Z');
 const ago = (ms: number) => new Date(NOW.getTime() - ms).toISOString();
@@ -39,6 +39,45 @@ describe('decimal', () => {
   it('rounds to the requested number of decimals rather than truncating', () => {
     expect(decimal(1.239, 'en', 2)).toBe('1.24');
     expect(decimal(1.25, 'en', 1)).toBe('1.3');
+  });
+});
+
+describe('absoluteDate', () => {
+  // The 8th of July: the date that reads as a different day under the other
+  // convention rather than merely looking foreign. Every case here uses it.
+  const AMBIGUOUS = '2026-07-08T12:00:00.000Z';
+
+  it('spells the month out in both languages', () => {
+    expect(absoluteDate(AMBIGUOUS, 'fr')).toBe('8 juillet 2026');
+    expect(absoluteDate(AMBIGUOUS, 'en')).toBe('8 July 2026');
+  });
+
+  it('is never the American order', () => {
+    // `Intl.DateTimeFormat('en', …)` resolves to US conventions and would give
+    // "July 8, 2026". This app is en-GB, and the guard is that `absoluteDate`
+    // maps through LOCALE_IDS rather than passing the bare tag.
+    expect(absoluteDate(AMBIGUOUS, 'en')).not.toContain(',');
+    expect(absoluteDate(AMBIGUOUS, 'en')).not.toMatch(/^July/);
+  });
+
+  it('never produces a digits-only date, in either language', () => {
+    // 08/07/2026 and 7/8/26 are the same instant and opposite readings. If a
+    // future edit reaches for `dateStyle: 'short'` this is what should stop it.
+    for (const locale of ['fr', 'en'] as const) {
+      expect(absoluteDate(AMBIGUOUS, locale)).toMatch(/[a-zA-Zé]{3,}/);
+      expect(absoluteDate(AMBIGUOUS, locale)).not.toMatch(/^\d+[/.-]\d+[/.-]\d+$/);
+    }
+  });
+
+  it('keeps the day the seed data says, not the day after', () => {
+    // Midday UTC, so no realistic reader offset moves it across midnight —
+    // which is what makes an exact assertion here safe in any timezone.
+    expect(absoluteDate('2026-07-21T12:00:00.000Z', 'fr')).toBe('21 juillet 2026');
+    expect(absoluteDate('2026-01-01T12:00:00.000Z', 'en')).toBe('1 January 2026');
+  });
+
+  it('returns null for unparseable input rather than "Invalid Date"', () => {
+    expect(absoluteDate('not-a-date', 'fr')).toBeNull();
   });
 });
 
