@@ -48,13 +48,33 @@ https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,60
 
 ### Logo
 
-Two-line uppercase wordmark, set as SVG `<text>` in an inline 90×50 viewBox:
+> **The logo disagrees with the prototypes, and this is that place.** They draw
+> a wordmark only; the site ships a **cooking pot beside the wordmark**, chosen
+> on a proof sheet on 2026-08-17. See ADR 11. What follows describes both.
+
+**As prototyped** — two-line uppercase wordmark, SVG `<text>` in a 90×50 viewBox:
 
 - `BONAPP'` — 18px, `fill: var(--color-text)`, baseline y=16
 - `HEDI` — 34px, `fill: var(--color-accent)`, baseline y=47
 
 Both `font-weight: 600`, `letter-spacing: .02em`, natural width (no artificial
 stretching).
+
+**As shipped** — one drawn SVG, 877.14×361.17, three groups:
+
+| Group | Content | Fill | Was |
+|---|---|---|---|
+| `.mark` | the pot | `--color-brand` | *(did not exist)* |
+| `.upper` | `BONAPP'` | `--color-text` | unchanged |
+| `.lower` | `HEDI` | `--color-brand` | `--color-accent` |
+
+The lower word moved off the accent, which is why the logo no longer changes
+hue when the theme is toggled — the whole point of the brand ink below. The
+letterforms are still Oswald, but as artwork: `--font-logo` no longer sets any
+text, and is kept only as the record of which family to match in a redraw.
+
+Each group's fill is `var(--logo-<group>, <default>)`, so the Konami palette
+shuffle (ADR 11) can override the three without this component branching.
 
 ---
 
@@ -159,6 +179,27 @@ Tag colour rule: the primary `accent` by default, `accent-2` as the alternate.
 In the seed data `gluten` and `dessert` take `accent-2`; `chocolat` and `mijoté`
 take `accent`. Which tag gets which came from the prototype and is unchanged —
 only what those two ramps look like moved.
+
+### `--color-brand` — the one colour outside both palettes
+
+| Token | Value | Used for |
+|---|---|---|
+| `--color-brand` | `#e87e13` | the pot, and `HEDI` in the wordmark |
+
+Orange. Not in the prototypes, not in either ramp, and **not redeclared by the
+dark theme** — the only colour token that does not take part in the
+two-palettes structure ADR 10 established. That is what makes the mark
+recognisably the same mark in light and dark, where an accent would change hue
+with the theme.
+
+**It has no stops on purpose.** Every other colour here carries ten; this one
+carries a single value, so `--color-brand-600` fails at build time rather than
+quietly becoming a ninth wine. It has not been through the contrast work the
+ramps have, and it is not for text or controls. ADR 11.
+
+The favicon deliberately does *not* use it — a favicon is judged against
+browser chrome rather than a site surface, so it is Ink `#1e1a1b` on light
+chrome and Cream `#efe6d6` on dark.
 
 ### Fixed colours (never themed)
 
