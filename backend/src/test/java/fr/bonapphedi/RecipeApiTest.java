@@ -64,7 +64,7 @@ class RecipeApiTest {
                 .andExpect(jsonPath("$.items[0].difficulty").value(1))
                 .andExpect(jsonPath("$.items[0].rating.average").value(4.0))
                 .andExpect(jsonPath("$.items[0].rating.count").value(1))
-                .andExpect(jsonPath("$.items[0].author.displayName").value("Hédi"))
+                .andExpect(jsonPath("$.items[0].author.displayName").value("Hedi"))
                 .andExpect(jsonPath("$.items[0].tags.length()").value(2))
                 // Photography landed with ADR 8, so this is no longer null. The
                 // assertion it replaces read `value(nullValue())` and was right
@@ -194,6 +194,6 @@ class RecipeApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].slug").value("hedi"))
-                .andExpect(jsonPath("$[0].displayName").value("Hédi"));
+                .andExpect(jsonPath("$[0].displayName").value("Hedi"));
     }
 }

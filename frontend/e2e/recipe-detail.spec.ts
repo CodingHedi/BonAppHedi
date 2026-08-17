@@ -12,7 +12,7 @@ test.describe('recipe detail', () => {
 
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Babka au chocolat');
     await expect(page.getByText('4,0 / 5')).toBeVisible();
-    await expect(page.getByText('Par Hédi')).toBeVisible();
+    await expect(page.getByText('Par Hedi')).toBeVisible();
     await expect(page.locator('bah-step-list li')).toHaveCount(5);
     await expect(page.locator('bah-ingredient-panel li')).toHaveCount(7);
   });

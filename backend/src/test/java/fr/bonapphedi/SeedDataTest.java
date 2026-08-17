@@ -159,7 +159,7 @@ class SeedDataTest {
     @Test
     void seedsTheSoleAuthor() {
         assertThat(jdbc.sql("SELECT display_name FROM author").query(String.class).single())
-                .isEqualTo("Hédi");
+                .isEqualTo("Hedi");
     }
 
     @Test

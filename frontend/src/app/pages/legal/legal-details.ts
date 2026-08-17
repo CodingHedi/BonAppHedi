@@ -17,7 +17,7 @@
  * withhold their name and address from the page, provided the host holds their
  * identity and the host's own details are published in full. That is the case
  * here: OVH is both registrar and host. So the site names its publisher and
- * gives OVH's address, and Hédi's home address is not on a public page indexed
+ * gives OVH's address, and Hedi's home address is not on a public page indexed
  * by search engines.
  *
  * Two things would end that exemption, and both are worth recognising before
@@ -53,8 +53,8 @@ export interface LegalDetails {
 }
 
 export const LEGAL_DETAILS: LegalDetails = {
-  publisher: 'Hédi',
-  publicationDirector: 'Hédi',
+  publisher: 'Hedi',
+  publicationDirector: 'Hedi',
 
   // This has to be a mailbox that exists and is read. It is the only channel
   // the notice offers, and a legal notice pointing at an address that bounces

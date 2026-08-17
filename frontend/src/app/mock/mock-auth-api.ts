@@ -45,7 +45,7 @@ const CONFIGURED_PROVIDERS: readonly AuthProvider[] = [
 const MOCK_USERS: Record<ProviderId, AuthUser> = {
   google: {
     id: 'mock-google-1',
-    displayName: 'Hédi',
+    displayName: 'Hedi',
     // Null, because a freshly signed-in account has chosen nothing: the byline
     // shows what the provider said, which is the state the profile page's empty
     // field has to mean.

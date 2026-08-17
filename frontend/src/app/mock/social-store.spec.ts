@@ -100,10 +100,10 @@ describe('SocialStore comments', () => {
 
   it('adds a comment attributed to the signed-in visitor and marked as theirs', () => {
     const store = new SocialStore();
-    const created = store.addComment(BABKA, { displayName: 'Hédi', avatar: 'pot/0' }, 'Testé.');
+    const created = store.addComment(BABKA, { displayName: 'Hedi', avatar: 'pot/0' }, 'Testé.');
 
     expect(created.mine).toBe(true);
-    expect(created.author.displayName).toBe('Hédi');
+    expect(created.author.displayName).toBe('Hedi');
     // The avatar travels with the attribution, or a signed-in visitor's comment
     // appears under the placeholder they went to the profile page to replace.
     expect(created.author.avatar).toBe('pot/0');
@@ -112,7 +112,7 @@ describe('SocialStore comments', () => {
 
   it('deletes only the comment asked for', () => {
     const store = new SocialStore();
-    const created = store.addComment(BABKA, { displayName: 'Hédi', avatar: 'pot/0' }, 'Testé.');
+    const created = store.addComment(BABKA, { displayName: 'Hedi', avatar: 'pot/0' }, 'Testé.');
     store.deleteComment(created.id);
 
     expect(store.commentCountFor(BABKA)).toBe(2);
@@ -133,7 +133,7 @@ describe('SocialStore comments', () => {
    */
   it('renames the comments this visitor has already posted', () => {
     const store = new SocialStore();
-    const own = store.addComment(BABKA, { displayName: 'Hédi', avatar: 'pot/0' }, 'Testé.');
+    const own = store.addComment(BABKA, { displayName: 'Hedi', avatar: 'pot/0' }, 'Testé.');
 
     store.renameAuthor('Le Gourmand');
 
@@ -145,7 +145,7 @@ describe('SocialStore comments', () => {
     // Scoped to `mine`, which stands in for `WHERE user_id = :me`. A rename that
     // dropped the condition would pass the test above and rewrite the whole site.
     const store = new SocialStore();
-    store.addComment(BABKA, { displayName: 'Hédi', avatar: 'pot/0' }, 'Testé.');
+    store.addComment(BABKA, { displayName: 'Hedi', avatar: 'pot/0' }, 'Testé.');
 
     store.renameAuthor('Le Gourmand');
 
