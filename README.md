@@ -1,4 +1,4 @@
-# Bon App' Hédi
+# BonApp' Hedi
 
 Un carnet de recettes tenu à la main. / A hand-kept recipe notebook.
 

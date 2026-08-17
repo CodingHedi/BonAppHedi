@@ -154,7 +154,7 @@ public class IndexHtmlController {
         // some ignored markup.
         String withTitle = shell.replaceFirst(
                 "<title>.*?</title>",
-                java.util.regex.Matcher.quoteReplacement("<title>" + escape(r.title()) + " · Bon App' Hédi</title>"));
+                java.util.regex.Matcher.quoteReplacement("<title>" + escape(r.title()) + " · BonApp' Hedi</title>"));
 
         return withTitle.replace(HEAD_END, head + HEAD_END);
     }

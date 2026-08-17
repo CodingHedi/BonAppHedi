@@ -202,7 +202,7 @@ class SitemapAndRssTest {
                 // always present. It is stated on the response rather than left
                 // to the XML declaration, and getting it wrong is invisible from
                 // here - the damage appears in somebody else's reader.
-                .andExpect(content().string(containsString("<title>Bon App' Hédi</title>")));
+                .andExpect(content().string(containsString("<title>BonApp' Hedi</title>")));
     }
 
     // --- staying current --------------------------------------------------

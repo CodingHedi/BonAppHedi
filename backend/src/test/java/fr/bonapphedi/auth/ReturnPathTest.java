@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
  * <p>The value arrives as a query parameter, which means it arrives from
  * whoever wrote the link — so it is an open-redirect hole unless it is checked.
  * The attack is worth stating plainly because the fix looks like paranoia
- * otherwise: a mail saying "sign in to Bon App' Hédi" links to this app's own
+ * otherwise: a mail saying "sign in to BonApp' Hedi" links to this app's own
  * authorization endpoint with {@code returnTo=https://evil.example}, the visitor
  * really does sign in to the real site, and is then handed to a copy of it that
  * asks for their password. The redirect is what lends the attacker credibility.
