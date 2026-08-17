@@ -47,7 +47,7 @@ public class FeedController {
             "fr", "Un carnet de recettes tenu à la main.",
             "en", "A recipe notebook kept by hand.");
 
-    private static final String TITLE = "Bon App' Hédi";
+    private static final String TITLE = "BonApp' Hedi";
 
     private final FeedDao recipes;
     private final SiteUrls urls;

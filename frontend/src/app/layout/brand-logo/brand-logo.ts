@@ -49,7 +49,7 @@ const ART_HEIGHT = 361.17;
       [attr.width]="width()"
       [attr.height]="height()"
       role="img"
-      aria-label="Bon App' Hédi"
+      aria-label="BonApp' Hedi"
     >
       <g class="mark">
         <path
