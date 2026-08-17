@@ -20,6 +20,7 @@ import { LocaleService } from './core/i18n/locale.service';
 import { PluralTranspiler } from './core/i18n/plural-transpiler';
 import { HttpTranslocoLoader } from './core/i18n/transloco-loader';
 import { ThemeService } from './core/theme/theme.service';
+import { LogoPaletteService } from './core/brand/logo-palette.service';
 import { RECIPE_API } from './core/api/recipe-api';
 import { SOCIAL_API } from './core/api/social-api';
 import { AUTH_API } from './core/api/auth-api';
@@ -104,6 +105,10 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => {
       inject(ThemeService).init();
       inject(LocaleService).init();
+      // After ThemeService: the shuffle picks colours legible against the
+      // resolved theme's ground, so it must not run while that is still the
+      // default.
+      inject(LogoPaletteService).init();
       // Awaited: the comment box must not paint its signed-out prompt to
       // someone who is in fact signed in, and every other initializer here is
       // synchronous, so this costs one storage read at bootstrap.

@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+  input,
+} from '@angular/core';
+import { LogoPaletteService } from '../../core/brand/logo-palette.service';
 
 /** Natural size of the lockup artwork. Width follows height from this. */
 const ART_WIDTH = 877.14;
@@ -31,6 +40,9 @@ const ART_HEIGHT = 361.17;
 @Component({
   selector: 'bah-brand-logo',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // The logo sits inside the home link, so this fires alongside the navigation
+  // rather than instead of it: the re-roll is visible on the page you land on.
+  host: { '(click)': 'palette.reshuffle()' },
   template: `
     <svg
       viewBox="0 0 877.14 361.17"
@@ -117,6 +129,31 @@ const ART_HEIGHT = 361.17;
   `,
 })
 export class BrandLogoComponent {
+  protected readonly palette = inject(LogoPaletteService);
+  private readonly host = inject(ElementRef<HTMLElement>);
+
   readonly height = input(44);
   protected readonly width = computed(() => (this.height() * ART_WIDTH) / ART_HEIGHT);
+
+  constructor() {
+    effect(() => {
+      const element = this.host.nativeElement as HTMLElement;
+
+      // Locked is the normal state, and it *removes* the properties rather than
+      // writing the default into them. That keeps the shipped logo entirely
+      // CSS-driven: BONAPP' follows `--color-text` because it is that token,
+      // not because something re-read it and copied the value in.
+      if (!this.palette.unlocked()) {
+        for (const block of ['mark', 'upper', 'lower']) {
+          element.style.removeProperty(`--logo-${block}`);
+        }
+        return;
+      }
+
+      const set = this.palette.current();
+      element.style.setProperty('--logo-mark', set.mark);
+      element.style.setProperty('--logo-upper', set.upper);
+      element.style.setProperty('--logo-lower', set.lower);
+    });
+  }
 }
