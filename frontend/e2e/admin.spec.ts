@@ -139,7 +139,10 @@ test.describe('recipe editor', () => {
 
     // Shared fields are outside the tabs: they belong to the recipe, not to a
     // translation, which is the whole reason the tabs exist.
-    await expect(page.getByLabel('Portions')).toHaveValue('2');
+    //
+    // Scoped to the form, because the preview beside it renders the real
+    // ingredient panel and that carries a "Portions" stepper of its own.
+    await expect(page.locator('form').getByLabel('Portions')).toHaveValue('2');
   });
 
   test('arrow keys move between the locale tabs', async ({ page }) => {
@@ -171,7 +174,10 @@ test.describe('recipe editor', () => {
     await expect(page.locator('.ok')).toBeVisible();
 
     await page.getByRole('link', { name: 'Accueil' }).click();
-    await page.getByRole('link', { name: /Babka relue/ }).first().click();
+    await page
+      .getByRole('link', { name: /Babka relue/ })
+      .first()
+      .click();
 
     // Scoped to the detail page: `.meta` also exists on every list card, so an
     // unscoped locator matches five things and asserts nothing.
@@ -221,6 +227,84 @@ test.describe('recipe editor', () => {
   test('an unknown key says so instead of rendering an empty form', async ({ page }) => {
     await page.goto('/fr/admin/recipes/nexiste-pas');
     await expect(page.getByText('Cette recette est introuvable.')).toBeVisible();
+  });
+});
+
+test.describe('the live preview', () => {
+  test.beforeEach(async ({ page }) => signedInAs(page, 'admin'));
+
+  const preview = (page: Page) => page.locator('bah-admin-recipe-preview');
+
+  test('draws the recipe out of the same components the public page uses', async ({ page }) => {
+    // The point of the preview is that it is not a second rendering: if these
+    // stop being the page's own components it can be right while the page is
+    // wrong, which is worse than having none.
+    await page.goto('/fr/admin/recipes/babka');
+
+    await expect(preview(page).locator('bah-recipe-media')).toBeVisible();
+    await expect(preview(page).locator('bah-step-list li').first()).toBeVisible();
+    await expect(preview(page).locator('bah-ingredient-panel')).toBeVisible();
+  });
+
+  test('follows the title as it is typed, without saving', async ({ page }) => {
+    await page.goto('/fr/admin/recipes/babka');
+    await expect(preview(page).locator('.title')).toHaveText('Babka au chocolat');
+
+    await page.locator('input.input').first().fill('Babka au praliné');
+    await expect(preview(page).locator('.title')).toHaveText('Babka au praliné');
+
+    // Nothing was saved, so the public page must still say the old name.
+    await page.getByRole('link', { name: 'Accueil' }).click();
+    await expect(page.locator('bah-recipe-card').first()).toContainText('Babka au chocolat');
+  });
+
+  test('follows the locale tab, because a preview of the other language is not one', async ({
+    page,
+  }) => {
+    await page.goto('/fr/admin/recipes/babka');
+    await page.getByRole('tab', { name: 'EN' }).click();
+    await expect(preview(page).locator('.title')).toHaveText('Chocolate babka');
+  });
+
+  test('renders the description as markdown rather than as its source', async ({ page }) => {
+    await page.goto('/fr/admin/recipes/babka');
+
+    await page.getByLabel('Description (markdown)').fill('Une **brioche** tressée.');
+    await expect(preview(page).locator('.description strong')).toHaveText('brioche');
+  });
+
+  test('scales the quantities the way the visitor’s stepper will', async ({ page }) => {
+    // The panel is the real one, so this is the actual scaling arithmetic and
+    // not a restatement of it — which is what makes it worth asserting here.
+    await page.goto('/fr/admin/recipes/babka');
+
+    const panel = preview(page).locator('bah-ingredient-panel');
+    const first = panel.locator('li').first();
+    const before = await first.locator('.amount').textContent();
+
+    await panel.getByRole('button', { name: 'Augmenter' }).click();
+    await expect(first.locator('.amount')).not.toHaveText(before ?? '');
+  });
+
+  test('leaves out the blank row the editor opens a new recipe with', async ({ page }) => {
+    // An empty bullet and a stray unit read as a rendering fault, not as a
+    // field nobody has filled in yet.
+    await page.goto('/fr/admin/recipes/new');
+
+    await expect(preview(page)).toBeVisible();
+    await expect(preview(page).locator('bah-ingredient-panel')).toHaveCount(0);
+    await expect(preview(page).getByText("Aucune étape pour l'instant.")).toBeVisible();
+  });
+
+  test('can be folded away to give the form the whole width', async ({ page }) => {
+    await page.goto('/fr/admin/recipes/babka');
+
+    const toggle = page.getByRole('button', { name: 'Aperçu' });
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+    await toggle.click();
+    await expect(preview(page)).toHaveCount(0);
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   });
 });
 
@@ -305,7 +389,10 @@ test.describe('moderation', () => {
     await expect(page.locator('.empty')).toBeVisible();
 
     await page.getByRole('link', { name: 'Accueil' }).click();
-    await page.getByRole('link', { name: /Chakchouka/ }).first().click();
+    await page
+      .getByRole('link', { name: /Chakchouka/ })
+      .first()
+      .click();
     await expect(page.locator('bah-comment-section')).toContainText('premier !!!');
     await expect(page.locator('bah-comment-section h2')).toHaveText('2 commentaires');
   });
@@ -316,7 +403,10 @@ test.describe('moderation', () => {
     await expect(page.locator('.empty')).toBeVisible();
 
     await page.getByRole('link', { name: 'Accueil' }).click();
-    await page.getByRole('link', { name: /Chakchouka/ }).first().click();
+    await page
+      .getByRole('link', { name: /Chakchouka/ })
+      .first()
+      .click();
     await expect(page.locator('bah-comment-section')).not.toContainText('premier !!!');
     await expect(page.locator('bah-comment-section h2')).toHaveText('1 commentaire');
   });
