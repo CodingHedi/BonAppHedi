@@ -14,8 +14,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { ADMIN_API } from '../../../core/api/admin-api';
 import { LocaleService } from '../../../core/i18n/locale.service';
 import { LOCALES, type Locale } from '../../../core/i18n/locale';
-import { MarkdownComponent } from '../../../shared/ui/markdown/markdown';
 import { IconComponent } from '../../../core/icons/icon';
+import { RecipePreviewComponent } from '../recipe-preview/recipe-preview';
 import type { IngredientDraft, RecipeDraft, StepDraft } from '../../../core/api/models';
 
 /**
@@ -29,315 +29,350 @@ import type { IngredientDraft, RecipeDraft, StepDraft } from '../../../core/api/
  *
  * Ingredients and steps are per-row bilingual for the same reason: the quantity
  * belongs to the row, the name belongs to the language.
+ *
+ * Beside the form is the recipe as it will be read — {@link RecipePreviewComponent},
+ * built from the same working copy the inputs are bound to, so it moves on every
+ * keystroke. Side by side rather than behind a "preview" button because the
+ * things it catches are the things you only notice by comparison: a step that
+ * reads as a wall of text, an ingredient whose quantity scales when it should
+ * not, a description whose first line is the only one anybody will see.
  */
 @Component({
   selector: 'bah-admin-recipe-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, TranslocoPipe, MarkdownComponent, IconComponent],
+  imports: [FormsModule, TranslocoPipe, IconComponent, RecipePreviewComponent],
   template: `
     @if (draft.isLoading()) {
       <p class="muted">{{ 'admin.loading' | transloco }}</p>
     } @else if (model(); as m) {
-      <form (ngSubmit)="save()">
-        <div class="tabs" role="tablist" [attr.aria-label]="'admin.language' | transloco">
-          @for (locale of LOCALES; track locale) {
-            <button
-              type="button"
-              role="tab"
-              class="tab"
-              [id]="'locale-tab-' + locale"
-              [class.active]="tab() === locale"
-              [attr.aria-selected]="tab() === locale"
-              [tabindex]="tab() === locale ? 0 : -1"
-              (click)="tab.set(locale)"
-              (keydown)="onTabKeydown($event)"
-            >
-              {{ locale.toUpperCase() }}
-              @if (!m.t[locale].title) {
-                <span class="dot" [attr.title]="'admin.untranslated' | transloco">•</span>
-              }
-            </button>
-          }
-        </div>
+      <div class="bar">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          [attr.aria-pressed]="showPreview()"
+          (click)="showPreview.set(!showPreview())"
+        >
+          <bah-icon name="eye" [size]="14" />
+          {{ 'admin.preview' | transloco }}
+        </button>
+      </div>
 
-        <section role="tabpanel" [attr.aria-labelledby]="'locale-tab-' + tab()" class="panel">
-          <label>
-            {{ 'admin.fieldTitle' | transloco }}
-            <input
-              class="input"
-              [ngModel]="m.t[tab()].title"
-              (ngModelChange)="setTranslation('title', $event)"
-              [ngModelOptions]="{ standalone: true }"
-            />
-          </label>
-
-          <label>
-            {{ 'admin.fieldSlug' | transloco }}
-            <input
-              class="input"
-              [ngModel]="m.t[tab()].slug"
-              (ngModelChange)="setTranslation('slug', $event)"
-              [ngModelOptions]="{ standalone: true }"
-            />
-          </label>
-
-          <label>
-            {{ 'admin.fieldExcerpt' | transloco }}
-            <textarea
-              class="input"
-              rows="2"
-              [ngModel]="m.t[tab()].excerpt"
-              (ngModelChange)="setTranslation('excerpt', $event)"
-              [ngModelOptions]="{ standalone: true }"
-            ></textarea>
-          </label>
-
-          <label>
-            {{ 'admin.fieldBody' | transloco }}
-            <textarea
-              class="input"
-              rows="6"
-              [ngModel]="m.t[tab()].bodyMarkdown"
-              (ngModelChange)="setTranslation('bodyMarkdown', $event)"
-              [ngModelOptions]="{ standalone: true }"
-            ></textarea>
-          </label>
-
-          <!-- Same sanitizing component the site renders with, so what is
-               previewed here is what a visitor gets. -->
-          <div class="preview">
-            <span class="muted">{{ 'comments.preview' | transloco }}</span>
-            <bah-markdown [markdown]="m.t[tab()].bodyMarkdown" />
-          </div>
-        </section>
-
-        <section class="shared">
-          <h2>{{ 'admin.shared' | transloco }}</h2>
-          <p class="muted hint">{{ 'admin.sharedHint' | transloco }}</p>
-
-          <div class="grid">
-            <label>
-              {{ 'admin.fieldKey' | transloco }}
-              <input
-                class="input"
-                [ngModel]="m.key"
-                (ngModelChange)="patch({ key: $event })"
-                [ngModelOptions]="{ standalone: true }"
-                [readonly]="!isNew()"
-              />
-            </label>
-
-            <label>
-              {{ 'recipe.prepTime' | transloco }}
-              <input
-                class="input"
-                type="number"
-                min="0"
-                [ngModel]="m.prepMinutes"
-                (ngModelChange)="patch({ prepMinutes: number($event) })"
-                [ngModelOptions]="{ standalone: true }"
-              />
-            </label>
-
-            <label>
-              {{ 'recipe.cookTime' | transloco }}
-              <input
-                class="input"
-                type="number"
-                min="0"
-                [ngModel]="m.cookMinutes"
-                (ngModelChange)="patch({ cookMinutes: number($event) })"
-                [ngModelOptions]="{ standalone: true }"
-              />
-            </label>
-
-            <label>
-              {{ 'recipe.difficulty' | transloco }}
-              <select
-                class="input"
-                [ngModel]="m.difficulty"
-                (ngModelChange)="setDifficulty($event)"
-                [ngModelOptions]="{ standalone: true }"
+      <div class="split" [class.split--wide]="showPreview()">
+        <form (ngSubmit)="save()">
+          <div class="tabs" role="tablist" [attr.aria-label]="'admin.language' | transloco">
+            @for (locale of LOCALES; track locale) {
+              <button
+                type="button"
+                role="tab"
+                class="tab"
+                [id]="'locale-tab-' + locale"
+                [class.active]="tab() === locale"
+                [attr.aria-selected]="tab() === locale"
+                [tabindex]="tab() === locale ? 0 : -1"
+                (click)="tab.set(locale)"
+                (keydown)="onTabKeydown($event)"
               >
-                <option [value]="1">{{ 'recipe.difficultyEasy' | transloco }}</option>
-                <option [value]="2">{{ 'recipe.difficultyMedium' | transloco }}</option>
-                <option [value]="3">{{ 'recipe.difficultyHard' | transloco }}</option>
-              </select>
-            </label>
-
-            <label>
-              {{ 'recipe.servings' | transloco }}
-              <input
-                class="input"
-                type="number"
-                min="1"
-                [ngModel]="m.baseServings"
-                (ngModelChange)="patch({ baseServings: +$event || 1 })"
-                [ngModelOptions]="{ standalone: true }"
-              />
-            </label>
-
-            <label>
-              {{ 'admin.fieldVideo' | transloco }}
-              <input
-                class="input"
-                [ngModel]="m.youtubeVideoId"
-                (ngModelChange)="patch({ youtubeVideoId: $event || null })"
-                [ngModelOptions]="{ standalone: true }"
-              />
-            </label>
+                {{ locale.toUpperCase() }}
+                @if (!m.t[locale].title) {
+                  <span class="dot" [attr.title]="'admin.untranslated' | transloco">•</span>
+                }
+              </button>
+            }
           </div>
-        </section>
 
-        <section class="shared">
-          <h2>{{ 'admin.photo' | transloco }}</h2>
-          <p class="muted hint">{{ 'admin.photoHint' | transloco }}</p>
+          <section role="tabpanel" [attr.aria-labelledby]="'locale-tab-' + tab()" class="panel">
+            <label>
+              {{ 'admin.fieldTitle' | transloco }}
+              <input
+                class="input"
+                [ngModel]="m.t[tab()].title"
+                (ngModelChange)="setTranslation('title', $event)"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </label>
 
-          @if (isNew()) {
+            <label>
+              {{ 'admin.fieldSlug' | transloco }}
+              <input
+                class="input"
+                [ngModel]="m.t[tab()].slug"
+                (ngModelChange)="setTranslation('slug', $event)"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </label>
+
+            <label>
+              {{ 'admin.fieldExcerpt' | transloco }}
+              <textarea
+                class="input"
+                rows="2"
+                [ngModel]="m.t[tab()].excerpt"
+                (ngModelChange)="setTranslation('excerpt', $event)"
+                [ngModelOptions]="{ standalone: true }"
+              ></textarea>
+            </label>
+
+            <label>
+              {{ 'admin.fieldBody' | transloco }}
+              <textarea
+                class="input"
+                rows="6"
+                [ngModel]="m.t[tab()].bodyMarkdown"
+                (ngModelChange)="setTranslation('bodyMarkdown', $event)"
+                [ngModelOptions]="{ standalone: true }"
+              ></textarea>
+            </label>
+
             <!--
+              The rendered markdown used to be repeated here, under the field.
+              It is in the pane alongside now, in the card the site actually
+              draws it in — the same sanitizing component and more of the
+              truth, so a second copy here would only be one more thing to
+              keep in step.
+            -->
+          </section>
+
+          <section class="shared">
+            <h2>{{ 'admin.shared' | transloco }}</h2>
+            <p class="muted hint">{{ 'admin.sharedHint' | transloco }}</p>
+
+            <div class="grid">
+              <label>
+                {{ 'admin.fieldKey' | transloco }}
+                <input
+                  class="input"
+                  [ngModel]="m.key"
+                  (ngModelChange)="patch({ key: $event })"
+                  [ngModelOptions]="{ standalone: true }"
+                  [readonly]="!isNew()"
+                />
+              </label>
+
+              <label>
+                {{ 'recipe.prepTime' | transloco }}
+                <input
+                  class="input"
+                  type="number"
+                  min="0"
+                  [ngModel]="m.prepMinutes"
+                  (ngModelChange)="patch({ prepMinutes: number($event) })"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+
+              <label>
+                {{ 'recipe.cookTime' | transloco }}
+                <input
+                  class="input"
+                  type="number"
+                  min="0"
+                  [ngModel]="m.cookMinutes"
+                  (ngModelChange)="patch({ cookMinutes: number($event) })"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+
+              <label>
+                {{ 'recipe.difficulty' | transloco }}
+                <select
+                  class="input"
+                  [ngModel]="m.difficulty"
+                  (ngModelChange)="setDifficulty($event)"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <option [value]="1">{{ 'recipe.difficultyEasy' | transloco }}</option>
+                  <option [value]="2">{{ 'recipe.difficultyMedium' | transloco }}</option>
+                  <option [value]="3">{{ 'recipe.difficultyHard' | transloco }}</option>
+                </select>
+              </label>
+
+              <label>
+                {{ 'recipe.servings' | transloco }}
+                <input
+                  class="input"
+                  type="number"
+                  min="1"
+                  [ngModel]="m.baseServings"
+                  (ngModelChange)="patch({ baseServings: +$event || 1 })"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+
+              <label>
+                {{ 'admin.fieldVideo' | transloco }}
+                <input
+                  class="input"
+                  [ngModel]="m.youtubeVideoId"
+                  (ngModelChange)="patch({ youtubeVideoId: $event || null })"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+            </div>
+          </section>
+
+          <section class="shared">
+            <h2>{{ 'admin.photo' | transloco }}</h2>
+            <p class="muted hint">{{ 'admin.photoHint' | transloco }}</p>
+
+            @if (isNew()) {
+              <!--
               The upload is addressed by recipe key, so there is nothing to
               attach a photograph to until the recipe exists. Saying so beats
               offering a control that would 404.
             -->
-            <p class="muted">{{ 'admin.photoAfterSave' | transloco }}</p>
-          } @else {
-            <div class="photo">
-              @if (m.photo; as photo) {
-                <img
-                  class="photo-preview"
-                  [src]="photo.url"
-                  alt=""
-                  [style.background-color]="photo.dominant"
-                />
-                <p class="muted">{{ photo.width }}&times;{{ photo.height }}</p>
-              } @else {
-                <p class="muted">{{ 'admin.photoNone' | transloco }}</p>
-              }
+              <p class="muted">{{ 'admin.photoAfterSave' | transloco }}</p>
+            } @else {
+              <div class="photo">
+                @if (m.photo; as photo) {
+                  <img
+                    class="photo-preview"
+                    [src]="photo.url"
+                    alt=""
+                    [style.background-color]="photo.dominant"
+                  />
+                  <p class="muted">{{ photo.width }}&times;{{ photo.height }}</p>
+                } @else {
+                  <p class="muted">{{ 'admin.photoNone' | transloco }}</p>
+                }
 
-              <div class="photo-actions">
-                <!--
+                <div class="photo-actions">
+                  <!--
                   A label rather than a button, because a file input cannot be
                   opened programmatically without a user gesture and does not
                   need to be: clicking its label is the gesture.
                 -->
-                <label class="btn">
-                  {{ (m.photo ? 'admin.photoReplace' : 'admin.photoChoose') | transloco }}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    [disabled]="photoBusy()"
-                    (change)="choosePhoto($event)"
-                  />
-                </label>
+                  <label class="btn">
+                    {{ (m.photo ? 'admin.photoReplace' : 'admin.photoChoose') | transloco }}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      [disabled]="photoBusy()"
+                      (change)="choosePhoto($event)"
+                    />
+                  </label>
 
-                @if (m.photo) {
-                  <button
-                    type="button"
-                    class="btn"
-                    [disabled]="photoBusy()"
-                    (click)="removePhoto()"
-                  >
-                    {{ 'admin.photoRemove' | transloco }}
-                  </button>
+                  @if (m.photo) {
+                    <button
+                      type="button"
+                      class="btn"
+                      [disabled]="photoBusy()"
+                      (click)="removePhoto()"
+                    >
+                      {{ 'admin.photoRemove' | transloco }}
+                    </button>
+                  }
+                </div>
+
+                @if (photoFailed()) {
+                  <p class="error" role="alert">{{ 'admin.photoFailed' | transloco }}</p>
                 }
               </div>
+            }
+          </section>
 
-              @if (photoFailed()) {
-                <p class="error" role="alert">{{ 'admin.photoFailed' | transloco }}</p>
-              }
+          <section class="rows">
+            <h2>{{ 'recipe.ingredients' | transloco }}</h2>
+            @for (ingredient of m.ingredients; track $index) {
+              <div class="row">
+                <input
+                  class="input qty"
+                  type="number"
+                  [attr.aria-label]="'admin.quantity' | transloco"
+                  [ngModel]="ingredient.baseQuantity"
+                  (ngModelChange)="patchIngredient($index, { baseQuantity: number($event) })"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+                <input
+                  class="input unit"
+                  [attr.aria-label]="'admin.unit' | transloco"
+                  [ngModel]="ingredient.unit"
+                  (ngModelChange)="patchIngredient($index, { unit: $event })"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+                <input
+                  class="input"
+                  [attr.aria-label]="'admin.ingredientName' | transloco"
+                  [ngModel]="ingredient.t[tab()].name"
+                  (ngModelChange)="patchIngredientName($index, $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+                <button
+                  type="button"
+                  class="btn btn-icon btn-secondary"
+                  [attr.aria-label]="'admin.removeRow' | transloco"
+                  (click)="removeIngredient($index)"
+                >
+                  <bah-icon name="trash" [size]="14" />
+                </button>
+              </div>
+            }
+            <button type="button" class="btn btn-secondary" (click)="addIngredient()">
+              {{ 'admin.addIngredient' | transloco }}
+            </button>
+          </section>
+
+          <section class="rows">
+            <h2>{{ 'recipe.steps' | transloco }}</h2>
+            @for (step of m.steps; track $index) {
+              <div class="row row--step">
+                <textarea
+                  class="input"
+                  rows="2"
+                  [attr.aria-label]="'admin.stepBody' | transloco"
+                  [ngModel]="step.t[tab()].body"
+                  (ngModelChange)="patchStepBody($index, $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                ></textarea>
+                <input
+                  class="input qty"
+                  type="number"
+                  [attr.aria-label]="'admin.stepOffset' | transloco"
+                  [ngModel]="step.videoOffsetSeconds"
+                  (ngModelChange)="patchStep($index, { videoOffsetSeconds: number($event) })"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+                <button
+                  type="button"
+                  class="btn btn-icon btn-secondary"
+                  [attr.aria-label]="'admin.removeRow' | transloco"
+                  (click)="removeStep($index)"
+                >
+                  <bah-icon name="trash" [size]="14" />
+                </button>
+              </div>
+            }
+            <button type="button" class="btn btn-secondary" (click)="addStep()">
+              {{ 'admin.addStep' | transloco }}
+            </button>
+          </section>
+
+          <div class="foot">
+            @if (failed()) {
+              <p class="error" role="alert">{{ 'admin.saveFailed' | transloco }}</p>
+            }
+            @if (saved()) {
+              <p class="ok" role="status">{{ 'admin.saved' | transloco }}</p>
+            }
+            <button type="submit" class="btn btn-primary" [disabled]="busy() || !canSave()">
+              {{ 'admin.save' | transloco }}
+            </button>
+          </div>
+        </form>
+
+        @if (showPreview()) {
+          <aside class="pane" [attr.aria-label]="'admin.preview' | transloco">
+            <div class="pane-head">
+              <h2>{{ 'admin.preview' | transloco }}</h2>
+              <p class="muted hint">{{ 'admin.previewHint' | transloco }}</p>
             </div>
-          }
-        </section>
 
-        <section class="rows">
-          <h2>{{ 'recipe.ingredients' | transloco }}</h2>
-          @for (ingredient of m.ingredients; track $index) {
-            <div class="row">
-              <input
-                class="input qty"
-                type="number"
-                [attr.aria-label]="'admin.quantity' | transloco"
-                [ngModel]="ingredient.baseQuantity"
-                (ngModelChange)="patchIngredient($index, { baseQuantity: number($event) })"
-                [ngModelOptions]="{ standalone: true }"
-              />
-              <input
-                class="input unit"
-                [attr.aria-label]="'admin.unit' | transloco"
-                [ngModel]="ingredient.unit"
-                (ngModelChange)="patchIngredient($index, { unit: $event })"
-                [ngModelOptions]="{ standalone: true }"
-              />
-              <input
-                class="input"
-                [attr.aria-label]="'admin.ingredientName' | transloco"
-                [ngModel]="ingredient.t[tab()].name"
-                (ngModelChange)="patchIngredientName($index, $event)"
-                [ngModelOptions]="{ standalone: true }"
-              />
-              <button
-                type="button"
-                class="btn btn-icon btn-secondary"
-                [attr.aria-label]="'admin.removeRow' | transloco"
-                (click)="removeIngredient($index)"
-              >
-                <bah-icon name="trash" [size]="14" />
-              </button>
+            <div class="pane-body">
+              <bah-admin-recipe-preview [draft]="m" [locale]="tab()" />
             </div>
-          }
-          <button type="button" class="btn btn-secondary" (click)="addIngredient()">
-            {{ 'admin.addIngredient' | transloco }}
-          </button>
-        </section>
-
-        <section class="rows">
-          <h2>{{ 'recipe.steps' | transloco }}</h2>
-          @for (step of m.steps; track $index) {
-            <div class="row row--step">
-              <textarea
-                class="input"
-                rows="2"
-                [attr.aria-label]="'admin.stepBody' | transloco"
-                [ngModel]="step.t[tab()].body"
-                (ngModelChange)="patchStepBody($index, $event)"
-                [ngModelOptions]="{ standalone: true }"
-              ></textarea>
-              <input
-                class="input qty"
-                type="number"
-                [attr.aria-label]="'admin.stepOffset' | transloco"
-                [ngModel]="step.videoOffsetSeconds"
-                (ngModelChange)="patchStep($index, { videoOffsetSeconds: number($event) })"
-                [ngModelOptions]="{ standalone: true }"
-              />
-              <button
-                type="button"
-                class="btn btn-icon btn-secondary"
-                [attr.aria-label]="'admin.removeRow' | transloco"
-                (click)="removeStep($index)"
-              >
-                <bah-icon name="trash" [size]="14" />
-              </button>
-            </div>
-          }
-          <button type="button" class="btn btn-secondary" (click)="addStep()">
-            {{ 'admin.addStep' | transloco }}
-          </button>
-        </section>
-
-        <div class="foot">
-          @if (failed()) {
-            <p class="error" role="alert">{{ 'admin.saveFailed' | transloco }}</p>
-          }
-          @if (saved()) {
-            <p class="ok" role="status">{{ 'admin.saved' | transloco }}</p>
-          }
-          <button type="submit" class="btn btn-primary" [disabled]="busy() || !canSave()">
-            {{ 'admin.save' | transloco }}
-          </button>
-        </div>
-      </form>
+          </aside>
+        }
+      </div>
     } @else {
       <p class="muted">{{ 'admin.notFound' | transloco }}</p>
     }
@@ -345,7 +380,101 @@ import type { IngredientDraft, RecipeDraft, StepDraft } from '../../../core/api/
   styles: `
     :host {
       display: block;
+    }
+
+    form {
       max-width: 780px;
+      min-width: 0;
+    }
+
+    .bar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 14px;
+    }
+
+    .bar .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    /*
+      One column until there is room for two, and the breakpoint is about the
+      preview rather than about the form: below roughly 1240px the pane is
+      narrow enough that the recipe page inside it collapses to its phone
+      layout, which is a preview of a page nobody is going to read from this
+      screen. Stacked, it is still the same rendering and still correct — just
+      underneath instead of beside.
+    */
+    .split {
+      display: grid;
+      gap: 36px;
+    }
+
+    @media (min-width: 1240px) {
+      .split--wide {
+        grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+        align-items: start;
+
+        /*
+          Deliberately wider than the site's own 1180px column.
+          Side by side only earns its place if both halves are usable, and half
+          of 1180 is not. The width is taken back from the viewport and the
+          negative margin re-centres it, since the row is now wider than the
+          .container it sits in.
+
+          100vw is safe here despite the scrollbar: the 64px of gutter it gives
+          back is four times the widest classic scrollbar, so the row can never
+          be the thing that makes the document scroll sideways.
+        */
+        width: calc(100vw - 2 * var(--container-pad));
+        max-width: 1720px;
+        margin-left: calc(-1 * (min(100vw - 2 * var(--container-pad), 1720px) - 100%) / 2);
+      }
+    }
+
+    /* Its own scroller, so a long form and a long recipe do not have to be
+       read at the same scroll position. */
+    .pane {
+      position: sticky;
+      top: 96px;
+      min-width: 0;
+      max-height: calc(100vh - 120px);
+      overflow: auto;
+      border: 1px solid var(--color-divider);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px 28px;
+    }
+
+    .pane-head {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--color-divider);
+    }
+
+    .pane-head h2 {
+      font-size: 15px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin: 0;
+      opacity: 0.7;
+    }
+
+    .pane-head .hint {
+      margin: 0;
+    }
+
+    @media (max-width: 1239px) {
+      .pane {
+        position: static;
+        max-height: none;
+        overflow: visible;
+      }
     }
 
     .tabs {
@@ -412,12 +541,6 @@ import type { IngredientDraft, RecipeDraft, StepDraft } from '../../../core/api/
     .hint {
       margin: 0 0 18px;
       font-size: 12.5px;
-    }
-
-    .preview {
-      border-top: 1px solid var(--color-divider);
-      padding-top: 14px;
-      font-size: 14px;
     }
 
     .photo {
@@ -532,6 +655,14 @@ export class RecipeEditorComponent {
   protected readonly saved = signal(false);
 
   /**
+   * On by default: an author opening the editor wants to see the recipe, and a
+   * preview that has to be asked for is one that gets looked at after the
+   * mistake rather than before it. The toggle exists for the narrow screen,
+   * where the pane sits under the form and is a long way to scroll past.
+   */
+  protected readonly showPreview = signal(true);
+
+  /**
    * Separate from `busy`/`failed`, which belong to the save.
    *
    * An upload is not part of saving the form — it has already happened on the
@@ -588,7 +719,10 @@ export class RecipeEditorComponent {
     if (current) this.model.set({ ...current, ...change });
   }
 
-  protected setTranslation(field: 'title' | 'slug' | 'excerpt' | 'bodyMarkdown', value: string): void {
+  protected setTranslation(
+    field: 'title' | 'slug' | 'excerpt' | 'bodyMarkdown',
+    value: string,
+  ): void {
     const current = this.model();
     if (!current) return;
 
@@ -600,7 +734,9 @@ export class RecipeEditorComponent {
   }
 
   protected patchIngredient(index: number, change: Partial<IngredientDraft>): void {
-    this.mapIngredients((ingredient, i) => (i === index ? { ...ingredient, ...change } : ingredient));
+    this.mapIngredients((ingredient, i) =>
+      i === index ? { ...ingredient, ...change } : ingredient,
+    );
   }
 
   protected patchIngredientName(index: number, name: string): void {
