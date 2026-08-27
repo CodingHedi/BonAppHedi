@@ -1,5 +1,6 @@
 package fr.bonapphedi;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -79,6 +80,36 @@ class RecipeMetadataTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("<title>Babka au chocolat")))
                 .andExpect(content().string(containsString("Une brioche tressée au marbrage")));
+    }
+
+    @Test
+    void servesExactlyOneDescriptionAndItIsTheRecipes() throws Exception {
+        // The shell ships its own site-level description, so splicing the
+        // recipe's in without taking that one out leaves two — and the generic
+        // one first, which is the one a crawler reads. Every recipe page then
+        // describes itself as "un carnet de recettes tenu à la main".
+        //
+        // containsString cannot see this: it passes on a page carrying both,
+        // which is exactly how it shipped. The count is the assertion.
+        String html =
+                mvc.perform(get("/fr/recettes/babka-au-chocolat"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        assertThat(countOf(html, "<meta name=\"description\""))
+                .as("one description, or the first one wins and it is the wrong one")
+                .isEqualTo(1);
+        assertThat(html).contains("Une brioche tressée au marbrage");
+        assertThat(html).doesNotContain("Un carnet de recettes tenu à la main");
+    }
+
+    /** Deliberately not a regex: the markup is fixed and a literal cannot drift. */
+    private static int countOf(String haystack, String needle) {
+        int count = 0;
+        for (int i = haystack.indexOf(needle); i >= 0; i = haystack.indexOf(needle, i + 1)) count++;
+        return count;
     }
 
     @Test

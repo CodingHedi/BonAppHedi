@@ -122,7 +122,6 @@ public class IndexHtmlController {
         String url = urls.recipe(locale, r.slug());
 
         StringBuilder head = new StringBuilder(1024);
-        head.append("<meta name=\"description\" content=\"").append(escape(r.excerpt())).append("\">\n");
         head.append("<link rel=\"canonical\" href=\"").append(escape(url)).append("\">\n");
 
         for (Dto.LocaleAlternate alt : r.alternates()) {
@@ -152,11 +151,30 @@ public class IndexHtmlController {
         // The title is a replacement rather than an addition: two <title>
         // elements are not a richer page, they are one page with a title and
         // some ignored markup.
-        String withTitle = shell.replaceFirst(
+        String spliced = shell.replaceFirst(
                 "<title>.*?</title>",
                 java.util.regex.Matcher.quoteReplacement("<title>" + escape(r.title()) + " · BonApp' Hedi</title>"));
 
-        return withTitle.replace(HEAD_END, head + HEAD_END);
+        // And the description for exactly the same reason, which it was not
+        // getting: the shell carries a site-level one, so appending the
+        // recipe's left two on the page with the generic one FIRST — and first
+        // is the one a crawler takes. Every recipe described itself as "un
+        // carnet de recettes tenu à la main" to everything but an unfurler,
+        // which reads og:description and was always correct.
+        //
+        // Appended if the shell somehow has none, so this cannot silently drop
+        // the tag altogether.
+        spliced = spliced.replaceFirst(
+                "<meta name=\"description\"[^>]*>",
+                java.util.regex.Matcher.quoteReplacement(descriptionTag(r.excerpt())));
+
+        if (!spliced.contains("name=\"description\"")) head.append(descriptionTag(r.excerpt()));
+
+        return spliced.replace(HEAD_END, head + HEAD_END);
+    }
+
+    private String descriptionTag(String excerpt) {
+        return "<meta name=\"description\" content=\"" + escape(excerpt) + "\">";
     }
 
     private String jsonLd(Dto.RecipeDetail r, String url) {
