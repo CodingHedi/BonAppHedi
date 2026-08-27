@@ -105,6 +105,47 @@ test.describe('smoke', () => {
     expect(family).toContain('Bricolage');
   });
 
+  test('the fonts are actually loaded, not merely asked for', async ({ page }) => {
+    /*
+     * The test above cannot tell. `getComputedStyle().fontFamily` returns the
+     * declared stack — "'Bricolage Grotesque Variable', system-ui, sans-serif"
+     * — whether the @font-face file arrived or 404'd, so it passes on a page
+     * rendering entirely in system-ui. That is not hypothetical: the live site
+     * did exactly that for seventeen days while this suite stayed green,
+     * because MediaController shadowed the folder Angular emits fonts into
+     * (ADR 8's audit, and scripts/check-media-collision.mjs).
+     *
+     * `document.fonts.check` reports on the FontFaceSet instead, so it answers
+     * the question the other test looks like it is asking. It is honest about
+     * its limits here though — on port 4300 there is no Spring to shadow
+     * anything, so this would not have caught that particular bug either. It
+     * catches the ordinary one: a broken import, a renamed package, a font
+     * dropped from the bundle.
+     */
+    await page.goto('/fr');
+
+    // Polled rather than read once, and `fonts.ready` alone is not enough:
+    // it resolves when *pending* loads finish, so on a page that has not laid
+    // anything out yet it resolves immediately having loaded nothing. A face
+    // is only fetched once something needs it, which here is Angular
+    // rendering the first heading. Checking before that reports false on a
+    // perfectly healthy page — this test did exactly that when it was written.
+    const check = (family: string) => () =>
+      page.evaluate((f) => document.fonts.check(`16px "${f}"`), family);
+
+    await expect
+      .poll(check('Bricolage Grotesque Variable'), {
+        message: 'the heading face never loaded; the browser is substituting',
+      })
+      .toBe(true);
+
+    await expect
+      .poll(check('Work Sans Variable'), {
+        message: 'the body face never loaded; the browser is substituting',
+      })
+      .toBe(true);
+  });
+
   test('design tokens are live in both themes', async ({ page }) => {
     // Guards the token layer itself: if _tokens.scss stopped being imported the
     // page would fall back to browser defaults and still render, so no other
