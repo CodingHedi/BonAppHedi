@@ -1,9 +1,10 @@
 # 8. Milestone 3: the site's own images
 
-Date: 2026-08-08 · Status: proposed — **five of six acceptance criteria
-verified 2026-08-27; see the audit at the foot of this file.** It stays
-`proposed` rather than moving to `accepted` because the sixth needs Google's
-Rich Results Test, which is a third party's verdict and nobody has run it.
+Date: 2026-08-08 · Status: accepted — **all six acceptance criteria verified
+2026-08-27; see the audit at the foot of this file.** The Rich Results Test
+returned *2 valid items*. The same test also reported a failed font, which
+turned out to be a production defect this milestone had introduced and which
+nothing in the suite could see; that is recorded in the audit too.
 
 ## Context
 
@@ -284,7 +285,7 @@ rather than against memory. **Five pass. The sixth has not been run.**
 | 3 | `verify` and `verify:prod` green, favicon gate in the prod chain | **pass** — `verify:prod` opens `check:legal && check:favicon` |
 | 4 | An unfurler shows title, description and photograph, in the URL's locale | **pass** — see below |
 | 5 | `curl` returns JSON-LD and OG tags without executing JavaScript | **pass** — see below |
-| 6 | Google's Rich Results Test accepts the `Recipe` markup | **not run** |
+| 6 | Google's Rich Results Test accepts the `Recipe` markup | **pass** — *2 valid items*, Recipes and Review snippets |
 
 Criteria 4 and 5 were confirmed by `curl` on the raw HTML: `og:type`,
 `og:title`, `og:description`, `og:url`, `og:locale`, `og:image` pointing at the
@@ -293,12 +294,16 @@ alternates, a per-locale `<title>`, and a complete `Recipe` JSON-LD carrying
 `recipeIngredient`, `recipeInstructions`, `prepTime`, `cookTime`,
 `recipeYield`, `datePublished`, `author` and `aggregateRating`.
 
-**Criterion 6 requires a third party and is the reason this ADR is still
-`proposed`.** The Rich Results Test is a Google service that has to be given
-the URL; nothing in this repository can assert its verdict or regression-test
-it, which is worth weighing if it is ever restated as an acceptance criterion.
-The markup is structurally valid and complete against the vocabulary; whether
-Google accepts it is a separate claim and is not made here until it is run.
+**Criterion 6 was run on 2026-08-27 and passed**: *2 valid items* — Recipes
+with non-critical issues, and Review snippets with none, from the
+`aggregateRating` the JSON-LD already carried.
+
+It is worth recording that this was the only acceptance criterion in any ADR
+here that **the repository cannot assert or regression-test**, because it is a
+third party's verdict on a submitted URL. Everything else in the list above is
+checkable in CI forever. That is not an argument against having used it — see
+immediately below, where it earned its place twice over — but it is a property
+to weigh when writing the next milestone's criteria.
 
 ### One defect the audit found
 
@@ -323,3 +328,46 @@ description was *present* and never that the shell's was *gone* — a page
 carrying both passes. It now counts the tag rather than looking for it, which
 is the same correction `TESTING.md` records for the legal notice: an assertion
 loose enough never to fail is not protecting anything.
+
+### And a second, worse one, found by criterion 6 itself
+
+The Rich Results Test's resource report showed one file it could not fetch:
+`/media/work-sans-latin-wght-normal-QNUPE6XE.woff2`. Checked against
+production, **all eleven of the site's font files 404** — every weight of
+Bricolage Grotesque, Work Sans and Oswald. The live site has been rendering in
+`system-ui` since photography shipped.
+
+**This milestone caused it.** `MediaStorage.PREFIX` is `/media/`, and
+`MediaController` maps `PREFIX + "{name:.+}"`, which takes precedence over
+static resource handling for everything beneath it. Angular's build emits
+hashed font files into `dist/frontend/browser/media/` — its default output
+folder for that kind of asset — and the stylesheet asks for them as
+`./media/…`. So from `838b3af` (2026-08-10, the commit that gave recipes a
+photograph) the controller has been shadowing the entire font directory,
+answering from the upload directory, and returning 404 for anything not in it.
+Photographs work; everything Angular put there does not.
+
+The milestone that gave the site a face took away its typeface, and the two are
+the same commit.
+
+**Nothing in the suite could see it, for three independent reasons**, which is
+the part worth keeping:
+
+- **The e2e suite never runs against the backend.** It serves the Angular build
+  on port 4300 with no Spring in the picture, so `/media/` is a plain static
+  directory there and the collision cannot occur.
+- **`smoke.spec.ts` asserts the wrong thing.** Its font test reads
+  `getComputedStyle(h2).fontFamily` and expects it to contain `Bricolage`. That
+  returns the *declared stack*, not the face actually in use, so it passes
+  identically whether the `@font-face` file loaded or 404'd. Its own comment
+  says it guards against "a silent regression a screenshot would catch and an
+  assertion normally would not" — and it is exactly that assertion.
+- **The fixture's failed-request check never saw the request.** It fails a spec
+  on a failed request, which would have caught this instantly — against a
+  server that does not serve the fonts. On 4300 they all return 200.
+
+The fix and the regression test are not in this ADR's scope and are tracked
+separately; what belongs here is that criterion 6 paid for itself. A crawler
+fetching the page as a stranger reported something four months of green suites
+could not, and the reason is structural rather than careless: **every layer of
+this project's testing runs against a build that does not have this bug.**
