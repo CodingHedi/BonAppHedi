@@ -228,6 +228,27 @@ test.describe('recipe editor', () => {
     await page.goto('/fr/admin/recipes/nexiste-pas');
     await expect(page.getByText('Cette recette est introuvable.')).toBeVisible();
   });
+
+  test('the description textarea does not curve over its own first letter', async ({ page }) => {
+    // Where ADR 13 was actually noticed. smoke.spec.ts asserts the rule across
+    // every `.input`, but only a textarea is tall enough for the old pill to
+    // clamp far past the padding, so this is the shape that proves it.
+    await page.goto('/fr/admin/recipes/babka');
+
+    const box = page.getByLabel('Description (markdown)');
+    await expect(box).toBeVisible();
+
+    const { effective, padding } = await box.evaluate((node) => {
+      const style = getComputedStyle(node);
+      const { width, height } = node.getBoundingClientRect();
+      return {
+        effective: Math.min(parseFloat(style.borderTopLeftRadius), width / 2, height / 2),
+        padding: parseFloat(style.paddingLeft),
+      };
+    });
+
+    expect(effective).toBeLessThanOrEqual(padding);
+  });
 });
 
 test.describe('the live preview', () => {

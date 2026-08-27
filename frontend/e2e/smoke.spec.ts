@@ -133,4 +133,38 @@ test.describe('smoke', () => {
     // which renders perfectly and looks like a design choice.
     await expect.poll(accent).toBe('#a15a35');
   });
+
+  test('no form field curves into its own text (ADR 13)', async ({ page }) => {
+    /*
+     * The geometric rule, not the token's value: a corner radius no larger than
+     * the horizontal padding cannot reach the text, at any box size. Asserting
+     * `--radius-input === '12px'` instead would pass on a field with 4px of
+     * padding, which is the shape that actually breaks.
+     *
+     * The browser clamps a radius to half the box, so `--radius-pill` resolved
+     * to 60px on the admin editor's 120px-tall description textarea — well past
+     * its 18px padding — and ate the first character of the first line. "Babka"
+     * rendered as "3abka". A single-line input hid it, because at 43px tall the
+     * clamp lands near the padding and the widest part of the curve sits at the
+     * vertical centre where there is no text to clip.
+     */
+    await page.goto('/fr');
+
+    const offenders = await page.locator('.input').evaluateAll((nodes) =>
+      nodes.flatMap((node) => {
+        const style = getComputedStyle(node);
+        const { width, height } = node.getBoundingClientRect();
+        const specified = parseFloat(style.borderTopLeftRadius);
+        // How the browser resolves it once the box is known.
+        const effective = Math.min(specified, width / 2, height / 2);
+        const padding = Math.min(parseFloat(style.paddingLeft), parseFloat(style.paddingRight));
+
+        return effective > padding
+          ? [{ tag: node.tagName, effective: Math.round(effective), padding }]
+          : [];
+      }),
+    );
+
+    expect(offenders, 'a radius wider than the padding will clip text').toEqual([]);
+  });
 });
