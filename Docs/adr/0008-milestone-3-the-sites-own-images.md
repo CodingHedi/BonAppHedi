@@ -1,6 +1,9 @@
 # 8. Milestone 3: the site's own images
 
-Date: 2026-08-08 · Status: proposed
+Date: 2026-08-08 · Status: proposed — **five of six acceptance criteria
+verified 2026-08-27; see the audit at the foot of this file.** It stays
+`proposed` rather than moving to `accepted` because the sixth needs Google's
+Rich Results Test, which is a third party's verdict and nobody has run it.
 
 ## Context
 
@@ -265,3 +268,58 @@ are written into the same directory `backup.sh` carries, so a photograph now
 costs up to three files there rather than one. They are reproducible from the
 original, so losing them costs a slow first request rather than a photograph —
 which is worth knowing before anyone sizes the archive.
+
+---
+
+## Audit, 2026-08-27: the definition of done, measured
+
+This ADR has sat at `proposed` since 2026-08-08 while its work shipped, so the
+six acceptance criteria above were checked one at a time against the live site
+rather than against memory. **Five pass. The sixth has not been run.**
+
+| # | Criterion | Result |
+|---|---|---|
+| 1 | Every seeded recipe has a photograph, own origin | **pass** — 6 of 6, all `/media/…`, three widths each |
+| 2 | No request leaves the origin to render any page | **pass** — asserted in `recipe-detail.spec.ts` against `youtube.com`, `ytimg.com`, `gstatic.com`, `doubleclick` |
+| 3 | `verify` and `verify:prod` green, favicon gate in the prod chain | **pass** — `verify:prod` opens `check:legal && check:favicon` |
+| 4 | An unfurler shows title, description and photograph, in the URL's locale | **pass** — see below |
+| 5 | `curl` returns JSON-LD and OG tags without executing JavaScript | **pass** — see below |
+| 6 | Google's Rich Results Test accepts the `Recipe` markup | **not run** |
+
+Criteria 4 and 5 were confirmed by `curl` on the raw HTML: `og:type`,
+`og:title`, `og:description`, `og:url`, `og:locale`, `og:image` pointing at the
+recipe's own photograph, `og:image:alt`, `rel=canonical`, both `hreflang`
+alternates, a per-locale `<title>`, and a complete `Recipe` JSON-LD carrying
+`recipeIngredient`, `recipeInstructions`, `prepTime`, `cookTime`,
+`recipeYield`, `datePublished`, `author` and `aggregateRating`.
+
+**Criterion 6 requires a third party and is the reason this ADR is still
+`proposed`.** The Rich Results Test is a Google service that has to be given
+the URL; nothing in this repository can assert its verdict or regression-test
+it, which is worth weighing if it is ever restated as an acceptance criterion.
+The markup is structurally valid and complete against the vocabulary; whether
+Google accepts it is a separate claim and is not made here until it is run.
+
+### One defect the audit found
+
+Every recipe page was serving **two** `<meta name="description">`, the shell's
+site-level one first and the recipe's second — and first is the one a crawler
+takes. So each recipe described itself to search engines as *"un carnet de
+recettes tenu à la main"*. Unfurlers were unaffected throughout, because they
+read `og:description`, which was always correct and always singular.
+
+`IndexHtmlController` already had the rule and stated it, for the title:
+
+> *The title is a replacement rather than an addition: two `<title>` elements
+> are not a richer page, they are one page with a title and some ignored
+> markup.*
+
+The description was appended instead. Fixed on 2026-08-27 by making it a
+replacement on the same terms.
+
+**`RecipeMetadataTest` could not have caught it**, and that is the more useful
+half. Every assertion in it was `containsString`, so it proved the recipe's
+description was *present* and never that the shell's was *gone* — a page
+carrying both passes. It now counts the tag rather than looking for it, which
+is the same correction `TESTING.md` records for the legal notice: an assertion
+loose enough never to fail is not protecting anything.
