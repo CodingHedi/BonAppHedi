@@ -100,11 +100,19 @@
   // --- Radius (RECONSTRUCTED) ------------------------------------------------
   // The prototype wrote `calc(var(--radius-lg) * 1.15)` on card image corners,
   // which is how --radius-lg was recovered. Measured ~20-24px in the
-  // screenshots. Everything interactive is a full pill; there is no small
-  // radius anywhere in this design.
+  // screenshots. Everything interactive was a full pill and there was no small
+  // radius anywhere — true of the prototypes, and true here until ADR 13 took
+  // form fields out of it.
   --radius-lg: 22px;
   --radius-card: calc(var(--radius-lg) * 1.15);
   --radius-pill: 999px;
+
+  // Form fields are the one interactive family that is NOT a pill (ADR 13).
+  // The rule is what you fill in versus what you press: `.input` — text
+  // inputs, textareas and selects — reads this, while buttons and tags keep
+  // --radius-pill. A token rather than a literal, so the exception is one
+  // decision in one place instead of a number copied across six files.
+  --radius-input: 12px;
 
   // --- Shadows (RECONSTRUCTED) -----------------------------------------------
   // Ink-tinted, not neutral grey. These DO change with the theme — see below.

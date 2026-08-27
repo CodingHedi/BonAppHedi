@@ -113,3 +113,16 @@ olive" instead. Listed here because this is where a reader compares the app to
 the prototypes and starts wondering, but it is recorded in ADR 9 rather than in
 this list — every other entry changes one screen, and this one changes all of
 them and reverses the surface/background relationship while it does.
+
+### Changed: form fields are no longer pills — see ADR 13
+
+The prototypes draw the search box and both selects as full pills, and
+`Docs/design-tokens.md` states outright that inputs are *always* pill-shaped.
+Form fields now take a 12px radius instead; buttons and tags keep the pill.
+
+Here for the same reason as the palette above — this is where a reader
+comparing the two starts wondering — and recorded in ADR 13 for the same
+reason too: it changes every form on the site at once. The short version is
+that the prototypes contain no `<textarea>`, and a pill radius clamps to half
+the box, so on a tall field the curve reached past the padding and clipped the
+first character of the first line.

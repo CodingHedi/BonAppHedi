@@ -231,14 +231,33 @@ screenshots at ~20–24px; `22px` is the chosen value.
 |---|---|---|
 | `--radius-lg` | `22px` | hero frame, detail media |
 | `--radius-card` | `calc(var(--radius-lg) * 1.15)` ≈ 25px | cards, and the top corners of card photos |
-| `--radius-pill` | `999px` | every button, input, select and tag |
+| `--radius-pill` | `999px` | every button and tag |
+| `--radius-input` | `12px` | text inputs, textareas and selects — **ships, not drawn** |
 
 The `* 1.15` is not invented — the prototype wrote exactly
 `calc(var(--radius-lg) * 1.15)` on the card image's top corners, which is how
 `--radius-lg` was recovered in the first place.
 
-The overall effect is deliberately over-rounded. Buttons, tags and inputs are
-*always* fully pill-shaped; there is no small-radius variant anywhere.
+The overall effect is deliberately over-rounded, and the prototypes apply it to
+form fields too: `Docs/Design/index.html` draws its search box and its two
+selects as full pills.
+
+**The app no longer does, and `--radius-input` is the departure (ADR 13).**
+This row used to read *"every button, input, select and tag"*, followed by
+*"Buttons, tags and inputs are always fully pill-shaped; there is no
+small-radius variant anywhere"*. Both were true of what shipped until
+2026-08-27.
+
+The reason is a shape the prototypes never drew. Neither file contains a
+`<textarea>` — the design covers a list page and a recipe page, and neither
+asks the visitor to write anything. A browser clamps a radius to half the box,
+so `999px` became 60px on the admin editor's 120px-tall description field,
+which is 24px inside the box at the first line of text and therefore past its
+18px of padding. The first character was drawn under the curve: `Babka` read as
+`3abka`.
+
+Buttons, tags, the servings stepper and the avatar discs are untouched. The
+over-rounding survives everywhere it was not eating the content.
 
 ---
 

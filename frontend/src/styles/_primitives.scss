@@ -133,7 +133,11 @@
   background: var(--color-surface);
   color: var(--color-text);
   border: 1px solid var(--color-divider);
-  border-radius: var(--radius-pill);
+  // Not --radius-pill (ADR 13). On a textarea the pill clipped the first
+  // character of the first line: the radius clamps to half the height, so on a
+  // 120px box the left edge was still curving inward well past the 18px
+  // padding. "Babka" rendered as "3abka" in the admin editor.
+  border-radius: var(--radius-input);
   padding: 12px 18px;
   font-family: var(--font-body);
   font-size: 14px;
