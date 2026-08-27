@@ -76,8 +76,50 @@ the DOM a visitor actually gets.
   on while the list is shut, that Escape closes it and hands focus back, that the
   header magnifier reaches the search box, and that its focus request does not
   linger into the next visit.
+- **`e2e/recipe-detail.spec.ts`** — the recipe page itself: content, the
+  servings scaler, and the video facade. Two of its assertions are load-bearing
+  rather than routine. It checks that rendered markdown is actually *styled* —
+  the markdown component injects through `[innerHTML]`, so a scoped rule for it
+  compiles to a selector matching nothing, which is a failure this suite is
+  otherwise bad at seeing. And it asserts that no request reaches
+  `youtube.com`, `ytimg.com`, `gstatic.com` or `doubleclick` on page view,
+  which is what keeps the site free of a cookie-consent obligation.
+- **`e2e/social.spec.ts`** — the largest file here, and it covers reactions,
+  rating, comments, quoting, sharing, the phone layout and the English locale.
+  Quoting is the subtle part: the composer is a view child, a quote from a step
+  has to survive the Preview tab, and posting from Preview must not leave an
+  empty pane.
+- **`e2e/admin.spec.ts`** — the whole admin area: access (signed out, signed in
+  without the role, and once through the real sign-in flow), the recipe table,
+  that drafts are genuinely unpublished rather than merely unlisted, the
+  editor's locale tabs, the live preview beside it, the photograph upload,
+  moderation and analytics. The draft assertions matter most: a draft's own URL
+  must be the site's 404, or "unpublished" means nothing more than "hard to
+  find".
 - **`e2e/profile.spec.ts`** — the account page: the guard, the picker, saving,
   and that choosing an avatar costs no request to anyone (ADR 7).
+- **`e2e/quick-search.spec.ts`** — the header magnifier, which opens a search in
+  place. The point of the whole feature is that looking something up from
+  halfway down a recipe no longer costs you the recipe, so the spec asserts the
+  URL does *not* change.
+- **`e2e/responsive-images.spec.ts`** — the `srcset` ladder from ADR 8. It
+  asserts `currentSrc`, not the `srcset` attribute, and the distinction is the
+  reason the file exists: a test that only reads the attribute passes against a
+  `sizes` so wrong that every visitor still downloads the largest file.
+- **`e2e/timestamp.spec.ts`** — dates in both languages and both forms, and the
+  card not opening the recipe when the date is pressed. Everything in it is
+  derived from the `datetime` attribute rather than written literally, because
+  seed dates count back from a frozen `SEED_NOW` while real time keeps moving.
+  **Read its header before adding a date assertion anywhere** — `recipe-list`
+  pinned a time unit and went red five weeks later having caught nothing.
+- **`e2e/konami.spec.ts`** — the logo palette shuffle (ADR 11), including that
+  it stays scoped to the logo and that every colour it picks clears 1.6:1
+  against the ground.
+- **`e2e/legal.spec.ts`** — the two notices, reachable from the footer in both
+  languages. The useful half is that the privacy policy is checked against what
+  the site *actually* stores — `bah-visitor`, `HMAC-SHA256`,
+  `youtube-nocookie.com` — and that reading the policy sets no cookie, which is
+  the claim a privacy policy is least able to make on its own.
 
 ---
 
@@ -135,7 +177,7 @@ Recorded because each one cost time once:
 
 ```powershell
 cd backend
-.\mvnw.cmd test          # 290 tests
+.\mvnw.cmd test          # 307 tests
 ```
 
 **One assertion cannot live in `AuthApiTest`, and it is worth knowing why.**
