@@ -184,8 +184,26 @@ test.describe('recipe list', () => {
 
   test('relative dates are rendered from real timestamps', async ({ page }) => {
     // Proves the pipe ran rather than a hardcoded string being displayed.
-    const card = page.locator('bah-recipe-card').filter({ hasText: 'Babka au chocolat' });
-    await expect(card.locator('time')).toHaveText(/il y a \d+ jours?/);
+    //
+    // The unit is deliberately not pinned, and this used to say `jours`. Seed
+    // dates count back from SEED_NOW, a frozen instant, so the gap to real time
+    // only grows: the babka is `daysAgo(4)` and read "il y a 4 jours" the week
+    // the seed was written, "il y a 1 mois" five weeks later. Asserting the unit
+    // is asserting how long ago somebody authored the seed, which is not what
+    // this test is for — it went red on 2026-08-26 having caught nothing.
+    //
+    // timestamp.spec.ts reached the same conclusion first and says why in its
+    // header: a literal here passes today and fails on a Tuesday for no reason.
+    const stamp = page
+      .locator('bah-recipe-card')
+      .filter({ hasText: 'Babka au chocolat' })
+      .locator('time');
+
+    await expect(stamp).toHaveText(/^il y a \d+ \S+$/);
+
+    // The other half of "from real timestamps": rendered beside a
+    // machine-readable date, not beside a string somebody typed.
+    await expect(stamp).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
   });
 
   test('carousel arrows wrap in both directions', async ({ page }) => {
