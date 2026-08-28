@@ -4,7 +4,8 @@ import { stubYouTubeApi, youtubeCalls } from './youtube-stub';
 const BABKA = '/fr/recettes/babka-au-chocolat';
 
 /** Hosts that would mean a third party learned the visitor's IP. */
-const GOOGLE_HOSTS = /youtube\.com|youtube-nocookie\.com|ytimg\.com|google\.com|gstatic\.com|doubleclick/i;
+const GOOGLE_HOSTS =
+  /youtube\.com|youtube-nocookie\.com|ytimg\.com|google\.com|gstatic\.com|doubleclick/i;
 
 test.describe('recipe detail', () => {
   test('renders the recipe', async ({ page }) => {
@@ -222,9 +223,9 @@ test.describe('recipe detail', () => {
 
       await page.getByRole('button', { name: /02:14/ }).click();
 
-      await expect.poll(async () => (await youtubeCalls(page)).some((c) => c.type === 'seekTo')).toBe(
-        true,
-      );
+      await expect
+        .poll(async () => (await youtubeCalls(page)).some((c) => c.type === 'seekTo'))
+        .toBe(true);
       const constructs = (await youtubeCalls(page)).filter((c) => c.type === 'construct');
       expect(constructs, 'the player must be built once, then seeked').toHaveLength(1);
       expect((await youtubeCalls(page)).find((c) => c.type === 'seekTo')?.seconds).toBe(134);

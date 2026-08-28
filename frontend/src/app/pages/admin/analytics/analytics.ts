@@ -32,13 +32,17 @@ import { decimal } from '../../../shared/format';
         <div class="card elev-sm tile">
           <span class="value">{{ s.ratings.count }}</span>
           <span class="label">{{ 'admin.statRatings' | transloco }}</span>
-          <span class="sub">{{ 'recipe.ratingSummary' | transloco: { average: average(s.ratings.average) } }}</span>
+          <span class="sub">{{
+            'recipe.ratingSummary' | transloco: { average: average(s.ratings.average) }
+          }}</span>
         </div>
         <div class="card elev-sm tile">
           <span class="value">{{ s.comments.total }}</span>
           <span class="label">{{ 'admin.statComments' | transloco }}</span>
           @if (s.comments.pending) {
-            <span class="sub pending">{{ 'admin.statPending' | transloco: { count: s.comments.pending } }}</span>
+            <span class="sub pending">{{
+              'admin.statPending' | transloco: { count: s.comments.pending }
+            }}</span>
           }
         </div>
         <div class="card elev-sm tile">

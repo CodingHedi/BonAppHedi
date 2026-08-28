@@ -109,11 +109,7 @@ import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.servi
       </section>
 
       <div class="row row--media">
-        <bah-recipe-media
-          [image]="r.image"
-          [title]="r.title"
-          [youtubeVideoId]="r.youtubeVideoId"
-        />
+        <bah-recipe-media [image]="r.image" [title]="r.title" [youtubeVideoId]="r.youtubeVideoId" />
 
         <div class="side">
           <bah-share-bar [title]="r.title" />
@@ -347,7 +343,6 @@ import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.servi
       font-size: 13.5px;
       color: var(--color-accent-800);
     }
-
 
     .skeleton {
       background: var(--color-surface);

@@ -55,7 +55,10 @@ export const SEED_TAGS: readonly SeedTag[] = [
   {
     key: 'chocolate',
     colorVariant: 'accent',
-    t: { fr: { slug: 'chocolat', label: 'chocolat' }, en: { slug: 'chocolate', label: 'chocolate' } },
+    t: {
+      fr: { slug: 'chocolat', label: 'chocolat' },
+      en: { slug: 'chocolate', label: 'chocolate' },
+    },
   },
   {
     key: 'slow-cooked',
@@ -185,7 +188,12 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     /** The step offsets below fall within its runtime; see PLACEHOLDER_VIDEO. */
     youtubeVideoId: PLACEHOLDER_VIDEO,
     featuredRank: 1,
-    mockImage: { url: '/media/babka-au-chocolat.jpg', width: 1600, height: 738,  dominant: '#908271' },
+    mockImage: {
+      url: '/media/babka-au-chocolat.jpg',
+      width: 1600,
+      height: 738,
+      dominant: '#908271',
+    },
     ratingSum: 4,
     ratingCount: 1,
     reactionCount: 0,
@@ -204,7 +212,11 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
       },
       { baseQuantity: 2, unit: 'pc', t: { fr: { name: 'Œufs' }, en: { name: 'Eggs' } } },
       { baseQuantity: 40, unit: 'g', t: { fr: { name: 'Sucre' }, en: { name: 'Sugar' } } },
-      { baseQuantity: 80, unit: 'ml', t: { fr: { name: 'Lait tiède' }, en: { name: 'Warm milk' } } },
+      {
+        baseQuantity: 80,
+        unit: 'ml',
+        t: { fr: { name: 'Lait tiède' }, en: { name: 'Warm milk' } },
+      },
     ],
     steps: [
       {
@@ -374,7 +386,8 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
       en: {
         slug: 'shakshuka',
         title: 'Shakshuka',
-        excerpt: 'A dish from North Africa and the Middle East. Simple, full of flavour, and made for sharing.',
+        excerpt:
+          'A dish from North Africa and the Middle East. Simple, full of flavour, and made for sharing.',
         heroKicker: 'A hearty breakfast',
         heroExcerpt:
           'Eggs poached in a spiced tomato sauce — a North African classic, shared straight from the middle of the table.',
@@ -399,9 +412,17 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     ratingCount: 0,
     reactionCount: 0,
     ingredients: [
-      { baseQuantity: 500, unit: 'g', t: { fr: { name: 'Farine T65' }, en: { name: 'Bread flour' } } },
+      {
+        baseQuantity: 500,
+        unit: 'g',
+        t: { fr: { name: 'Farine T65' }, en: { name: 'Bread flour' } },
+      },
       { baseQuantity: 350, unit: 'ml', t: { fr: { name: 'Eau' }, en: { name: 'Water' } } },
-      { baseQuantity: 100, unit: 'g', t: { fr: { name: 'Levain actif' }, en: { name: 'Active starter' } } },
+      {
+        baseQuantity: 100,
+        unit: 'g',
+        t: { fr: { name: 'Levain actif' }, en: { name: 'Active starter' } },
+      },
       { baseQuantity: 10, unit: 'g', t: { fr: { name: 'Sel' }, en: { name: 'Salt' } } },
     ],
     steps: [
@@ -409,7 +430,7 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
         durationMinutes: 30,
         videoOffsetSeconds: null,
         t: {
-          fr: { body: "Mélanger farine et eau, puis laisser reposer une demi-heure (autolyse)." },
+          fr: { body: 'Mélanger farine et eau, puis laisser reposer une demi-heure (autolyse).' },
           en: { body: 'Mix the flour and water, then let it rest for half an hour (autolyse).' },
         },
       },
@@ -475,7 +496,12 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     difficulty: 2,
     baseServings: 2,
     youtubeVideoId: PLACEHOLDER_VIDEO,
-    mockImage: { url: '/media/cheesecake-basque.jpg', width: 1205, height: 1600, dominant: '#8b796b' },
+    mockImage: {
+      url: '/media/cheesecake-basque.jpg',
+      width: 1205,
+      height: 1600,
+      dominant: '#8b796b',
+    },
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
@@ -540,7 +566,8 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
       en: {
         slug: 'basque-cheesecake',
         title: 'Basque cheesecake',
-        excerpt: 'A cheesecake deliberately burnt on top, for a molten centre and a taste of caramel.',
+        excerpt:
+          'A cheesecake deliberately burnt on top, for a molten centre and a taste of caramel.',
         bodyMarkdown:
           'The top should be almost black: that is where all the flavour is. The centre stays molten.',
       },
@@ -556,7 +583,12 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     difficulty: 2,
     baseServings: 2,
     youtubeVideoId: PLACEHOLDER_VIDEO,
-    mockImage: { url: '/media/tajine-de-boeuf.jpg', width: 1600, height: 1200, dominant: '#b6513c' },
+    mockImage: {
+      url: '/media/tajine-de-boeuf.jpg',
+      width: 1600,
+      height: 1200,
+      dominant: '#b6513c',
+    },
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
@@ -625,9 +657,10 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
       fr: {
         slug: 'tajine-de-boeuf',
         title: 'Tajine de bœuf',
-        excerpt: 'Un mijoté fondant aux épices douces, aux abricots secs et aux amandes torréfiées.',
+        excerpt:
+          'Un mijoté fondant aux épices douces, aux abricots secs et aux amandes torréfiées.',
         bodyMarkdown:
-          "Un plat qui ne se presse pas. Plus il mijote longtemps, plus la viande se défait toute seule.",
+          'Un plat qui ne se presse pas. Plus il mijote longtemps, plus la viande se défait toute seule.',
       },
       en: {
         slug: 'beef-tagine',
@@ -655,12 +688,21 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
     difficulty: 1,
     baseServings: 2,
     youtubeVideoId: PLACEHOLDER_VIDEO,
-    mockImage: { url: '/media/jus-grenade-orange.jpg', width: 1200, height: 1600, dominant: '#96857f' },
+    mockImage: {
+      url: '/media/jus-grenade-orange.jpg',
+      width: 1200,
+      height: 1600,
+      dominant: '#96857f',
+    },
     ratingSum: 0,
     ratingCount: 0,
     reactionCount: 0,
     ingredients: [
-      { baseQuantity: 2, unit: 'pc', t: { fr: { name: 'Grenades' }, en: { name: 'Pomegranates' } } },
+      {
+        baseQuantity: 2,
+        unit: 'pc',
+        t: { fr: { name: 'Grenades' }, en: { name: 'Pomegranates' } },
+      },
       { baseQuantity: 4, unit: 'pc', t: { fr: { name: 'Oranges' }, en: { name: 'Oranges' } } },
       {
         baseQuantity: null,
@@ -701,7 +743,8 @@ export const SEED_RECIPES: readonly SeedRecipe[] = [
       en: {
         slug: 'pomegranate-orange-juice',
         title: 'Pomegranate & orange juice',
-        excerpt: 'Freshly pressed to order, bright and sharp, best served well chilled at breakfast.',
+        excerpt:
+          'Freshly pressed to order, bright and sharp, best served well chilled at breakfast.',
         bodyMarkdown: 'Drink it within ten minutes: after that it loses all its bite.',
       },
     },

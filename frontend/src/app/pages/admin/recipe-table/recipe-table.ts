@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, resource, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  resource,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { ADMIN_API } from '../../../core/api/admin-api';
@@ -68,7 +75,9 @@ import type { AdminRecipeRow, RecipeStatus } from '../../../core/api/models';
                   [disabled]="busy()"
                   (click)="toggle(row)"
                 >
-                  {{ (row.status === 'PUBLISHED' ? 'admin.unpublish' : 'admin.publish') | transloco }}
+                  {{
+                    (row.status === 'PUBLISHED' ? 'admin.unpublish' : 'admin.publish') | transloco
+                  }}
                 </button>
               </td>
             </tr>

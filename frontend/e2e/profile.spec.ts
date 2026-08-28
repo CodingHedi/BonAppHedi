@@ -135,14 +135,12 @@ test.describe('choosing an avatar', () => {
     // than whether a signal was set.
     await page.reload();
     await expect(page.locator('bah-site-header bah-avatar svg')).toBeVisible();
-    await expect(page.locator('[role="radiogroup"]').first().getByRole('radio').nth(7)).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-    await expect(page.locator('[role="radiogroup"]').nth(1).getByRole('radio').nth(3)).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    await expect(
+      page.locator('[role="radiogroup"]').first().getByRole('radio').nth(7),
+    ).toHaveAttribute('aria-checked', 'true');
+    await expect(
+      page.locator('[role="radiogroup"]').nth(1).getByRole('radio').nth(3),
+    ).toHaveAttribute('aria-checked', 'true');
   });
 
   /**
@@ -308,9 +306,7 @@ test.describe('choosing an avatar', () => {
             // against the part of the disc it actually sits on, and it sits on
             // all of it.
             const stops = style.backgroundImage.match(/(?:rgba?|color|hsla?)\([^)]*\)/g) ?? [];
-            const backdrops = stops.length
-              ? stops.map((stop) => over(parse(stop), base))
-              : [base];
+            const backdrops = stops.length ? stops.map((stop) => over(parse(stop), base)) : [base];
 
             for (const backdrop of backdrops) {
               const value = contrast(icon, backdrop);

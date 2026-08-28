@@ -159,7 +159,9 @@ export class SiteHeaderComponent {
   protected readonly otherLabel = computed(() => LOCALE_LABELS[this.other()]);
   protected readonly homeLink = computed(() => this.locale.link());
   protected readonly adminLink = computed(() => this.locale.link([this.locale.segment('admin')]));
-  protected readonly profileLink = computed(() => this.locale.link([this.locale.segment('profile')]));
+  protected readonly profileLink = computed(() =>
+    this.locale.link([this.locale.segment('profile')]),
+  );
 
   protected readonly themeLabel = computed(() =>
     this.theme.isDark() ? 'nav.themeToLight' : 'nav.themeToDark',

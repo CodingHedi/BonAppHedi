@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -113,112 +120,112 @@ import {
       </section>
 
       <section class="block" aria-labelledby="avatar-heading">
-      <h2 id="avatar-heading">{{ 'profile.avatarTitle' | transloco }}</h2>
+        <h2 id="avatar-heading">{{ 'profile.avatarTitle' | transloco }}</h2>
 
-      <div class="card elev-sm preview">
-        <div class="slot">
-          <bah-avatar
-            [avatar]="token()"
-            [name]="shownName()"
-            [size]="88"
-          />
+        <div class="card elev-sm preview">
+          <div class="slot">
+            <bah-avatar [avatar]="token()" [name]="shownName()" [size]="88" />
+          </div>
+          <div class="preview-text">
+            <p>{{ 'profile.avatarLead' | transloco }}</p>
+          </div>
         </div>
-        <div class="preview-text">
-          <p>{{ 'profile.avatarLead' | transloco }}</p>
-        </div>
-      </div>
 
-      <h3>{{ 'profile.pickSubject' | transloco }}</h3>
-      <!--
+        <h3>{{ 'profile.pickSubject' | transloco }}</h3>
+        <!--
         A radiogroup rather than a row of buttons: this is one choice among
         twelve, and a screen reader has to be told that. Arrow keys come free
         with the role, which a grid of <button>s would not have.
       -->
-      <div class="grid" role="radiogroup" [attr.aria-label]="'profile.pickSubject' | transloco">
-        @for (name of ICONS; track name) {
-          <button
-            type="button"
-            role="radio"
-            class="choice"
-            [class.selected]="choice().icon === name"
-            [attr.aria-checked]="choice().icon === name"
-            [attr.aria-label]="'avatar.' + name | transloco"
-            [tabindex]="choice().icon === name ? 0 : -1"
-            [disabled]="busy()"
-            (click)="pickIcon(name)"
-          >
-            <bah-avatar [avatar]="tokenFor(name)" [size]="52" />
-          </button>
-        }
-      </div>
+        <div class="grid" role="radiogroup" [attr.aria-label]="'profile.pickSubject' | transloco">
+          @for (name of ICONS; track name) {
+            <button
+              type="button"
+              role="radio"
+              class="choice"
+              [class.selected]="choice().icon === name"
+              [attr.aria-checked]="choice().icon === name"
+              [attr.aria-label]="'avatar.' + name | transloco"
+              [tabindex]="choice().icon === name ? 0 : -1"
+              [disabled]="busy()"
+              (click)="pickIcon(name)"
+            >
+              <bah-avatar [avatar]="tokenFor(name)" [size]="52" />
+            </button>
+          }
+        </div>
 
-      <h3>{{ 'profile.pickTint' | transloco }}</h3>
-      <div class="grid tints" role="radiogroup" [attr.aria-label]="'profile.pickTint' | transloco">
-        @for (hue of TINTS; track $index) {
-          <button
-            type="button"
-            role="radio"
-            class="choice"
-            [class.selected]="choice().tint === $index"
-            [attr.aria-checked]="choice().tint === $index"
-            [attr.aria-label]="'profile.tint' | transloco: { number: $index + 1 }"
-            [tabindex]="choice().tint === $index ? 0 : -1"
-            [disabled]="busy()"
-            (click)="pickTint($index)"
-          >
-            <bah-avatar [avatar]="tintToken($index)" [size]="52" />
-          </button>
-        }
-      </div>
+        <h3>{{ 'profile.pickTint' | transloco }}</h3>
+        <div
+          class="grid tints"
+          role="radiogroup"
+          [attr.aria-label]="'profile.pickTint' | transloco"
+        >
+          @for (hue of TINTS; track $index) {
+            <button
+              type="button"
+              role="radio"
+              class="choice"
+              [class.selected]="choice().tint === $index"
+              [attr.aria-checked]="choice().tint === $index"
+              [attr.aria-label]="'profile.tint' | transloco: { number: $index + 1 }"
+              [tabindex]="choice().tint === $index ? 0 : -1"
+              [disabled]="busy()"
+              (click)="pickTint($index)"
+            >
+              <bah-avatar [avatar]="tintToken($index)" [size]="52" />
+            </button>
+          }
+        </div>
 
-      <h3>{{ 'profile.pickInk' | transloco }}</h3>
-      <!--
+        <h3>{{ 'profile.pickInk' | transloco }}</h3>
+        <!--
         Each swatch is the motif and tint currently chosen, drawn in that ink,
         rather than a bare colour chip. The question being asked is "how does my
         avatar look in this colour", and a row of circles of pure hue answers a
         different one — the wash and the fixed lightness mean the ink on the disc
         is never the colour the chip would show.
       -->
-      <div class="grid inks" role="radiogroup" [attr.aria-label]="'profile.pickInk' | transloco">
-        @for (ink of INKS; track $index) {
-          <button
-            type="button"
-            role="radio"
-            class="choice"
-            [class.selected]="choice().ink === ink"
-            [attr.aria-checked]="choice().ink === ink"
-            [attr.aria-label]="
-              ink === null
-                ? ('profile.inkDefault' | transloco)
-                : ('profile.ink' | transloco: { number: ink + 1 })
-            "
-            [tabindex]="choice().ink === ink ? 0 : -1"
-            [disabled]="busy()"
-            (click)="pickInk(ink)"
-          >
-            <bah-avatar [avatar]="inkToken(ink)" [size]="52" />
+        <div class="grid inks" role="radiogroup" [attr.aria-label]="'profile.pickInk' | transloco">
+          @for (ink of INKS; track $index) {
+            <button
+              type="button"
+              role="radio"
+              class="choice"
+              [class.selected]="choice().ink === ink"
+              [attr.aria-checked]="choice().ink === ink"
+              [attr.aria-label]="
+                ink === null
+                  ? ('profile.inkDefault' | transloco)
+                  : ('profile.ink' | transloco: { number: ink + 1 })
+              "
+              [tabindex]="choice().ink === ink ? 0 : -1"
+              [disabled]="busy()"
+              (click)="pickInk(ink)"
+            >
+              <bah-avatar [avatar]="inkToken(ink)" [size]="52" />
+            </button>
+          }
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-primary" [disabled]="!canSave()" (click)="save()">
+            {{ 'profile.save' | transloco }}
           </button>
-        }
-      </div>
 
-      <div class="actions">
-        <button type="button" class="btn btn-primary" [disabled]="!canSave()" (click)="save()">
-          {{ 'profile.save' | transloco }}
-        </button>
+          <button type="button" class="btn btn-secondary" [disabled]="busy()" (click)="shuffle()">
+            {{ 'profile.shuffle' | transloco }}
+          </button>
+        </div>
 
-        <button type="button" class="btn btn-secondary" [disabled]="busy()" (click)="shuffle()">
-          {{ 'profile.shuffle' | transloco }}
-        </button>
-      </div>
-
-      <!-- aria-live, so the confirmation is announced and not only seen. -->
-      <p class="status" role="status" aria-live="polite">
-        @if (saved()) {
-          {{ 'profile.saved' | transloco }}
-        } @else if (failed()) {
-          {{ 'profile.failed' | transloco }}
-        }
-      </p>
+        <!-- aria-live, so the confirmation is announced and not only seen. -->
+        <p class="status" role="status" aria-live="polite">
+          @if (saved()) {
+            {{ 'profile.saved' | transloco }}
+          } @else if (failed()) {
+            {{ 'profile.failed' | transloco }}
+          }
+        </p>
       </section>
 
       <!-- Outside both sections: signing out is not part of choosing an avatar,

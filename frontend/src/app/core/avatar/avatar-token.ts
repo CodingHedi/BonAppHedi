@@ -188,5 +188,7 @@ function indexOfAvatar(avatar: Avatar): number {
   const inkSlot = AVATAR_INKS.indexOf(avatar.ink as (typeof AVATAR_INKS)[number]);
   if (inkSlot < 0) return -1;
 
-  return (AVATAR_ICONS.indexOf(avatar.icon) * AVATAR_TINTS + avatar.tint) * AVATAR_INKS.length + inkSlot;
+  return (
+    (AVATAR_ICONS.indexOf(avatar.icon) * AVATAR_TINTS + avatar.tint) * AVATAR_INKS.length + inkSlot
+  );
 }

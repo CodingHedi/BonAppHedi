@@ -121,8 +121,7 @@ export const ICONS = {
   },
   citrus: {
     body:
-      '<circle cx="12" cy="12" r="8.5"/>' +
-      '<path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18"/>',
+      '<circle cx="12" cy="12" r="8.5"/>' + '<path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18"/>',
   },
   cherry: {
     body:

@@ -107,7 +107,11 @@ const QUOTE_BOX_MAX = 260;
               can survive the preview and then be stripped on the way into the
               database.
             -->
-            <div class="toolbar" role="toolbar" [attr.aria-label]="'comments.formatting' | transloco">
+            <div
+              class="toolbar"
+              role="toolbar"
+              [attr.aria-label]="'comments.formatting' | transloco"
+            >
               @for (mark of MARKS; track mark.name) {
                 <button
                   type="button"
@@ -543,13 +547,14 @@ export class CommentSectionComponent {
     if (delta === 0) return;
 
     event.preventDefault();
-    const next = this.TABS[(this.TABS.indexOf(this.tab()) + delta + this.TABS.length) % this.TABS.length];
+    const next =
+      this.TABS[(this.TABS.indexOf(this.tab()) + delta + this.TABS.length) % this.TABS.length];
     this.tab.set(next);
 
     // Focus has to follow the selection or a second arrow press does nothing,
     // the roving tabindex having moved out from under the focused element.
     const list = (event.target as HTMLElement).parentElement;
-    (list?.querySelector<HTMLElement>(`#comment-tab-${next}`))?.focus();
+    list?.querySelector<HTMLElement>(`#comment-tab-${next}`)?.focus();
   }
 
   /**

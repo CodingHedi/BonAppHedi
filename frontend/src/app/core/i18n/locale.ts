@@ -68,7 +68,10 @@ export function localeFromPath(pathname: string): Locale | null {
  *   2. the browser's Accept-Language preferences
  *   3. French
  */
-export function negotiateLocale(stored: string | null, browserLanguages: readonly string[]): Locale {
+export function negotiateLocale(
+  stored: string | null,
+  browserLanguages: readonly string[],
+): Locale {
   if (isLocale(stored)) return stored;
 
   for (const tag of browserLanguages) {
