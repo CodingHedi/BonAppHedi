@@ -40,6 +40,10 @@ jobs:
 
       - run: npm ci
 
+      # First, and cheapest. It is also the gate that was missing: format:check
+      # existed but ran nowhere, so 30 files drifted before anybody noticed.
+      - run: npm run format:check
+
       - run: npm run lint
 
       - run: npm run typecheck
