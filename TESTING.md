@@ -64,6 +64,12 @@ the DOM a visitor actually gets.
 
 - **`e2e/fixtures.ts`** — the shared `test` export. Every spec imports from here,
   never from `@playwright/test` directly. See the README for why.
+- **`e2e/fixture-exemptions.spec.ts`** — tests the two holes in the line above.
+  The fixture ignores an API 404 and a 415 from the photo upload, because in
+  both cases the server is refusing something a spec asked it to refuse. Each
+  exemption is asserted from both sides, and the cases that must **not** match
+  are the half that matters: an exemption nobody tests is one that widens the
+  first time somebody loosens a pattern to clear a red spec. Opens no browser.
 - **`e2e/smoke.spec.ts`** — route sweep plus the silent-failure checks
   (no raw translation keys, fonts applied, tokens live).
 - **`e2e/shell.spec.ts`** — locale redirect, language switching, theme
@@ -270,7 +276,7 @@ install, and `-Fresh` had never deleted the database it claimed to.
 **The milestone-1 e2e suite must pass unmodified against the real backend** —
 that is the acceptance test for the swap, scoped by the amendment in ADR 0001.
 
-**Measured 2026-08-28: 198 of 199 pass.**
+**Measured 2026-08-28: 206 of 206 pass.**
 
 The previous measurement was 2026-08-08 at 153 of 154, and the twenty days
 between them are the interesting part rather than the totals. Re-running it
@@ -300,21 +306,46 @@ ADR 0001's second amendment records the exemption that makes the first part
 legal: the three sign-in helpers may differ between backends, and nothing else
 does.
 
-**The one failure is `admin.spec.ts` › *"says why rather than failing silently
-when the file is not an image"*.** It uploads a `.txt`, and its own assertion
-passes: the editor shows the alert. What fails it is the fixture, on
-`console.error: Failed to load resource: 415 (Unsupported Media Type)`.
+**There is no failure. 206 of 206, twice consecutively** — the first time this
+run has been wholly green.
 
-That console error is correct in every respect. The server decides what is an
-image by decoding it, refusing a text file with 415 is the right status, and a
-browser logs a 4xx on a `fetch` whether or not the page handled it. The mocks
-reject client-side and never make a request, so nothing is logged there.
+Two things had to be fixed to get the last two, and both were in the harness
+rather than the application.
 
-It is left red rather than silenced. The fixture's `IGNORED` list is global, so
-a `/415/` entry would blind every spec in the suite to an unexpected 415 in
-order to permit one expected one — and that list is a liability the README asks
-to keep short. Whether to add a narrower per-test escape is an open decision,
-not an oversight.
+**The upload spec, and a second exemption in the fixture.**
+*"says why rather than failing silently when the file is not an image"* uploads
+a `.txt`. Its own assertion passes — the editor shows the alert — and the
+fixture then failed it on `console.error: 415 (Unsupported Media Type)`.
+
+That console error is correct in every respect: the server decides what is an
+image by decoding it, 415 is the right refusal, and Chromium logs a 4xx on a
+`fetch` whether or not the page handled it. The mocks refuse client-side and
+never make the request, so it could only ever appear under `PW_TARGET=real`.
+
+`isExpectedUploadRefusal` now sits beside `isExpectedApiNotFound` in
+`fixtures.ts` — the same shape, and narrow on the same terms: **only** 415, and
+**only** from `/api/admin/recipes/{key}/photo`, anchored so a longer path cannot
+borrow it. A `/415/` entry in the global `IGNORED` list would have been the
+easy fix and the wrong one: it blinds every spec in the suite to an unexpected
+415 in order to permit one expected one.
+
+Both exemptions are now tested, in `e2e/fixture-exemptions.spec.ts`, and the
+cases that must **not** match are the half worth having. An exemption is a hole
+in the suite's best assertion, and a hole nobody tests is a hole that widens —
+somebody loosens a pattern to clear one red spec, everything goes green, and
+the suite stops seeing a whole class of breakage without ever saying so.
+
+**A flaky helper in `konami.spec.ts`.** `shuffleDriving` did
+`(document.querySelector('bah-brand-logo') as HTMLElement).style…`, and the cast
+was hiding that `querySelector` returns null until Angular has rendered the
+header. After `page.reload()` it sometimes had not, so the callback threw —
+and a callback that *throws* inside `expect.poll` fails the test outright
+instead of being retried, which is exactly the opposite of what the poll was
+there for. It read as a defect in the palette shuffle.
+
+It only opened under the real API, where first paint waits on a real network
+call rather than a mock resolving in the same tick, which is why twenty days of
+green mocked runs never showed it. Both helpers in that file are null-safe now.
 
 **A correction, 2026-08-28.** This paragraph previously named a different test
 — *"signing in as the admin opens the door, without a reload"* — and said it

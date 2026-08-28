@@ -32,21 +32,34 @@ async function enterCode(page: Page) {
  * way. Locked removes these properties; unlocked sets them.
  */
 const shuffleDriving = (page: Page) =>
-  page.evaluate(
-    () =>
-      !!(document.querySelector('bah-brand-logo') as HTMLElement).style.getPropertyValue(
-        '--logo-mark',
-      ),
-  );
+  page.evaluate(() => {
+    /*
+     * Null until Angular has rendered the header, which after `reload()` is not
+     * immediately — and `as HTMLElement` was hiding that rather than handling
+     * it. Returning false is what lets `expect.poll` do its job: a callback
+     * that *throws* fails the test outright instead of being retried, so the
+     * race read as a defect.
+     *
+     * It only ever opened under `PW_TARGET=real`, where the first paint waits
+     * on a real API call instead of a mock resolving in the same tick.
+     */
+    const logo = document.querySelector<HTMLElement>('bah-brand-logo');
+    return !!logo?.style.getPropertyValue('--logo-mark');
+  });
 
 /** The three block colours as the browser has actually resolved them. */
-const inks = (page: Page) =>
-  page.evaluate(() =>
-    ['mark', 'upper', 'lower'].map(
-      (block) =>
-        getComputedStyle(document.querySelector(`bah-brand-logo g.${block}`) as SVGElement).fill,
-    ),
+const inks = async (page: Page) => {
+  // Same race, one level down: the host element can exist for a frame before
+  // the SVG groups inside it do.
+  await page.waitForSelector('bah-brand-logo g.mark', { state: 'attached' });
+
+  return page.evaluate(() =>
+    ['mark', 'upper', 'lower'].map((block) => {
+      const g = document.querySelector<SVGElement>(`bah-brand-logo g.${block}`);
+      return g ? getComputedStyle(g).fill : '';
+    }),
   );
+};
 
 /** WCAG ratio, over whatever `rgb(...)` form getComputedStyle handed back. */
 function ratio(cssColor: string, hex: string): number {
