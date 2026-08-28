@@ -8,8 +8,7 @@ const opener = (page: import('@playwright/test').Page) =>
 const box = (page: import('@playwright/test').Page) =>
   page.locator('bah-quick-search input[type="search"]');
 
-const hits = (page: import('@playwright/test').Page) =>
-  page.locator('bah-quick-search .hit');
+const hits = (page: import('@playwright/test').Page) => page.locator('bah-quick-search .hit');
 
 test.describe('quick search', () => {
   test('opens in place and does not leave the page', async ({ page }) => {

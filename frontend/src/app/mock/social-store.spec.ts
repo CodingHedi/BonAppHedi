@@ -163,4 +163,3 @@ describe('SocialStore comments', () => {
     expect(store.commentsFor(BABKA).every((c) => c.bodyHtml === '')).toBe(true);
   });
 });
-

@@ -109,7 +109,9 @@ export function matchesFuzzy(haystack: readonly string[], needle: string): boole
   const terms = fold(needle).split(/\s+/).filter(Boolean);
   if (terms.length === 0) return true;
 
-  const words = fold(haystack.join(' ')).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const words = fold(haystack.join(' '))
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
 
   return terms.every((term) => {
     const budget = typoTolerance(term);

@@ -29,7 +29,8 @@ import { LEGAL_DETAILS } from './legal-details';
 
       <h2>{{ 'legal.publisherTitle' | transloco }}</h2>
       <p>
-        <b>{{ details.publisher }}</b><br />
+        <b>{{ details.publisher }}</b
+        ><br />
         {{ 'legal.publisherCapacity' | transloco }}<br />
         @if (details.contactEmail) {
           <a [href]="'mailto:' + details.contactEmail">{{ details.contactEmail }}</a>
@@ -48,7 +49,8 @@ import { LEGAL_DETAILS } from './legal-details';
 
       <h2>{{ 'legal.hostTitle' | transloco }}</h2>
       <p>
-        <b>{{ details.host.name }}</b><br />
+        <b>{{ details.host.name }}</b
+        ><br />
         {{ details.host.address }}<br />
         {{ details.host.phone }}<br />
         <a [href]="details.host.url" target="_blank" rel="noopener noreferrer">

@@ -46,7 +46,9 @@ export class PluralTranspiler extends DefaultTranspiler implements TranslocoTran
     const interpolated = super.transpile(options);
     const params = (options.params ?? {}) as Params;
 
-    return typeof interpolated === 'string' ? render(interpolated, params, this.locale) : interpolated;
+    return typeof interpolated === 'string'
+      ? render(interpolated, params, this.locale)
+      : interpolated;
   }
 
   /**

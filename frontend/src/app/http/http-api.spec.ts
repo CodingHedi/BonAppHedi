@@ -78,14 +78,18 @@ describe('HttpRecipeApi', () => {
     // A draft, an unknown slug and a slug from the other language are all 404,
     // and all three are a 404 page here rather than a thrown error state.
     const promise = api.bySlug('jus-grenade-orange', 'fr');
-    http.expectOne((r) => r.url === '/api/recipes/jus-grenade-orange').flush(null, { status: 404, statusText: 'Not Found' });
+    http
+      .expectOne((r) => r.url === '/api/recipes/jus-grenade-orange')
+      .flush(null, { status: 404, statusText: 'Not Found' });
 
     await expect(promise).resolves.toBeNull();
   });
 
   it('lets a real failure through instead of reporting an empty page', async () => {
     const promise = api.bySlug('babka', 'fr');
-    http.expectOne((r) => r.url === '/api/recipes/babka').flush(null, { status: 500, statusText: 'Server Error' });
+    http
+      .expectOne((r) => r.url === '/api/recipes/babka')
+      .flush(null, { status: 500, statusText: 'Server Error' });
 
     await expect(promise).rejects.toBeDefined();
   });
@@ -303,7 +307,12 @@ describe('HttpAdminApi', () => {
     // the body - and the server then parses nothing at all.
     expect(request.request.headers.has('Content-Type')).toBe(false);
 
-    request.flush({ url: '/media/babka-abcd1234.jpg', width: 1600, height: 900, dominant: '#8d7f6f' });
+    request.flush({
+      url: '/media/babka-abcd1234.jpg',
+      width: 1600,
+      height: 900,
+      dominant: '#8d7f6f',
+    });
     expect((await promise).url).toBe('/media/babka-abcd1234.jpg');
   });
 

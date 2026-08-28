@@ -73,7 +73,9 @@ describe('withinEditDistance', () => {
   });
 
   it('is symmetric, since neither string is the authority', () => {
-    expect(withinEditDistance('poivron', 'poivre', 2)).toBe(withinEditDistance('poivre', 'poivron', 2));
+    expect(withinEditDistance('poivron', 'poivre', 2)).toBe(
+      withinEditDistance('poivre', 'poivron', 2),
+    );
   });
 });
 

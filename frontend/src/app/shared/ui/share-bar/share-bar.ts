@@ -1,4 +1,12 @@
-import { DOCUMENT, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+  DOCUMENT,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { IconComponent } from '../../../core/icons/icon';
 import type { IconName } from '../../../core/icons/icons.data';

@@ -189,7 +189,8 @@ describe('PluralTranspiler', () => {
 
   it('resolves several plurals in one string, repeatably', () => {
     transpiler.onLangChanged('en');
-    const source = '{a, plural, one {# tag} other {# tags}}, {b, plural, one {# step} other {# steps}}';
+    const source =
+      '{a, plural, one {# tag} other {# tags}}, {b, plural, one {# step} other {# steps}}';
 
     // Called twice on purpose. A `/g` regex hoisted to module scope keeps its
     // lastIndex between calls, and the second render would silently start

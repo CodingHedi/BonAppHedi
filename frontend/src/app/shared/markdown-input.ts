@@ -106,7 +106,13 @@ function applyWrapper(
  * it as italic and "unwrapping" turns bold into italic. Looking one character
  * further out tells the two apart.
  */
-function isWrapped(text: string, start: number, end: number, marker: string, mark: MarkName): boolean {
+function isWrapped(
+  text: string,
+  start: number,
+  end: number,
+  marker: string,
+  mark: MarkName,
+): boolean {
   const before = text.slice(start - marker.length, start);
   const after = text.slice(end, end + marker.length);
 

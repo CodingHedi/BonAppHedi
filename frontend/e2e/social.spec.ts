@@ -672,9 +672,7 @@ test.describe('on a phone', () => {
     const buttons = page.locator('bah-sign-in-row button');
     await expect(buttons).toHaveCount(2);
 
-    const boxes = await buttons.evaluateAll((all) =>
-      all.map((b) => b.getBoundingClientRect().top),
-    );
+    const boxes = await buttons.evaluateAll((all) => all.map((b) => b.getBoundingClientRect().top));
 
     expect(boxes[0], 'two providers cannot sit side by side at 390px').not.toBe(boxes[1]);
   });

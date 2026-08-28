@@ -24,7 +24,11 @@ export class HttpSocialApi implements SocialApi {
 
   async rate(slug: string, stars: number, locale: Locale): Promise<RatingSummary> {
     return firstValueFrom(
-      this.http.put<RatingSummary>(`${this.recipe(slug)}/rating`, { stars }, { params: { locale } }),
+      this.http.put<RatingSummary>(
+        `${this.recipe(slug)}/rating`,
+        { stars },
+        { params: { locale } },
+      ),
     );
   }
 

@@ -102,9 +102,9 @@ export class QuickFactsComponent {
   readonly difficulty = input<Difficulty>(1);
 
   protected readonly difficultyLabel = computed(() => {
-    const key = (['recipe.difficultyEasy', 'recipe.difficultyMedium', 'recipe.difficultyHard'] as const)[
-      this.difficulty() - 1
-    ];
+    const key = (
+      ['recipe.difficultyEasy', 'recipe.difficultyMedium', 'recipe.difficultyHard'] as const
+    )[this.difficulty() - 1];
     return this.transloco.translate('recipe.difficultyLevel', {
       level: this.transloco.translate(key),
     });

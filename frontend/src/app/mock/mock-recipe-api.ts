@@ -176,7 +176,13 @@ export class MockRecipeApi implements RecipeApi {
       tags: recipe.tagKeys.flatMap((key) => {
         const tag = SEED_TAGS.find((candidate) => candidate.key === key);
         return tag
-          ? [{ slug: tag.t[locale].slug, label: tag.t[locale].label, colorVariant: tag.colorVariant }]
+          ? [
+              {
+                slug: tag.t[locale].slug,
+                label: tag.t[locale].label,
+                colorVariant: tag.colorVariant,
+              },
+            ]
           : [];
       }),
       author: this.author(locale),
