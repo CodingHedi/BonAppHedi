@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { AGAINST_REAL_API, signInForReal } from './sign-in';
+import { AGAINST_REAL_API, chooseIdentityForReal, signInForReal } from './sign-in';
 
 const ADMIN = '/fr/admin';
 const BABKA = '/fr/recettes/babka-au-chocolat';
@@ -63,6 +63,14 @@ test.describe('access', () => {
   test('signing in as the admin opens the door, without a reload', async ({ page }) => {
     // The one test that walks the real path: sign in through the comment box,
     // then reach the admin area by clicking, exactly as a person would.
+    //
+    // Which means it clicks the button rather than calling signInForReal, and
+    // therefore has to choose the identity itself: the acceptance issuer holds
+    // one selection for the whole run, and the reader test above sets it. Left
+    // implicit, this signs in successfully as somebody with no admin role and
+    // waits 30 seconds for a link that is never going to appear.
+    if (AGAINST_REAL_API) await chooseIdentityForReal(page, 'admin');
+
     await page.goto(BABKA);
     await page.getByRole('button', { name: /Google/ }).click();
     await expect(page.locator('bah-comment-section textarea')).toBeVisible();
