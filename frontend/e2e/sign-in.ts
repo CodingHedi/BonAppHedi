@@ -34,6 +34,24 @@ const ISSUER = 'http://127.0.0.1:9779';
  * `application-acceptance.yml` and `reader` is not — and the server is what
  * decides which is which, exactly as in production.
  */
+/**
+ * Chooses who the next sign-in arrives as, without performing one.
+ *
+ * For the spec that clicks the Google button itself rather than going through
+ * {@link signInForReal} — it still needs the identity chosen, because the
+ * issuer's selection is **one variable for the whole run**, not per page or per
+ * test. Whoever was picked last is who arrives next.
+ *
+ * That bit once: `signing in as the admin opens the door` ran after a test that
+ * selects the reader, inherited it, signed in perfectly as somebody with no
+ * admin role, and timed out waiting for a link that was never going to appear.
+ * A test that signs in without saying who it is is asking for the previous
+ * test's answer.
+ */
+export async function chooseIdentityForReal(page: Page, who: 'admin' | 'reader'): Promise<void> {
+  await page.request.get(`${ISSUER}/_identity?who=${who}`);
+}
+
 export async function signInForReal(page: Page, who: 'admin' | 'reader' = 'admin'): Promise<void> {
   await page.request.get(`${ISSUER}/_identity?who=${who}`);
 

@@ -42,10 +42,24 @@ const USERS = {
     // The names are the mock fixtures' names, and that is the point rather than
     // a coincidence. The specs assert what the header and the comment byline
     // say, so an issuer that invented its own would fail a dozen of them on
-    // `Expected: "Hédi", Received: "Acceptance Run"` - a difference between two
+    // `Expected: "Hedi", Received: "Acceptance Run"` - a difference between two
     // fixtures, dressed up as a defect.
-    name: 'Hédi',
-    given_name: 'Hédi',
+    //
+    // Which is exactly what happened. This said `Hédi` until 2026-08-28, five
+    // specs failed on `Expected: "Hedi", Received: "Hédi"`, and the shape of
+    // the failure was the one the paragraph above predicts.
+    // `chore/hedi-without-accent` (2026-08-18) updated mock-auth-api.ts and
+    // four spec files and did not touch this one, because it is the only
+    // fixture the mocked suite never loads — it is read solely by
+    // `PW_TARGET=real`, and that had not been run since 2026-08-08.
+    //
+    // Not to be confused with the accented fixtures ADR 11 keeps on purpose.
+    // Those are Java — AdminApiTest, ApiSecurityMatrixTest, AppUserRegistryTest
+    // — and they exist to prove a provider-supplied accented name survives
+    // session serialization. This one exists to match the byline, and the
+    // byline lost its accent.
+    name: 'Hedi',
+    given_name: 'Hedi',
     family_name: 'Soumri',
   },
   reader: {

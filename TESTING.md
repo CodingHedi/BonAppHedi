@@ -270,7 +270,28 @@ install, and `-Fresh` had never deleted the database it claimed to.
 **The milestone-1 e2e suite must pass unmodified against the real backend** —
 that is the acceptance test for the swap, scoped by the amendment in ADR 0001.
 
-**Measured 2026-08-08: 153 of 154 pass.** The 40 specs that used to be
+**Measured 2026-08-28: 198 of 199 pass.**
+
+The previous measurement was 2026-08-08 at 153 of 154, and the twenty days
+between them are the interesting part rather than the totals. Re-running it
+after that long produced **seven** failures, and every one was a fixture or a
+harness fault — the pattern this section already claimed, holding again:
+
+- **Five were one character.** `chore/hedi-without-accent` (2026-08-18) took the
+  accent off the byline and updated `mock-auth-api.ts` and four spec files. It
+  did not touch `e2e/mock-issuer.mjs`, which is the only fixture the mocked
+  suite never loads: it is read solely by `PW_TARGET=real`, which had not run
+  since 2026-08-08. So the issuer handed out `Hédi` to specs asserting `Hedi`.
+  The issuer's own comment predicts this failure almost verbatim.
+- **One was sticky state in the harness.** The acceptance issuer holds *one*
+  identity selection for the whole run. `signing in as the admin opens the
+  door` clicks the Google button itself rather than calling `signInForReal`, so
+  it inherited `reader` from the test before it, signed in perfectly as
+  somebody with no admin role, and timed out waiting for a link that was never
+  going to appear. It now chooses explicitly.
+- **One is a real divergence**, described below.
+
+The 40 specs that used to be
 unrunnable because they need a session now run — `application-acceptance.yml`
 points sign-in at a local OIDC issuer and a real authorization-code flow
 completes — and the database is put back to the seeded state before every spec,
@@ -279,11 +300,31 @@ ADR 0001's second amendment records the exemption that makes the first part
 legal: the three sign-in helpers may differ between backends, and nothing else
 does.
 
-**The one failure cannot pass and should not be made to.** `admin.spec.ts` has
-*"signing in as the admin opens the door, without a reload"*. Against the mocks
-signing in is a state change with no navigation; against real OAuth it is three
-redirects, so there is necessarily a reload. It asserts something only a mock can
-do.
+**The one failure is `admin.spec.ts` › *"says why rather than failing silently
+when the file is not an image"*.** It uploads a `.txt`, and its own assertion
+passes: the editor shows the alert. What fails it is the fixture, on
+`console.error: Failed to load resource: 415 (Unsupported Media Type)`.
+
+That console error is correct in every respect. The server decides what is an
+image by decoding it, refusing a text file with 415 is the right status, and a
+browser logs a 4xx on a `fetch` whether or not the page handled it. The mocks
+reject client-side and never make a request, so nothing is logged there.
+
+It is left red rather than silenced. The fixture's `IGNORED` list is global, so
+a `/415/` entry would blind every spec in the suite to an unexpected 415 in
+order to permit one expected one — and that list is a liability the README asks
+to keep short. Whether to add a narrower per-test escape is an open decision,
+not an oversight.
+
+**A correction, 2026-08-28.** This paragraph previously named a different test
+— *"signing in as the admin opens the door, without a reload"* — and said it
+*"cannot pass and should not be made to"*, on the grounds that real OAuth needs
+three redirects where the mock needs none. **That diagnosis was wrong.** The
+test never asserts the absence of a reload; "without a reload" is in its title
+only. It was failing because the issuer handed it the reader, and it passes now
+that it chooses the admin explicitly. Worth keeping as a caution: a failure
+called permanent stops being investigated, and this one wore that label for
+twenty days.
 
 Nothing found in getting from 88 to 153 was a defect in the application. Every
 failure resolved along the way was the two fixtures disagreeing about what a
