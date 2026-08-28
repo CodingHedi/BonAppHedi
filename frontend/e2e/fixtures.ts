@@ -45,8 +45,28 @@ const isIgnored = (message: string) => IGNORED.some((pattern) => pattern.test(me
  * `/api/`. A 404 on a translation file or a lazy chunk is the first example in
  * the list above of what this fixture exists to catch, and still fails the test.
  */
-const isExpectedApiNotFound = (text: string, url: string) =>
+export const isExpectedApiNotFound = (text: string, url: string) =>
   /status of 404/.test(text) && /\/api\//.test(url);
+
+/**
+ * A 415 from the photo upload is a refusal, not a failure.
+ *
+ * The server decides what is an image by decoding it rather than by believing
+ * the request (ADR 8), so rejecting a text file is the endpoint working. One
+ * admin spec uploads a `.txt` on purpose and asserts the editor says why; the
+ * alert it waits for appears, and then this fixture failed the test anyway,
+ * because Chromium logs every non-2xx resource load as a console error and the
+ * app cannot suppress that. Against the mocks the refusal happens client-side
+ * and no request is made at all, which is why it only ever showed up under
+ * `PW_TARGET=real` — where it was the sole remaining failure on 2026-08-28.
+ *
+ * Narrow on the same terms as the 404 above, and for the same reason. Only 415,
+ * and only from the one endpoint that can legitimately answer with it. A 415
+ * anywhere else is a client sending something the server never agreed to accept,
+ * which is a defect and still fails the test.
+ */
+export const isExpectedUploadRefusal = (text: string, url: string) =>
+  /status of 415/.test(text) && /\/api\/admin\/recipes\/[^/]+\/photo$/.test(url);
 
 /**
  * The spec file the database was last put back for.
@@ -108,7 +128,9 @@ export const test = base.extend<{ seededDatabase: void; failOnBrowserProblems: v
         if (isIgnored(text)) return;
         // location().url is the resource that failed, which the message text
         // itself does not carry.
-        if (isExpectedApiNotFound(text, message.location()?.url ?? '')) return;
+        const from = message.location()?.url ?? '';
+        if (isExpectedApiNotFound(text, from)) return;
+        if (isExpectedUploadRefusal(text, from)) return;
         problems.push(`console.error: ${text}`);
       });
 
