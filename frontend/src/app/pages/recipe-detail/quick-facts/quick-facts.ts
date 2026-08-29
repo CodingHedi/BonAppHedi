@@ -29,7 +29,19 @@ import type { Difficulty } from '../../../core/api/models';
       </div>
 
       <div class="fact">
-        <span class="value dots" [attr.aria-label]="difficultyLabel()">
+        <!--
+          role="img" is what makes the aria-label count. A bare <span> has no
+          implicit role, and ARIA prohibits a label on one — so a screen reader
+          was free to ignore "Difficulté : facile" entirely and announce three
+          empty spans instead. Found by axe on 2026-08-29; the template lint
+          rules cannot see it, because the attribute is valid in isolation and
+          only the missing role makes it inert.
+
+          An image role rather than a text alternative in the markup, because
+          that is what this is: a picture of a value. The dots carry no text of
+          their own and the label is their whole content.
+        -->
+        <span class="value dots" role="img" [attr.aria-label]="difficultyLabel()">
           @for (level of LEVELS; track level) {
             <span class="dot" [class.dot--on]="level <= difficulty()"></span>
           }
