@@ -21,8 +21,11 @@
 //
 // Nothing here runs in `npm run verify`. It takes a build and the better part of
 // a minute, and it answers a question that is asked once a milestone rather than
-// once a commit. The regression guard that *does* run every time is the
-// cumulative-layout-shift assertion in frontend/e2e/recipe-list.spec.ts.
+// once a commit. Two guards in frontend/e2e/recipe-list.spec.ts run every time
+// and cover different halves of what this measures: the card's image box is
+// asserted as a box rather than as a shift, because removing the reservation
+// produces no shift at all; the footer is asserted as a shift, attributed, and
+// only to bah-site-footer, because there the movement is the defect itself.
 
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
