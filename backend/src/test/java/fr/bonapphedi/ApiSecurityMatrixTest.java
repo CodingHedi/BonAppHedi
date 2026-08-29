@@ -74,7 +74,8 @@ class ApiSecurityMatrixTest {
             "GET /api/tags",
             "GET /api/authors",
             "GET /api/auth/providers",
-            "GET /api/auth/session");
+            "GET /api/auth/session",
+            "GET /api/version");
 
     /** Writes an anonymous visitor may make. Both issue the visitor cookie. */
     private static final Set<String> ANONYMOUS_WRITES =
@@ -145,6 +146,10 @@ class ApiSecurityMatrixTest {
         mvc.perform(get("/api/authors")).andExpect(status().isOk());
         mvc.perform(get("/api/auth/providers")).andExpect(status().isOk());
         mvc.perform(get("/api/auth/session")).andExpect(status().isNoContent());
+        // Public because the question it answers - what is running here? - is
+        // one anybody may ask of a site, and because needing a session to ask it
+        // would defeat the point of asking it from a browser or a curl.
+        mvc.perform(get("/api/version")).andExpect(status().isOk());
     }
 
     @Test

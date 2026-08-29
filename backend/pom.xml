@@ -21,6 +21,18 @@
     <java.version>25</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!--
+      Which commit this jar was built from, written into
+      META-INF/build-info.properties and served by VersionController.
+
+      `unknown` is the honest default rather than an oversight: nothing here
+      shells out to git, so a build that was not told what it is building says
+      so instead of guessing. The deploy script and CI both pass the real value
+      with -Dbah.commit, and those are the only two builds whose answer anybody
+      reads - a jar built by hand was never going to be the one running on the
+      server.
+    -->
+    <bah.commit>unknown</bah.commit>
+    <!--
       SQLite JDBC. Foreign keys are OFF by default in SQLite and are enabled
       through the JDBC URL, not here - see ADR 0002. Without that every
       ON DELETE CASCADE in the schema is inert.
@@ -155,9 +167,31 @@
 
   <build>
     <plugins>
+      <!--
+        The `build-info` execution is the only reason this plugin has one. It
+        writes META-INF/build-info.properties into the artefact, which Boot
+        auto-configures into a BuildProperties bean with no actuator and no new
+        dependency, and VersionController serves it at /api/version.
+
+        `repackage` is untouched: it is declared in the parent POM under a
+        different execution id, so adding this one does not replace it.
+      -->
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>build-info</id>
+            <goals>
+              <goal>build-info</goal>
+            </goals>
+            <configuration>
+              <additionalProperties>
+                <commit>${bah.commit}</commit>
+              </additionalProperties>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <!--
