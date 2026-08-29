@@ -436,11 +436,42 @@ as two independent jobs:
 
 | Job | Runs | Matching local command |
 |---|---|---|
-| `frontend` | lint → typecheck → unit → build → e2e | `cd frontend ; npm run verify` |
-| `backend` | the 185 JVM tests | `cd backend ; .\mvnw.cmd test` |
+| `frontend` | format → lint → typecheck → unit → build → e2e | `cd frontend ; npm run verify` |
+| `backend` | the JVM tests, 308 of them | `cd backend ; .\mvnw.cmd test` |
 
 Green locally on both means green in CI; if it does not, the workflow and the
 local commands have drifted and one of them is wrong.
+
+### And a second workflow, on a schedule
+
+`.github/workflows/dependencies.yml` runs on Mondays and on demand, never on a
+push:
+
+| Job | Asks |
+|---|---|
+| `npm audit` | does the frontend ship a known vulnerability? |
+| `pinned versions` | is anything in `backend/pom.xml` behind on patches? |
+
+**Neither belongs in `verify` or in CI, and the reason is the same for both.**
+They reach the network, so they would fail an offline build and make every
+merge depend on a registry being up — and a CVE published five minutes ago
+would block an unrelated deploy, which is how a gate gets bypassed rather than
+fixed. A red run here means "spend twenty minutes on this", not "you are
+blocked".
+
+It exists because nothing was asking. Spring Boot was found ten patch releases
+behind on 2026-08-29 — 3.5.6 against 3.5.16, so ten releases of Spring
+Framework, Spring Security, Tomcat and Jackson fixes untaken — and nothing had
+failed or warned. `npm audit` had been available the whole time and had gone
+unrun for the same reason: a check nobody is prompted to run does not happen.
+
+`scripts/check-backend-dependencies.mjs` checks **currency, not
+vulnerabilities**, which is a narrowing rather than a shortfall — it needs no
+CVE database and no NVD API key, and a patch bump inside a supported line is
+how nearly every backend CVE gets fixed here anyway. It fails only on patch
+drift within the line already in use; a newer minor or major is reported
+without failing, because migrating is a decision and a job that goes red the
+day Spring Boot 4.0 ships is a job people learn to ignore.
 
 **The backend job is new, and its absence is worth recording.** For the whole of
 milestone 2 and everything after it, CI ran the frontend only — this file said

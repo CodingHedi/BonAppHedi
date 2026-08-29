@@ -1,0 +1,74 @@
+name: Dependencies
+
+# Asks, once a week, whether anything shipped here has gone stale.
+#
+# It exists because nothing was asking. On 2026-08-29 Spring Boot was found ten
+# patch releases behind — 3.5.6 against a current 3.5.16 — which is ten
+# releases of Spring Framework, Spring Security, Tomcat and Jackson fixes not
+# taken. Nothing had failed, nothing had warned, and it was noticed only
+# because somebody went looking by hand. The frontend had `npm audit`
+# available and it went unrun for the same reason: a check nobody is prompted
+# to run is a check that does not happen.
+#
+# Deliberately NOT part of CI, and not in `verify` or `verify:prod`:
+#
+#   - Both halves reach the network, so they would fail an offline build and
+#     make every merge depend on registries being up.
+#   - A CVE published five minutes ago would block an unrelated deploy. That is
+#     how a gate gets bypassed rather than fixed.
+#
+# So it runs on its own schedule and speaks only when there is something to
+# say. A red run here means "spend twenty minutes on this", not "you are
+# blocked".
+on:
+  schedule:
+    # Mondays, 07:00 UTC. Early in the week on purpose: something found on a
+    # Friday afternoon waits until Monday anyway.
+    - cron: '0 7 * * 1'
+  # So it can be run on demand rather than waited for.
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: npm audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      # `moderate` rather than the default `low`. The default reports advisories
+      # against build tooling that cannot reach a browser, and a job that is
+      # usually red for reasons nobody will act on teaches people to stop
+      # reading it.
+      - run: npm audit --audit-level=moderate
+
+  backend:
+    name: pinned versions
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+
+      # No npm install: the script uses only node builtins and fetch, precisely
+      # so that checking the backend does not depend on the frontend's
+      # dependency tree being installable.
+      - run: node scripts/check-backend-dependencies.mjs
