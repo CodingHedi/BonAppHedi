@@ -58,6 +58,16 @@ jobs:
 
       - run: npm run test:e2e
 
+      # Handed to the `package` job rather than rebuilt there. `ng build` has
+      # already run above and a second one would take the same three minutes to
+      # produce the same bytes - and, worse, would let the two jobs disagree
+      # about what was built while both reported green.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
@@ -100,3 +110,147 @@ jobs:
           name: surefire-reports
           path: backend/target/surefire-reports/
           retention-days: 7
+
+  # The artefact that actually gets deployed, which nothing here was building.
+  #
+  # `mvnw test` above never packages, so the whole -Pweb profile - the copy of
+  # the Angular build into static/, the enforcer that guards it, and the jar
+  # plugin's exclusion of application-local.yml - was exercised in exactly one
+  # place: Hedi's machine, at deploy time, after `verify:prod` had already spent
+  # ten minutes. A jar that would not build, or would build wrong, was found at
+  # the end of a deploy rather than on the push that broke it.
+  #
+  # The three checks below are the same three deploy.ps1 makes on the jar before
+  # it uploads one. They are cheap and they are now made on every push.
+  #
+  # The CSP hash check deploy.ps1 also makes cannot move here: it compares the
+  # built index.html against deploy/Caddyfile, and deploy/ is a private
+  # submodule that this checkout deliberately does not have.
+  #
+  # `needs: frontend` rather than a third independent job, because it consumes
+  # that job's dist/. The backend job stays independent of both, so a broken
+  # frontend and a broken backend are still reported together.
+  package:
+    name: the deployable jar
+    needs: frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: corretto
+          java-version: '25'
+          cache: maven
+
+      # Into the path angular.dist points at, so the -Pweb copy finds it exactly
+      # as it would after a local `npm run build`.
+      - uses: actions/download-artifact@v7
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      # -DskipTests because the backend job has already run them against this
+      # same commit. This job is about the packaging, not the code.
+      - run: ./mvnw --batch-mode -Pweb -DskipTests -Dbah.commit=$GITHUB_SHA package
+
+      - name: Check the jar
+        run: |
+          set -euo pipefail
+          jar=$(ls target/*.jar | grep -v sources | head -1)
+          echo "$jar  $(du -h "$jar" | cut -f1)"
+
+          # Read once into variables and matched from a here-string, never by
+          # piping unzip into grep. That obvious spelling is broken under
+          # `set -o pipefail`: grep stops at the first match and closes the pipe,
+          # unzip dies of SIGPIPE, and the pipeline reports failure *because the
+          # thing was found*. It cost a rehearsal to notice, because it fails in
+          # the reassuring direction - a correct jar called broken.
+          #
+          # build-info.properties is at the root of the jar rather than under
+          # BOOT-INF/classes/ with everything else: Boot's repackager relocates
+          # the classes and leaves META-INF where it is.
+          listing=$(unzip -Z1 "$jar")
+          buildinfo=$(unzip -p "$jar" META-INF/build-info.properties)
+          echo "$buildinfo"
+
+          # A jar with no index.html answers every page with a 404 and reads as
+          # a server fault rather than a build one.
+          if ! grep -qx 'BOOT-INF/classes/static/index.html' <<< "$listing"; then
+            echo "::error::The jar has no static/index.html - the Angular build did not make it in."
+            exit 1
+          fi
+
+          # application-local.yml holds a live Google secret. It is excluded by
+          # maven-jar-plugin, and that exclusion is one careless edit from being
+          # deleted with nothing else saying so.
+          #
+          # Anchored, as the same check in deploy.ps1 is. Unanchored it also
+          # matches application-local.yml.example, which is committed on purpose
+          # and is in every jar - so the check would fail on every green build.
+          if grep -Eq '(^|/)application-local\.yml$' <<< "$listing"; then
+            echo "::error::The jar contains application-local.yml - it would carry live credentials."
+            exit 1
+          fi
+
+          # Without this the jar ships with commit=unknown and /api/version stops
+          # being able to answer the question it exists for.
+          if ! grep -qx "build.commit=$GITHUB_SHA" <<< "$buildinfo"; then
+            echo "::error::The jar does not record this commit. Check -Dbah.commit and the build-info execution."
+            exit 1
+          fi
+
+      # Started for real, because "it packaged" and "it runs" are different
+      # claims and only the second one is what a deploy is betting on. It needs
+      # no credentials by design - application.yml imports them optionally, and
+      # zero sign-in providers is a supported state - so the only thing it is
+      # told is where to put its database.
+      - name: Start it and ask it what it is
+        run: |
+          set -euo pipefail
+          jar=$(ls target/*.jar | grep -v sources | head -1)
+          export BAH_DB="$RUNNER_TEMP/ci.db"
+          java -jar "$jar" > "$RUNNER_TEMP/app.log" 2>&1 &
+          pid=$!
+
+          # Same shape as the wait in deploy.ps1, and for the same reason: the
+          # process exists several seconds before Tomcat accepts a connection,
+          # so anything checked immediately reports a failure that is not one.
+          ready=no
+          for i in $(seq 1 60); do
+            if curl -fs -o /dev/null --max-time 2 "http://127.0.0.1:8080/api/recipes?locale=fr"; then
+              echo "ready after ${i}s"
+              ready=yes
+              break
+            fi
+            if ! kill -0 $pid 2>/dev/null; then
+              echo "::error::The jar exited during startup."
+              cat "$RUNNER_TEMP/app.log"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" != yes ]; then
+            echo "::error::The jar did not answer on :8080 within 60s."
+            kill $pid 2>/dev/null || true
+            cat "$RUNNER_TEMP/app.log"
+            exit 1
+          fi
+
+          version=$(curl -fs --max-time 5 http://127.0.0.1:8080/api/version || true)
+          kill $pid 2>/dev/null || true
+
+          echo "/api/version -> $version"
+          case "$version" in
+            *"\"commit\":\"$GITHUB_SHA\""*) ;;
+            *)
+              echo "::error::The running jar does not report this commit at /api/version."
+              cat "$RUNNER_TEMP/app.log"
+              exit 1
+              ;;
+          esac
