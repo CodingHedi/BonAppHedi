@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  type OnDestroy,
+  type OnInit,
   computed,
   effect,
   inject,
@@ -210,7 +212,7 @@ const MAX_RESULTS = 6;
     }
   `,
 })
-export class QuickSearchComponent {
+export class QuickSearchComponent implements OnInit, OnDestroy {
   private readonly locale = inject(LocaleService);
   private readonly api = inject(RECIPE_API);
   private readonly router = inject(Router);
@@ -335,6 +337,17 @@ export class QuickSearchComponent {
     this.close();
   };
 
+  /*
+   * The two `implements` on the class are not decoration, and this is the only
+   * component in the app with lifecycle hooks at all - so it is the only place
+   * the reason can be written down.
+   *
+   * Angular calls these by name off the prototype. Without the interface a
+   * misspelt `ngOnInint` compiles, type-checks and is simply never called: the
+   * listener is never added, the panel stops closing on an outside click, and
+   * nothing anywhere reports it. With it, the same typo is a compile error,
+   * because the class then no longer satisfies what it says it implements.
+   */
   ngOnInit(): void {
     document.addEventListener('click', this.dismiss, true);
   }

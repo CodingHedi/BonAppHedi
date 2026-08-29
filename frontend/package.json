@@ -11,7 +11,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:smoke": "playwright test smoke",
-    "lint": "npm run check:backticks && ng lint",
+    "lint": "npm run check:backticks && ng lint --max-warnings=0",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.spec.json --noEmit",
     "format": "prettier --write \"{src,e2e}/**/*.{ts,html,scss,json}\"",
     "format:check": "prettier --check \"{src,e2e}/**/*.{ts,html,scss,json}\"",
