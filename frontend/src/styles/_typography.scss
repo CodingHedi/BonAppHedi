@@ -10,12 +10,16 @@ h6 {
   margin: 0;
 }
 
-// Verbatim from the prototype's <helmet> block.
+// The prototype's <helmet> block wrote --color-accent here, and that was the
+// single largest accessibility defect on the site: it is the fill colour, it is
+// 3.13:1 on the dark background, and this rule is every link there is. The
+// light theme's link is the same wine it has always been — --color-link
+// resolves to accent-500 — so nothing about this changes in the light theme.
 a {
-  color: var(--color-accent);
+  color: var(--color-link);
 
   &:hover {
-    color: var(--color-accent-600);
+    color: var(--color-link-hover);
   }
 }
 

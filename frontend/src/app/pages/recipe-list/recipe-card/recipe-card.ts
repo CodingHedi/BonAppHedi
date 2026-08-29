@@ -190,7 +190,7 @@ import type { RecipeSummary } from '../../../core/api/models';
 
     bah-timestamp {
       font-size: 11px;
-      opacity: 0.55;
+      color: var(--color-text-muted);
     }
   `,
 })

@@ -109,7 +109,7 @@ import { TimestampComponent } from '../../../shared/ui/timestamp/timestamp';
 
     .empty,
     .muted {
-      opacity: 0.55;
+      color: var(--color-text-muted);
       font-size: 14px;
     }
   `,

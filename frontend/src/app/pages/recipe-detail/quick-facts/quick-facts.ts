@@ -83,7 +83,7 @@ import type { Difficulty } from '../../../core/api/models';
 
     .label {
       font-size: 11.5px;
-      opacity: 0.6;
+      color: var(--color-text-muted);
     }
 
     .dots {

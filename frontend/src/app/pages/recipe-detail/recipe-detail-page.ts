@@ -197,7 +197,10 @@ import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.servi
 
     .breadcrumb {
       font-size: 12px;
-      opacity: 0.55;
+      /* opacity: 0.55 here was the worst reading on the site: it multiplied
+         the link inside down to 1.82:1 in the dark theme. The colour mutes the
+         trail text and leaves the link its own. */
+      color: var(--color-text-muted);
       margin-bottom: 18px;
       display: flex;
       gap: 8px;

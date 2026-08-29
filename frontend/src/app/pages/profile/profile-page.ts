@@ -308,7 +308,7 @@ import {
     .hint {
       margin: 8px 0 0;
       font-size: 12px;
-      opacity: 0.5;
+      color: var(--color-text-muted);
       max-width: 52ch;
       line-height: 1.5;
     }

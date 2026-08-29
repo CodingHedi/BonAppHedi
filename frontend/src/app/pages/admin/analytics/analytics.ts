@@ -128,7 +128,7 @@ import { decimal } from '../../../shared/format';
     }
 
     .muted {
-      opacity: 0.55;
+      color: var(--color-text-muted);
       font-size: 14px;
     }
   `,

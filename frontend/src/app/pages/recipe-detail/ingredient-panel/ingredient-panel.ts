@@ -138,7 +138,7 @@ import type { Ingredient } from '../../../core/api/models';
 
     .hint {
       font-size: 11.5px;
-      opacity: 0.55;
+      color: var(--color-text-muted);
       margin: 4px 0 18px;
     }
 

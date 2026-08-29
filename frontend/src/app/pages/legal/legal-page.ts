@@ -91,12 +91,17 @@ import { LEGAL_DETAILS } from './legal-details';
       margin: 0;
       line-height: 1.7;
       font-size: 14.5px;
-      opacity: 0.85;
+      /* The clearest case for colour over opacity anywhere here. opacity:
+         0.85 was aimed at the prose and barely changed it — but this page is
+         mostly links, and it took each of them from a passing 5.29:1 to
+         3.96:1. Nobody chose that number; it was a side effect of a rule about
+         something else. */
+      color: color-mix(in srgb, var(--color-text) 85%, var(--color-bg));
     }
 
     .note {
       font-size: 13.8px;
-      opacity: 0.6;
+      color: var(--color-text-muted);
       margin-top: 10px;
     }
   `,

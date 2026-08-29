@@ -38,6 +38,21 @@
   --color-text: #1e1a1b;
   --color-divider: rgba(30, 26, 27, 0.13);
 
+  // Secondary text — captions, counts, hints, the footer. The site muted text
+  // with `opacity` on the container for a long time and this token replaces
+  // that, for a reason worth stating: `opacity` dims every descendant too, so
+  // a link inside a muted paragraph was silently multiplied down with it. The
+  // legal page's links were a passing 5.29:1 wine reduced to 3.96:1 by an
+  // `opacity: 0.85` that was never about them. A colour applies to this
+  // element's own text and leaves a child's colour alone.
+  //
+  // 65% of the way from the page to the ink, which is a measured floor rather
+  // than a chosen shade: 60% lands at 4.39:1 against --color-bg and AA wants
+  // 4.5. The mix is against --color-bg so the value follows the theme instead
+  // of being two hexes to keep in step; on --color-surface it can only come
+  // out further from the background, never closer. ADR 14.
+  --color-text-muted: color-mix(in srgb, var(--color-text) 65%, var(--color-bg));
+
   // --- Brand ink -------------------------------------------------------------
   // Orange, and the one colour here that is NOT part of either ramp and NOT
   // redeclared by the dark theme. It belongs to the logo rather than to the UI:
@@ -85,6 +100,23 @@
   // unchanged now that each theme carries its own ramp — it names a stop, not
   // a colour, so it follows whichever ramp is in scope.
   --color-accent-text: var(--color-accent-700);
+
+  // Accent used as a LINK, which is a third job and not either of the two
+  // above. --color-accent is the fill — buttons, chips, the active dot — and
+  // reaching for it as link text is what the failures were: it is 5.29:1 on
+  // the light background and only 3.13:1 on the dark one, so `a { color:
+  // var(--color-accent) }` meant every plain link on the site failed AA in the
+  // dark theme and passed in the light. One rule, both themes, one of them
+  // wrong.
+  //
+  // --color-accent-text is not the answer either, however close it looks. It
+  // resolves to accent-700 here, a near-black wine that is right on a bold
+  // 16px quick-fact value and wrong on a link, because these links carry no
+  // underline and colour is the only thing telling you they are links. So this
+  // is its own token: the light value is deliberately unchanged from what
+  // shipped, and only the dark theme moves. ADR 14.
+  --color-link: var(--color-accent-500);
+  --color-link-hover: var(--color-accent-600);
 
   // --- Colours that sit on top of photography --------------------------------
   // Fixed light values regardless of site theme: a photo is a photo in the dark.
@@ -170,6 +202,19 @@
   // 6.23:1 against the dark surface, versus ~1.3:1 for accent-700. Resolves
   // through the rust ramp above, not the wine one.
   --color-accent-text: var(--color-accent-300);
+
+  // The half of the link pair that had to move. accent-500 is 3.13:1 on this
+  // background and 2.64:1 on this surface; accent-300 is 7.40 and 6.23. The
+  // stop between them, accent-400, clears the background at 5.03 and fails the
+  // surface at 4.24 — which is the trap, because most of the site's links sit
+  // on the background and a card would have been the one place it broke.
+  //
+  // Hover goes LIGHTER here and darker in the light theme. Inheriting
+  // --color-link-hover would have sent it to accent-600, further into the
+  // background it is already sitting on, so the one state that exists to say
+  // "you are about to press this" would have been the least legible.
+  --color-link: var(--color-accent-300);
+  --color-link-hover: var(--color-accent-200);
 
   // An umber shadow is invisible against #241f1a, so these are re-tinted.
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);

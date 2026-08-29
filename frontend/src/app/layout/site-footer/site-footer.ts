@@ -68,7 +68,10 @@ import { SEGMENTS, type RouteKey } from '../../core/i18n/locale';
       flex-wrap: wrap;
       gap: 12px;
       font-size: 13px;
-      opacity: 0.6;
+      /* Was opacity: 0.6, which put this row at 4.39:1 — the single most
+         repeated contrast failure on the site, because the footer is on every
+         page and the audit counted its five elements five times over. */
+      color: var(--color-text-muted);
     }
 
     .right {

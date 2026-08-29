@@ -361,7 +361,15 @@ import type { IngredientDraft, RecipeDraft, StepDraft } from '../../../core/api/
         </form>
 
         @if (showPreview()) {
-          <aside class="pane" [attr.aria-label]="'admin.preview' | transloco">
+          <!--
+            tabindex="0" because the pane is its own scroller. A scrollable box
+            with nothing focusable inside it cannot be scrolled from the
+            keyboard at all — the preview is rendered text, so there is nothing
+            to tab to and the content below the fold was simply unreachable.
+            The aria-label is what makes it announce as something worth landing
+            on rather than as an unnamed stop in the tab order.
+          -->
+          <aside class="pane" tabindex="0" [attr.aria-label]="'admin.preview' | transloco">
             <div class="pane-head">
               <h2>{{ 'admin.preview' | transloco }}</h2>
               <p class="muted hint">{{ 'admin.previewHint' | transloco }}</p>
@@ -494,20 +502,19 @@ import type { IngredientDraft, RecipeDraft, StepDraft } from '../../../core/api/
       font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.04em;
-      opacity: 0.55;
+      color: var(--color-text-muted);
       cursor: pointer;
     }
 
     .tab.active {
-      opacity: 1;
-      color: var(--color-accent);
+      color: var(--color-link);
       border-bottom-color: var(--color-accent);
     }
 
     /* A language with no title yet is the thing worth seeing from the other
        tab, so the marker lives on the tab itself. */
     .dot {
-      color: var(--color-accent);
+      color: var(--color-link);
       margin-left: 4px;
     }
 
@@ -629,7 +636,7 @@ import type { IngredientDraft, RecipeDraft, StepDraft } from '../../../core/api/
     }
 
     .muted {
-      opacity: 0.55;
+      color: var(--color-text-muted);
     }
 
     @media (max-width: 640px) {
