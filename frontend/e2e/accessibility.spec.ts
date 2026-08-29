@@ -37,6 +37,10 @@ const PUBLIC_PAGES: readonly (readonly [string, string])[] = [
   ['/fr/recettes/babka-au-chocolat', 'a recipe'],
   ['/fr/connexion', 'sign-in'],
   ['/fr/mentions-legales', 'the legal notice'],
+  // Both notices, not just the one. They are separate components with separate
+  // styles, the footer links to each from every page, and French law requires
+  // them — "we audited the other legal page" is not a position.
+  ['/fr/confidentialite', 'the privacy policy'],
   ['/fr/cette-page-nexiste-pas', 'the 404'],
 ];
 
@@ -75,6 +79,53 @@ const THEMES = ['light', 'dark'] as const;
  */
 const DECORATIVE = '.numeral';
 
+/**
+ * Wait until the page stops changing, not until the first heading appears.
+ *
+ * This is the single most important line in the file and it was missing for a
+ * day. A visible `h1` says the shell has rendered; on every admin page the
+ * heading belongs to the *shell* and the content — the analytics tiles, the
+ * live preview beside the editor — arrives afterwards from a resource. axe ran
+ * in the gap, found nothing wrong with the half of the page that existed, and
+ * reported the page clean.
+ *
+ * It cost three real defects and two days of red CI. Locally the audit lost the
+ * race and passed; on the slower CI machine it sometimes won and failed, so the
+ * suite was green here, red there, and marked one of them merely *flaky* — a
+ * word that reads as a test problem and was a contrast bug all along.
+ *
+ * The file already warned that "auditing an empty page passes and proves
+ * nothing". The lesson was written down and only half applied: a page that is
+ * *partly* rendered passes just as quietly, and looks far more convincing.
+ *
+ * Quiescence rather than a list of per-page selectors, because the list is the
+ * thing that goes stale — a new page added to the sweep with no anchor of its
+ * own would silently go back to auditing a shell.
+ */
+async function settle(page: Page, quietFor = 400, cap = 8000) {
+  const started = Date.now();
+  let last = '';
+  let since = Date.now();
+
+  while (Date.now() - started < cap) {
+    const now = await page.evaluate(() => {
+      const body = document.body;
+      return `${body.getElementsByTagName('*').length}:${body.innerText.length}`;
+    });
+
+    if (now !== last) {
+      last = now;
+      since = Date.now();
+    } else if (Date.now() - since >= quietFor) {
+      return;
+    }
+
+    await page.waitForTimeout(100);
+  }
+
+  throw new Error(`the page never stopped changing within ${cap}ms — audited nothing reliable`);
+}
+
 async function audit(
   page: Page,
   path: string,
@@ -86,10 +137,11 @@ async function audit(
   }, theme);
 
   await page.goto(path);
-  // The heading is the signal that Angular has rendered rather than served
-  // a shell — auditing an empty page passes and proves nothing, which is
-  // exactly what a first attempt at this did.
+  // The heading says Angular has rendered rather than served a shell. It does
+  // not say the page is finished — see settle() below, which is the part that
+  // does and the part this file was missing.
   await expect(page.locator('h1').first()).toBeVisible();
+  await settle(page);
 
   // An audit that reaches the wrong page does not fail, it passes — which is
   // how three admin URLs were audited as the 404 without anything saying so.

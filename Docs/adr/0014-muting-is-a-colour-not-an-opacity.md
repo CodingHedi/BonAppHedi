@@ -166,3 +166,51 @@ answer is to open the page.
 The screenshots for that page were taken and embedded in a comparison for Hedi
 and never actually looked at, which is how it shipped to `main`. Capturing an
 image is not inspecting it.
+
+---
+
+## Second amendment — the audit was racing the page
+
+Three more failures reached `main` and two days of CI went red before anyone
+looked. The defects were ordinary — the admin preview's own copy of the
+breadcrumb, the analytics tiles' `.sub` and `.pending`, the privacy policy's
+dated line — all the same two mechanisms this ADR is about, in places the sweep
+had not reached.
+
+**What matters is why the audit said they were not there.**
+
+`audit()` waited for a visible `h1` and then ran axe. On every admin page the
+heading belongs to the *shell*; the content — the analytics tiles, the live
+preview beside the editor — arrives afterwards from a resource. axe ran in the
+gap, found nothing wrong with the half of the page that existed, and reported
+the page clean.
+
+That made the result a race, and the race resolved differently in different
+places. Locally, in the unoptimised build, it lost and the suite was green. On
+CI, slower and under load, it sometimes won: one page failed outright, another
+was marked **flaky** and passed on retry — a word that reads as a test problem
+and was a contrast bug the whole time. `verify:prod` is what finally failed
+consistently, because a production build renders fast enough to win reliably.
+
+The file already carried a comment saying *"auditing an empty page passes and
+proves nothing, which is exactly what a first attempt at this did."* The lesson
+was written down and half applied. A page that is **partly** rendered passes
+just as quietly and looks far more convincing.
+
+`settle()` now waits for the DOM to stop changing — element count and text
+length stable for 400ms — before axe runs. Quiescence rather than a per-page
+anchor selector, because a list of anchors is the thing that goes stale: a page
+added to the sweep without one would silently go back to auditing a shell.
+
+Confirmed by putting `opacity: 0.55` back on the analytics tile. Before the
+change it passed locally every time; after, it fails deterministically in both
+themes. That is the whole point — the defect was always there and the
+instrument could not see it.
+
+**Two smaller things went in with it.** The privacy policy was never in the
+sweep at all, though the footer links to it from every page and French law
+requires it; adding it found the same `opacity`-over-a-link mechanism as the
+legal notice, one level up. And `scripts/check-template-backticks.mjs` now runs
+in `lint`: a backtick inside a `template:` or `styles:` block ends the literal
+and the compiler reports it as a type error somewhere else entirely, which cost
+four separate detours in one day.

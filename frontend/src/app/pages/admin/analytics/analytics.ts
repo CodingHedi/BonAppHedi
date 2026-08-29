@@ -94,17 +94,19 @@ import { decimal } from '../../../shared/format';
 
     .label {
       font-size: 12.5px;
-      opacity: 0.6;
+      color: var(--color-text-muted);
     }
 
     .sub {
       font-size: 12px;
-      opacity: 0.55;
+      color: var(--color-text-muted);
     }
 
     .pending {
-      color: var(--color-accent);
-      opacity: 1;
+      /* The number that wants attention, so it takes the link colour rather
+         than the fill: --color-accent is 2.63:1 on the dark surface, which
+         made the one figure worth noticing the least readable on the page. */
+      color: var(--color-link);
     }
 
     h2 {
