@@ -36,13 +36,24 @@ import { IconComponent } from '../../../core/icons/icon';
     </div>
   `,
   styles: `
+    /*
+     * The strip is quiet, but the quiet belongs to the count rather than to the
+     * whole row. opacity: 0.6 sat here and took the button down with it — so
+     * the one control on the strip was rendered at the strength a disabled
+     * control uses, and .reacted below had its accent muted in the state that
+     * exists to be noticed. The count carries the muting as a colour now and
+     * the button is at full strength.
+     */
     .reactions {
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 12px;
-      opacity: 0.6;
       font-size: 13.5px;
+    }
+
+    .reactions span {
+      color: var(--color-text-muted);
     }
 
     .reacted {

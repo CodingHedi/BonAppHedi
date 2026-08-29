@@ -95,7 +95,15 @@ here rather than one being a tint of the other.
 | `--color-bg` | `#f8f5f4` | `#241f1a` |
 | `--color-surface` | `#ffffff` | `#332c24` |
 | `--color-text` | `#1e1a1b` | `#efe6d6` |
+| `--color-text-muted` | `#6a6767` (5.16:1) | `#a8a094` (6.32:1) |
 | `--color-divider` | `rgba(30,26,27,0.13)` | `rgba(239,230,214,0.14)` |
+
+`--color-text-muted` is written as `color-mix(in srgb, var(--color-text) 65%,
+var(--color-bg))` rather than as the two hexes above, so it follows the theme
+instead of being a pair to keep in step. 65% is a floor, not a taste: 60% is
+4.39:1 and AA wants 4.5. It replaces the `opacity` that used to mute secondary
+text, and the reason is ADR 14 — `opacity` dims the links inside a muted block
+as well, which is how the breadcrumb's link ended up at 1.82:1.
 
 **Umber's light theme, as drawn and not shipped**, kept here because it is what
 `Docs/Design/` shows and the screenshots still look like:
@@ -164,14 +172,38 @@ Measured as shipped: `accent-700` (wine) on white is **10.66:1** (it was 7.18:1
 on Umber's `#e0d3ba`), and `accent-300` (rust) on Umber's dark surface
 `#332c24` is **6.23:1**.
 
+### `--color-link` — the third job the accent does
+
+Accent as a *link* is not the same job as either of the two above, and treating
+it as the fill is the largest accessibility defect the site has had.
+`a { color: var(--color-accent) }` came verbatim from the prototype's `<helmet>`
+block and is 5.29:1 in the light theme against 3.13:1 in the dark one, so every
+link on the site failed AA in one theme and passed in the other.
+
+| Token | Light | Dark |
+|---|---|---|
+| `--color-link` | `accent-500` `#a04a64` — 5.29:1 | `accent-300` `#dba377` — 7.40:1 |
+| `--color-link-hover` | `accent-600` `#833b51` — 7.14:1 | `accent-200` `#edcbb0` — 10.71:1 |
+
+The light values are exactly what shipped before, so the light theme did not
+move. Hover goes *lighter* in the dark theme and darker in the light one:
+inheriting `accent-600` there would have pushed the hover state further into
+the background it already sits on.
+
+`--color-accent-text` is the near neighbour and is not interchangeable — it is
+`accent-700` in light, a near-black wine that is right on a bold quick-fact
+value and wrong on an underline-less link, where colour is the only thing
+marking it as a link. ADR 14.
+
 ### Where the ramp steps are actually used
 
 Not decoration — these assignments come from the prototype and matter:
 
 - `100` → tag chip backgrounds
 - `300` → hero kicker text (on photo), step number badge ring
-- `500` → the accent itself: primary buttons, links, active dot, filled stars
-- `600` → link hover, primary button hover
+- `500` → the accent itself: primary buttons, active dot, filled stars — and
+  `--color-link` in the light theme only
+- `600` → primary button hover, and `--color-link-hover` in the light theme
 - `700` → ingredient quantities, quick-fact values, step numbers
 - `800` → tag chip text
 

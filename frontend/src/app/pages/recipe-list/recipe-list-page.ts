@@ -94,7 +94,7 @@ import { RecipeCardComponent } from './recipe-card/recipe-card';
 
     .count {
       font-size: 12.5px;
-      opacity: 0.55;
+      color: var(--color-text-muted);
       white-space: nowrap;
     }
 

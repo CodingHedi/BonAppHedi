@@ -59,7 +59,7 @@ import { AuthService } from '../../core/auth/auth.service';
     .who {
       margin: 0;
       font-size: 13px;
-      opacity: 0.55;
+      color: var(--color-text-muted);
     }
 
     .sections {
@@ -70,18 +70,21 @@ import { AuthService } from '../../core/auth/auth.service';
       flex-wrap: wrap;
     }
 
+    /* A tab strip, so the pair below is what carries "which one am I on". The
+       inactive tab is muted with a colour rather than opacity, and the active
+       one takes the link colour rather than the fill — --color-accent is
+       3.13:1 on the dark background, and it was the selected tab that was
+       hardest to read. The underline still does the real work. */
     .sections a {
       padding: 10px 16px;
       font-size: 14px;
       text-decoration: none;
-      color: inherit;
-      opacity: 0.6;
+      color: var(--color-text-muted);
       border-bottom: 2px solid transparent;
     }
 
     .sections a.active {
-      opacity: 1;
-      color: var(--color-accent);
+      color: var(--color-link);
       border-bottom-color: var(--color-accent);
     }
   `,

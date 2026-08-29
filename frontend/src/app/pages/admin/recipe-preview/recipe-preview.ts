@@ -168,13 +168,13 @@ import type { ImageRef, Ingredient, RecipeDraft, Step } from '../../../core/api/
     /* An unnamed recipe still occupies the space its name will, or the whole
        preview jumps on the first character typed. */
     .untitled {
-      opacity: 0.35;
+      color: var(--color-text-muted);
       font-style: italic;
     }
 
     .empty {
       font-size: 13.5px;
-      opacity: 0.55;
+      color: var(--color-text-muted);
       margin: 0;
     }
 

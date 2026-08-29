@@ -95,7 +95,7 @@ interface ShareTarget {
 
     .label {
       font-size: 13px;
-      opacity: 0.55;
+      color: var(--color-text-muted);
     }
 
     .targets {

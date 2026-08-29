@@ -87,7 +87,8 @@ import { RECIPE_API } from '../../core/api/recipe-api';
       padding-top: 22px;
       border-top: 1px solid var(--color-divider);
       font-size: 13.8px;
-      opacity: 0.6;
+      /* Contains the suggested-recipe link, so opacity dimmed that too. */
+      color: var(--color-text-muted);
     }
 
     @media (max-width: 520px) {

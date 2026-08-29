@@ -108,7 +108,7 @@ import type { AdminRecipeRow, RecipeStatus } from '../../../core/api/models';
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      opacity: 0.5;
+      color: var(--color-text-muted);
       padding: 0 12px 10px;
       font-weight: 600;
     }
@@ -135,8 +135,12 @@ import type { AdminRecipeRow, RecipeStatus } from '../../../core/api/models';
       border: 1px solid var(--color-divider);
     }
 
+    /* The text takes the link colour and the border keeps the fill. They are
+       the same wine in the light theme and deliberately different in the dark
+       one, where --color-accent is 3.13:1 as text and perfectly good as a
+       1px rule around a chip. */
     .status--published {
-      color: var(--color-accent);
+      color: var(--color-link);
       border-color: var(--color-accent);
     }
 
@@ -154,7 +158,7 @@ import type { AdminRecipeRow, RecipeStatus } from '../../../core/api/models';
     }
 
     .muted {
-      opacity: 0.55;
+      color: var(--color-text-muted);
       padding: 24px 12px;
     }
 

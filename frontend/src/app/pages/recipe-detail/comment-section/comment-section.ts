@@ -282,17 +282,15 @@ const QUOTE_BOX_MAX = 260;
       background: none;
       border: none;
       border-bottom: 2px solid transparent;
-      color: inherit;
-      opacity: 0.55;
+      color: var(--color-text-muted);
       cursor: pointer;
       font: inherit;
       font-size: 13px;
     }
 
     .tab.active {
-      color: var(--color-accent);
+      color: var(--color-link);
       border-bottom-color: var(--color-accent);
-      opacity: 1;
     }
 
     .prompt,
@@ -302,12 +300,14 @@ const QUOTE_BOX_MAX = 260;
       min-height: 90px;
     }
 
+    /* Holds the sign-in link, so opacity dimmed the one thing on it worth
+       pressing. 3.87:1 before, and the link with it. */
     .prompt {
-      opacity: 0.55;
+      color: var(--color-text-muted);
     }
 
     .muted {
-      opacity: 0.45;
+      color: var(--color-text-muted);
     }
 
     .toolbar {
@@ -387,7 +387,7 @@ const QUOTE_BOX_MAX = 260;
       margin: 0;
       padding: 0 20px 14px;
       font-size: 12px;
-      opacity: 0.5;
+      color: var(--color-text-muted);
     }
 
     .composer .body:focus {

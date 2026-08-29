@@ -123,12 +123,15 @@ import type { Step } from '../../../core/api/models';
       padding: 0;
       margin: 0 0 0 2px;
       font-size: 13px;
-      color: var(--color-accent);
+      /* A button that reads as a link inside a sentence, so it takes the link
+         colour rather than the fill. --color-accent put it at 3.13:1 in the
+         dark theme, five of them per recipe. */
+      color: var(--color-link);
       cursor: pointer;
     }
 
     .timestamp:hover {
-      color: var(--color-accent-600);
+      color: var(--color-link-hover);
       text-decoration: underline;
     }
 
