@@ -151,7 +151,11 @@ import type { ImageRef, Ingredient, RecipeDraft, Step } from '../../../core/api/
 
     .breadcrumb {
       font-size: 12px;
-      opacity: 0.55;
+      /* The public page's breadcrumb, drawn a second time. It is the copy that
+         makes this easy to miss: the original was fixed for ADR 14 and this
+         one kept its opacity for another day, because the audit was racing the
+         preview and passing before it rendered. */
+      color: var(--color-text-muted);
       margin-bottom: 14px;
       display: flex;
       gap: 8px;

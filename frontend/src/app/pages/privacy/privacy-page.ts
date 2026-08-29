@@ -116,10 +116,16 @@ import { SEGMENTS } from '../../core/i18n/locale';
       margin: 34px 0 12px;
     }
 
+    /*
+     * The legal notice's rule, and the same reason (ADR 14): opacity here
+     * multiplies down everything inside, so .updated at --color-text-muted
+     * came out at 3.14:1 rather than 5.16:1 and the link at the foot was
+     * dimmed with it. Setting a colour leaves both to say what they are.
+     */
     p,
     li {
       line-height: 1.55;
-      opacity: 0.75;
+      color: color-mix(in srgb, var(--color-text) 75%, var(--color-bg));
     }
 
     p {
@@ -128,13 +134,13 @@ import { SEGMENTS } from '../../core/i18n/locale';
 
     .updated {
       font-size: 13px;
-      opacity: 0.5;
+      color: var(--color-text-muted);
       margin-bottom: 20px;
     }
 
     .lead {
       font-size: 16px;
-      opacity: 0.85;
+      color: color-mix(in srgb, var(--color-text) 88%, var(--color-bg));
     }
 
     ul {
@@ -148,7 +154,7 @@ import { SEGMENTS } from '../../core/i18n/locale';
 
     .more {
       margin-top: 18px;
-      opacity: 1;
+      color: var(--color-text);
     }
 
     a {
