@@ -132,3 +132,37 @@ them from 3.13:1 to 7.40:1.
 Neither theme's palette moved. `Docs/Design/` is untouched, no ramp stop
 changed value, and this is not a deviation from the prototypes in the sense
 ADR 6 means — it is two new roles assembled from stops that were already there.
+
+---
+
+## Amendment, same day — the breadcrumb goes one step further
+
+The decision above gave every link `--color-link`, and on the recipe
+breadcrumb that was measurably correct and visibly wrong. Hedi's words: *"the
+crumb, it's too dark."*
+
+He is right, and the reason is instructive. In the light theme the breadcrumb
+link went from a dimmed `#c897a5` — 2.29:1, one of the failures — to the full
+wine at 5.29:1. Contrast fixed; weight wrong. A breadcrumb sits three lines
+above a 42px title and its whole job is to be there when looked for and
+invisible otherwise, and full wine at 12px pulled the eye *above* the title
+instead of under it.
+
+So `.breadcrumb a { color: inherit }`: the trail is one muted colour, link
+included. That is the footer's treatment and it is the footer's reasoning —
+navigation chrome rather than prose. 5.16:1 light, 6.32:1 dark, both clear.
+
+Nothing is lost by dropping the colour. The underline is the browser's, it was
+already there before any of this, and it — not the hue — is what says this is a
+link. A link signal that does not depend on colour is the better one anyway.
+
+**Worth recording because the audit cannot see this class of error.** axe
+answers "is this readable", never "is this the right weight for where it sits",
+and the first version passed every check while looking wrong. It matches the
+caution already in `deploy/CLAUDE.md` about the e2e suite asserting calls rather
+than geometry: a green run and a visibly wrong page coexist easily, and the
+answer is to open the page.
+
+The screenshots for that page were taken and embedded in a comparison for Hedi
+and never actually looked at, which is how it shipped to `main`. Capturing an
+image is not inspecting it.
