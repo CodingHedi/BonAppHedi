@@ -23,6 +23,7 @@ npm run verify:prod     # same, e2e against a production build
 | **Build** | `ng build` | ~2s | Does it compile for production and stay inside the bundle budgets? |
 | **Smoke** | `frontend/e2e/smoke.spec.ts` | ~3s | Does every route resolve, render and load its assets? |
 | **Behavioural e2e** | `frontend/e2e/*.spec.ts` | ~3s | Do the features work in a real browser? |
+| **Accessibility** | `frontend/e2e/{accessibility,keyboard}.spec.ts` | ~17s | Does it meet WCAG 2.1 AA, and can it be operated with a keyboard? |
 
 ### Unit tests
 
@@ -126,6 +127,49 @@ the DOM a visitor actually gets.
   the site *actually* stores — `bah-visitor`, `HMAC-SHA256`,
   `youtube-nocookie.com` — and that reading the policy sets no cookie, which is
   the claim a privacy policy is least able to make on its own.
+
+### Accessibility
+
+Two files, and they divide along a line worth understanding, because it decides
+which one a new assertion belongs in.
+
+- **`e2e/accessibility.spec.ts`** — axe over eleven pages in both themes,
+  signed out and signed in, at WCAG 2.1 A and AA. It reads a *rendered page as
+  a document*: roles, accessible names, computed colour. It never presses a key.
+- **`e2e/keyboard.spec.ts`** — the half that only exists while tabbing. Bypass
+  blocks (2.4.1), focus order (2.4.3) and focus visible (2.4.7) are all about
+  what happens *between* renders, so no amount of axe would reach them.
+
+**Neither replaces the lint rules**, which read the template as source and
+catch a missing `alt` or a click handler with no keyboard equivalent. The gap
+between them is real: the difficulty dots carried `aria-label` on a bare
+`<span>`, which lint passes because the attribute is well-formed and which a
+screen reader may discard entirely because a span has no role to hang it on.
+Lint could not see it; axe found it in seconds.
+
+**`color-contrast` is enabled** and the one exclusion is the 404's numeral,
+which WCAG 1.4.3 exempts as pure decoration. It is excluded by selector rather
+than by disabling the rule, so the rest of that page is still audited. ADR 14
+is the whole story — 134 failing elements, two mechanisms.
+
+**Three things in these files exist because of a specific near-miss:**
+
+- **A wrong path in an audit does not fail, it passes — against the wrong
+  page.** The first signed-in list guessed `/fr/admin/recettes`; the admin
+  sub-paths are not translated, so three "admin" audits were auditing the 404.
+  `audit()` now asserts the numeral is absent unless the 404 is the page under
+  test.
+- **Every reveal-on-focus here runs through a CSS transition**, and both
+  `getComputedStyle` and `boundingBox()` report the value *mid-flight*. Reading
+  immediately after a keypress described the quote buttons as six invisible
+  focus stops and the skip link as one that never comes on screen. Neither was
+  real. Anything asserting on a focused control's appearance has to poll.
+- **`display: none` defeats a naive check of the quote buttons in three ways at
+  once** — they stay in the DOM so the count holds, `focus()` silently does
+  nothing, and `getComputedStyle` on a `display: none` element returns the
+  *specified* opacity of 1. A control that cannot be reached at all, reporting
+  as perfectly visible. The test asserts `document.activeElement` first for
+  that reason, and both halves were confirmed to fail by breaking them.
 
 ---
 
