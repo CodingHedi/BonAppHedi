@@ -198,14 +198,33 @@ import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.servi
     .breadcrumb {
       font-size: 12px;
       /* opacity: 0.55 here was the worst reading on the site: it multiplied
-         the link inside down to 1.82:1 in the dark theme. The colour mutes the
-         trail text and leaves the link its own. */
+         the link inside down to 1.82:1 in the dark theme. */
       color: var(--color-text-muted);
       margin-bottom: 18px;
       display: flex;
       gap: 8px;
       align-items: center;
       flex-wrap: wrap;
+    }
+
+    /*
+     * The trail is one colour, link included, which is the footer's treatment
+     * and for the footer's reason: this is navigation chrome sitting directly
+     * above a 42px title, and it has one job — be there when looked for and
+     * invisible otherwise.
+     *
+     * Giving the link --color-link instead was the first attempt and it read
+     * as too heavy. Full wine at 5.29:1 is a fine colour for a link in prose
+     * and the wrong weight three lines above the recipe name: it pulled the
+     * eye above the title rather than under it. Contrast was never the reason
+     * it looked wrong, which is why the audit passed it.
+     *
+     * Nothing is lost by dropping the colour. The underline is the browser's
+     * and was already there — it, not the hue, is what says this is a link,
+     * and a signal that does not depend on colour is the better one anyway.
+     */
+    .breadcrumb a {
+      color: inherit;
     }
 
     .title-row {
