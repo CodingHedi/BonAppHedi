@@ -224,12 +224,30 @@ frame times — which is the shape you would expect, since frames were never the
 problem. See ADR 8's amendment for how, and `MediaDerivativeTest` for what
 holds it in place.
 
-**The footer is most of the page's CLS**, at every catalogue size: 0.066 of the
-0.083, attributed to `bah-site-footer` at ~100 ms, when the loading skeleton is
-replaced by content taller than it and the footer stops sitting at the bottom
-of the viewport. Under the 0.1 "good" threshold and therefore not urgent, but
-it is the largest single shift on the page and it has nothing to do with the
-grid.
+**~~The footer is most of the page's CLS~~ — fixed 2026-08-29.** 0.066 of the
+0.083 at every catalogue size, attributed to `bah-site-footer` at ~100 ms. Now
+0.0174 total and the footer is not in the list at all.
+
+**The mechanism recorded here was wrong**, and it is worth saying how, because
+the wrong one suggests a fix that would have done nothing. This entry said the
+shift came when "the loading skeleton is replaced by content taller than it".
+Instrumented on 2026-08-29, the shift lands with `.hero-skeleton` and
+`.card-skeleton` already in the DOM and no `bah-recipe-card` yet: it is the
+frame *before* that, when the shell has painted with an empty `<main>` and the
+lazy route chunk has not arrived. `min-height: 100vh` on the host then does what
+it is for and pins the footer to the bottom of the viewport; the skeleton
+appearing pushes it back out of sight. The skeleton is tall. It ends the shift
+rather than causing it, so making it taller or more accurate would have changed
+nothing.
+
+The fix is `main.unrouted` in `app.ts`, which reserves a viewport for exactly
+that one frame, plus `loading the list › the footer never moves` in
+`recipe-list.spec.ts` — confirmed to fail by removing the binding, at 0.1124,
+which is over the "good" threshold on its own in an unoptimised build.
+
+A blanket `min-height` on `main` would also have worked and would have been
+wrong: it puts the footer below the fold on every short page for ever, and the
+mentions légales being reachable is the one thing this footer exists for.
 
 If a rendering constraint ever does appear: virtualise rather than
 infinite-scroll, and keep crawlable paginated URLs alongside for Googlebot.

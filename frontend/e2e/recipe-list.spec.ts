@@ -280,3 +280,68 @@ test.describe('recipe list', () => {
     expect(heights).toEqual([190, 190, 190, 190, 190]);
   });
 });
+
+/**
+ * Separate from the block above because it must observe the page from before
+ * the first paint, and that describe's `beforeEach` has already navigated.
+ */
+test.describe('loading the list', () => {
+  test('the footer never moves', async ({ page }) => {
+    // A CLS assertion, which the spec above argues against for the image box -
+    // and the distinction is the point. There, a shift was the *consequence* of
+    // a reserved box and removing the reservation produced no shift at all, so
+    // the number could not fail for the reason it was written. Here the shift is
+    // the defect itself: the shell paints with an empty <main>, the sticky
+    // footer sits at the bottom of the viewport, and the route's skeleton then
+    // pushes it out of sight one frame later.
+    //
+    // Measured 2026-08-29 with scripts/grid-perf.mjs: 0.065 of the page's 0.083,
+    // identical at 6, 100 and 300 recipes, and by a factor of nearly four the
+    // largest shift on the page. main.unrouted in app.ts is what holds it.
+    //
+    // Attributed rather than totalled. A bare CLS budget would go red for
+    // whatever else drifts near the threshold later and send the next reader to
+    // this comment about a footer that is behaving perfectly.
+    await page.addInitScript(() => {
+      interface ShiftSource {
+        node?: Node | null;
+      }
+      interface Shift extends PerformanceEntry {
+        value: number;
+        hadRecentInput: boolean;
+        sources?: ShiftSource[];
+      }
+
+      const found: { value: number; at: number }[] = [];
+      (window as unknown as { __footerShifts: typeof found }).__footerShifts = found;
+
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries() as Shift[]) {
+          if (entry.hadRecentInput || entry.value <= 0.0001) continue;
+          for (const source of entry.sources ?? []) {
+            const node = source.node;
+            if (node instanceof Element && node.tagName.toLowerCase() === 'bah-site-footer') {
+              found.push({ value: +entry.value.toFixed(4), at: Math.round(entry.startTime) });
+            }
+          }
+        }
+        // buffered:true replays what happened before this observer existed, so
+        // the entries from the frames that matter here are not missed.
+      }).observe({ type: 'layout-shift', buffered: true });
+    });
+
+    await page.goto('/fr');
+
+    // Settled, not merely painted: the shift being guarded against happens
+    // between the shell and the skeleton, so asserting before the real cards
+    // arrive would pass while the page was still moving.
+    await expect(page.locator('bah-recipe-card')).toHaveCount(5);
+    await expect(page.locator('bah-site-footer')).toBeAttached();
+
+    const shifts = await page.evaluate(
+      () =>
+        (window as unknown as { __footerShifts: { value: number; at: number }[] }).__footerShifts,
+    );
+    expect(shifts).toEqual([]);
+  });
+});
