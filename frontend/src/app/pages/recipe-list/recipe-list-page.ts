@@ -32,7 +32,9 @@ import { RecipeCardComponent } from './recipe-card/recipe-card';
         <bah-hero-carousel [slides]="slides" />
       }
     } @else {
-      <div class="hero-skeleton"></div>
+      <!-- Two elements rather than one, mirroring bah-hero-carousel's own
+           .hero > .frame. See the styles for why the nesting is load-bearing. -->
+      <div class="hero-skeleton"><div class="hero-skeleton-frame"></div></div>
     }
 
     <bah-filter-bar
@@ -111,9 +113,25 @@ import { RecipeCardComponent } from './recipe-card/recipe-card';
       padding-bottom: 20px;
     }
 
+    /*
+     * Shaped to match bah-hero-carousel exactly, because a skeleton that is not
+     * the size of the thing it stands in for is not reserving space, it is
+     * scheduling a jump.
+     *
+     * Padding, not margin, and the outer element exists only for that. The
+     * carousel's own wrapper is .hero, at padding 40px 0 8px. A margin here
+     * instead collapses its 8px bottom into .filters' 56px top, so the gap was
+     * 56px under the skeleton and 64px under the carousel - the skeleton stood
+     * 8px shorter than what replaced it, and the filters, the section heading
+     * and the whole grid dropped 8px on every single load. That was the entire
+     * remaining layout shift on the page once the footer was dealt with.
+     */
     .hero-skeleton {
+      padding: 40px 0 8px;
+    }
+
+    .hero-skeleton-frame {
       height: 440px;
-      margin: 40px 0 8px;
       border-radius: var(--radius-lg);
       background: var(--color-surface);
       opacity: 0.55;
@@ -147,9 +165,26 @@ import { RecipeCardComponent } from './recipe-card/recipe-card';
       opacity: 0.75;
     }
 
+    /*
+     * Both breakpoints, and they are the carousel's own - .slide is 440/380/340
+     * at exactly these widths. Only the first of the two was mirrored here, so
+     * below 640px the skeleton stood 40px taller than the carousel.
+     *
+     * That cost nothing measurable, and the reason is worth knowing rather than
+     * relying on: on a phone the filters and the grid are already below the fold
+     * while the hero loads, and a layout shift is only counted for what is on
+     * screen. It is invisible at 390x844 and would not be on a shorter window at
+     * the same width.
+     */
     @media (max-width: 900px) {
-      .hero-skeleton {
+      .hero-skeleton-frame {
         height: 380px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hero-skeleton-frame {
+        height: 340px;
       }
     }
   `,

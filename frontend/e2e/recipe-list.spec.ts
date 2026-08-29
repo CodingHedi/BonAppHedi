@@ -281,67 +281,129 @@ test.describe('recipe list', () => {
   });
 });
 
+/** One shifted element, as `tagname.class` — what these two specs assert on. */
+type Shifted = { element: string; value: number; at: number };
+
 /**
- * Separate from the block above because it must observe the page from before
- * the first paint, and that describe's `beforeEach` has already navigated.
+ * Records every layout shift from before the first paint, naming what moved.
+ *
+ * Must be installed before `goto`, which is why these specs sit outside the
+ * describe above and do their own navigation: its `beforeEach` has already
+ * loaded the page by the time a test body runs.
+ */
+async function recordShifts(page: Page) {
+  await page.addInitScript(() => {
+    interface ShiftSource {
+      node?: Node | null;
+    }
+    interface Shift extends PerformanceEntry {
+      value: number;
+      hadRecentInput: boolean;
+      sources?: ShiftSource[];
+    }
+
+    const found: { element: string; value: number; at: number }[] = [];
+    (window as unknown as { __shifts: typeof found }).__shifts = found;
+
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries() as Shift[]) {
+        if (entry.hadRecentInput || entry.value <= 0.0001) continue;
+        for (const source of entry.sources ?? []) {
+          const node = source.node;
+          if (!(node instanceof Element)) continue;
+          const classes = node.className;
+          const suffix =
+            typeof classes === 'string' && classes
+              ? `.${classes.trim().split(/\s+/).join('.')}`
+              : '';
+          found.push({
+            element: `${node.tagName.toLowerCase()}${suffix}`,
+            value: +entry.value.toFixed(4),
+            at: Math.round(entry.startTime),
+          });
+        }
+      }
+      // buffered:true replays what happened before this observer existed, so
+      // the entries from the frames that matter here are not missed.
+    }).observe({ type: 'layout-shift', buffered: true });
+  });
+}
+
+/**
+ * Everything that moved, once the page has stopped moving.
+ *
+ * Settled rather than merely painted: both shifts guarded below happen while
+ * the skeletons are on screen, so reading this before the real cards arrive
+ * would come back empty with the page still in motion.
+ */
+async function shiftedElements(page: Page): Promise<Shifted[]> {
+  await expect(page.locator('bah-recipe-card')).toHaveCount(5);
+  return page.evaluate(() => (window as unknown as { __shifts: Shifted[] }).__shifts);
+}
+
+/**
+ * Two shifts, both of which were the page's largest when they were found, and
+ * both of the same kind: something stood in for something else at the wrong
+ * size.
+ *
+ * These are CLS assertions, which the image-box spec above argues against - and
+ * the distinction is the whole point. There, the shift was a *consequence* of a
+ * reserved box, and removing the reservation produced no shift at all, so the
+ * number could not fail for the reason it was written. Here the movement is the
+ * defect, and both were confirmed to fail by undoing the fix.
+ *
+ * Attributed rather than totalled, deliberately. A bare CLS budget goes red for
+ * whatever drifts near the threshold next and sends the reader to a comment
+ * about something that is behaving perfectly.
  */
 test.describe('loading the list', () => {
   test('the footer never moves', async ({ page }) => {
-    // A CLS assertion, which the spec above argues against for the image box -
-    // and the distinction is the point. There, a shift was the *consequence* of
-    // a reserved box and removing the reservation produced no shift at all, so
-    // the number could not fail for the reason it was written. Here the shift is
-    // the defect itself: the shell paints with an empty <main>, the sticky
-    // footer sits at the bottom of the viewport, and the route's skeleton then
-    // pushes it out of sight one frame later.
-    //
-    // Measured 2026-08-29 with scripts/grid-perf.mjs: 0.065 of the page's 0.083,
-    // identical at 6, 100 and 300 recipes, and by a factor of nearly four the
-    // largest shift on the page. main.unrouted in app.ts is what holds it.
-    //
-    // Attributed rather than totalled. A bare CLS budget would go red for
-    // whatever else drifts near the threshold later and send the next reader to
-    // this comment about a footer that is behaving perfectly.
-    await page.addInitScript(() => {
-      interface ShiftSource {
-        node?: Node | null;
-      }
-      interface Shift extends PerformanceEntry {
-        value: number;
-        hadRecentInput: boolean;
-        sources?: ShiftSource[];
-      }
-
-      const found: { value: number; at: number }[] = [];
-      (window as unknown as { __footerShifts: typeof found }).__footerShifts = found;
-
-      new PerformanceObserver((list) => {
-        for (const entry of list.getEntries() as Shift[]) {
-          if (entry.hadRecentInput || entry.value <= 0.0001) continue;
-          for (const source of entry.sources ?? []) {
-            const node = source.node;
-            if (node instanceof Element && node.tagName.toLowerCase() === 'bah-site-footer') {
-              found.push({ value: +entry.value.toFixed(4), at: Math.round(entry.startTime) });
-            }
-          }
-        }
-        // buffered:true replays what happened before this observer existed, so
-        // the entries from the frames that matter here are not missed.
-      }).observe({ type: 'layout-shift', buffered: true });
-    });
-
+    // The shell paints before the lazy route chunk arrives, so <main> is empty
+    // for a frame, the sticky footer sits at the bottom of the viewport, and the
+    // skeleton then pushes it out of sight. 0.065 of the page's 0.083 when it
+    // was found, identical at 6, 100 and 300 recipes. main.unrouted in app.ts is
+    // what holds it; removing that binding measures 0.1124 here.
+    await recordShifts(page);
     await page.goto('/fr');
 
-    // Settled, not merely painted: the shift being guarded against happens
-    // between the shell and the skeleton, so asserting before the real cards
-    // arrive would pass while the page was still moving.
-    await expect(page.locator('bah-recipe-card')).toHaveCount(5);
     await expect(page.locator('bah-site-footer')).toBeAttached();
+    const moved = await shiftedElements(page);
 
-    const shifts = await page.evaluate(
-      () =>
-        (window as unknown as { __footerShifts: { value: number; at: number }[] }).__footerShifts,
-    );
-    expect(shifts).toEqual([]);
+    expect(moved.filter((s) => s.element.startsWith('bah-site-footer'))).toEqual([]);
+  });
+
+  test('the hero skeleton is exactly as tall as the carousel that replaces it', async ({
+    page,
+  }) => {
+    // .hero-skeleton used a margin where bah-hero-carousel uses padding, so its
+    // 8px bottom collapsed into .filters' 56px top and the skeleton stood 8px
+    // shorter than what replaced it. Everything below the hero dropped by that
+    // on every load - the whole of the page's remaining 0.0174 once the footer
+    // was dealt with.
+    //
+    // Asserted as two heights and not as a shift, which is the opposite choice
+    // to the footer above and for a reason worth writing down: it was tried the
+    // other way first and the guard was useless. Here the movement is only
+    // 0.0008 at this viewport against an optimised build's 0.0174, small enough
+    // that whether the layout-shift API reports it at all depends on where the
+    // mock's random 120-320ms latency happens to land. It passed with the defect
+    // deliberately reinstated, twice. A guard that is usually green on a broken
+    // page is worse than no guard, so this asserts the geometry that causes the
+    // shift rather than the shift itself - exactly the argument the image-box
+    // spec above makes.
+    await page.goto('/fr');
+
+    // The skeleton is on screen for at least the mock's minimum latency, which
+    // is comfortably longer than this takes to resolve.
+    const skeleton = await page
+      .locator('.hero-skeleton')
+      .evaluate((el) => Math.round(el.getBoundingClientRect().height));
+
+    await expect(page.locator('bah-hero-carousel')).toBeVisible();
+    const carousel = await page
+      .locator('bah-hero-carousel')
+      .evaluate((el) => Math.round(el.getBoundingClientRect().height));
+
+    expect(skeleton).toBe(carousel);
   });
 });
