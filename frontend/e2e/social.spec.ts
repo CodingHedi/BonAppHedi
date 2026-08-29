@@ -229,6 +229,66 @@ test.describe('comments', () => {
     await expect(editor).toHaveValue('Une recette parfaite.');
   });
 
+  test('the preview neutralises what a comment cannot be allowed to do', async ({ page }) => {
+    /*
+     * Nothing on the client side asserted this until 2026-08-29, which is an
+     * odd gap next to the backend's `MarkdownRendererTest` — that has fed the
+     * server renderer `<script>`, `<img onerror>` and `javascript:` hrefs since
+     * it was written.
+     *
+     * The preview is where it matters. Stored comments render from
+     * server-sanitized `bodyHtml`, but the Preview tab renders straight from
+     * the untrusted markdown the author is still typing, in the browser.
+     *
+     * **What this covers is the pipeline, not DOMPurify.** `markdown.ts`
+     * sanitizes, and then Angular sanitizes again on the `[innerHTML]` binding
+     * — deliberately, as "defence in depth" in that file's own words. So this
+     * test passes with the DOMPurify call removed entirely, which was measured
+     * rather than assumed: commenting it out on 2026-08-29 left this green,
+     * because Angular's backstop caught everything on its own.
+     *
+     * That is worth knowing in both directions. The guarantee a visitor
+     * actually gets is what is asserted here and it is genuinely asserted. But
+     * do not read a pass as evidence that the DOMPurify layer works — if it
+     * silently broke, or its ALLOWED lists drifted, nothing here would say so.
+     *
+     * Checks that the dangerous *capability* is gone rather than that text was
+     * escaped: escaping and sanitizing look identical in a screenshot and only
+     * one of them is safe.
+     */
+    await page.goto(BABKA);
+    await signIn(page);
+
+    const hostile = [
+      '<script>window.__pwned = true</script>',
+      '<img src=x onerror="window.__pwned = true">',
+      '[tap](javascript:window.__pwned = true)',
+      '<a href="javascript:window.__pwned = true">tap</a>',
+    ].join('\n\n');
+
+    await page.locator('bah-comment-section textarea').fill(hostile);
+    await page.getByRole('tab', { name: 'Aperçu' }).click();
+
+    const preview = page.locator('bah-comment-section .preview');
+    await expect(preview).toBeVisible();
+
+    const survived = await preview.evaluate((node) => ({
+      scripts: node.querySelectorAll('script').length,
+      handlers: [...node.querySelectorAll('*')].filter((el) =>
+        [...el.attributes].some((a) => a.name.toLowerCase().startsWith('on')),
+      ).length,
+      jsHrefs: [...node.querySelectorAll('a')].filter((a) =>
+        (a.getAttribute('href') ?? '').toLowerCase().replace(/\s/g, '').startsWith('javascript:'),
+      ).length,
+    }));
+
+    expect(survived).toEqual({ scripts: 0, handlers: 0, jsHrefs: 0 });
+
+    // And nothing ran on the way through. A sanitizer that strips the markup
+    // after the browser has already executed it is not a sanitizer.
+    expect(await page.evaluate(() => '__pwned' in window)).toBe(false);
+  });
+
   test('the preview styles a quote as a quote, not just as an element', async ({ page }) => {
     // The other half of the same defect: the Preview tab is the one place a
     // person deliberately looks at formatting before committing to it, so a
