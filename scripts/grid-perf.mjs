@@ -43,8 +43,33 @@ const { chromium } = require('playwright');
 
 const DIST = join(repo, 'frontend', 'dist', 'frontend', 'browser');
 const PORT = 4399;
-const COUNTS = process.argv.slice(2).map(Number).filter(Boolean);
+const args = process.argv.slice(2);
+const COUNTS = args.filter((a) => !a.includes('x')).map(Number).filter(Boolean);
 if (!COUNTS.length) COUNTS.push(6, 300);
+
+/*
+ * Viewports, because measuring one was actively misleading.
+ *
+ * This ran at 1440x900 only, and reported the page's shift as 0.0174 - a tenth
+ * of the "good" threshold and easy to dismiss. At 820x1180 the same page and
+ * the same build measured 0.1488, which is over it. The desktop number was not
+ * wrong; it was one sample of a quantity that varies by more than an order of
+ * magnitude with viewport, because both skeletons are a fixed height and both
+ * of the things they stand in for are not.
+ *
+ * The tablet width is the interesting one and is not an obvious guess: it is
+ * wide enough for the two-column grid and tall enough that the footer is inside
+ * the viewport, so it sees shifts that neither of the others do.
+ *
+ *   node scripts\grid-perf.mjs 6 300 1440x900 820x1180 390x844
+ */
+const VIEWPORTS = args
+  .filter((a) => /^\d+x\d+$/.test(a))
+  .map((a) => {
+    const [width, height] = a.split('x').map(Number);
+    return { width, height };
+  });
+if (!VIEWPORTS.length) VIEWPORTS.push({ width: 1440, height: 900 }, { width: 820, height: 1180 });
 
 // ---------------------------------------------------------------- the server
 
@@ -298,8 +323,8 @@ async function scrollAndSample(page) {
 
 // ------------------------------------------------------------------- the run
 
-async function run(browser, count) {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+async function run(browser, count, viewport) {
+  const context = await browser.newContext({ viewport });
   const page = await context.newPage();
 
   let bytes = 0;
@@ -342,6 +367,7 @@ async function run(browser, count) {
   const at = (p) => +(sorted[Math.floor(sorted.length * p)] ?? 0).toFixed(1);
 
   return {
+    viewport: `${viewport.width}x${viewport.height}`,
     count,
     cards,
     domNodes,
@@ -367,9 +393,11 @@ if (!(await tryFile(join(DIST, 'index.html')))) {
 const server = await serve();
 const browser = await chromium.launch();
 const results = [];
-for (const count of COUNTS) {
-  process.stderr.write(`measuring ${count} recipes...\n`);
-  results.push(await run(browser, count));
+for (const viewport of VIEWPORTS) {
+  for (const count of COUNTS) {
+    process.stderr.write(`measuring ${count} recipes at ${viewport.width}x${viewport.height}...\n`);
+    results.push(await run(browser, count, viewport));
+  }
 }
 await browser.close();
 server.close();

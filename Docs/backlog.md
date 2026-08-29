@@ -249,6 +249,51 @@ A blanket `min-height` on `main` would also have worked and would have been
 wrong: it puts the footer below the fold on every short page for ever, and the
 mentions légales being reachable is the one thing this footer exists for.
 
+**~~The hero skeleton was the wrong size~~ — fixed 2026-08-29.** `.hero-skeleton`
+used a `margin` where `bah-hero-carousel` uses `padding`, so its 8px bottom
+collapsed into `.filters`' 56px top: 440px against the carousel's 488px, and
+everything below the hero dropped 8px on every load. It also mirrored only the
+first of the carousel's two breakpoints, standing 40px too tall below 640px —
+which costs nothing today because on a phone the filters are already below the
+fold while the hero loads, and a shift is only counted for what is on screen.
+
+### Measuring one viewport was the reason both of these lasted
+
+`grid-perf.mjs` ran at 1440×900 only and now takes `WxH` arguments, defaulting
+to desktop **and** tablet. After both fixes:
+
+| Viewport | Before | After |
+|---|---|---|
+| 1440×900 | 0.0174 | **0** |
+| 820×1180 | 0.0131 | **0** |
+| 390×844 | 0 | 0.0121 |
+
+**The phone number went up, and that is the honest result rather than a
+regression to undo.** Two shifts were cancelling by accident: the old skeleton
+shrank 40px at the same moment the filter bar grew, and the net was under the
+reporting threshold. Fixing the hero left the other one visible and correctly
+attributed. Total across the three viewports went from 0.0305 to 0.0121.
+
+## The filter bar grows when its own data arrives
+
+What is left, and the only shift on the page. Measured at 390×844: `.filters`
+goes from 167px to 226px at ~128ms, pushing the section heading down 59px.
+
+The cause is `@if (tags().length)` in `filter-bar.ts`. The tag control is not
+rendered until tags load, and on a narrow viewport its arrival adds a row to
+`.selects`. The condition is right — a site with no tags should not show a tag
+filter — but it cannot tell "none yet" from "none at all", because the bar
+receives `[tags]="tags.value() ?? []"` and the resource's loading state stays
+behind in the page.
+
+So the fix is not a CSS one: it means passing that state in and rendering a
+disabled control while it is pending, which is **a visible decision about what
+the filter bar looks like before it is ready** rather than a defect to correct
+quietly. 0.0121 against a "good" threshold of 0.1, so there is no hurry.
+
+Do not reach for a `min-height` on `.selects`. It would have to be right at
+every breakpoint and would be wrong the first time a control is added.
+
 If a rendering constraint ever does appear: virtualise rather than
 infinite-scroll, and keep crawlable paginated URLs alongside for Googlebot.
 That bounds the DOM, keeps search instant, and leaves the footer reachable.
