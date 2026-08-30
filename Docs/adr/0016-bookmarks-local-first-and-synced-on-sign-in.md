@@ -263,3 +263,69 @@ because there are many of them; a short id fixes it at the source. A code-to-lis
 table would move the same problem somewhere less visible and add an
 unauthenticated write endpoint, a cleanup policy, and links that rot when the
 cleanup runs.
+
+## Amendment, 2026-08-30: one public identifier, and sharing is no longer deferred
+
+Sharing a list by URL is wanted now rather than later, and it takes the third
+column this ADR already named as the way to get readable links. That changes the
+identifier decision above, because the moment such a column exists, publishing
+`recipe.id` **as well** would be the very thing argued against two sections
+earlier: two public identifiers for one recipe, and every consumer having to
+know which is for what.
+
+So there is one, and it is the new column.
+
+### `recipe.public_code`
+
+```sql
+ALTER TABLE recipe ADD COLUMN public_code TEXT;
+UPDATE recipe SET public_code = key;
+CREATE UNIQUE INDEX ux_recipe_public_code ON recipe (public_code);
+```
+
+Backfilled from `key`, and set from `key` at creation — so it is readable,
+already meaningful, and needs no new field in the editor. `babka`,
+`shakshuka`, `basque-cheesecake`.
+
+**And then never written again.** That is the entire reason it exists rather
+than `key` being promoted. `Dto.RecipeDraft` carries `key` as a writable field
+and renaming a recipe in the editor is a supported operation; `public_code`
+diverges from `key` at exactly that moment and keeps every stored bookmark and
+every shared link working. The author keeps the freedom to rename their own
+handle, and readers keep their lists. Neither is given up for the other.
+
+SQLite has no `ALTER COLUMN`, so the column is added nullable and filled — the
+additive shape every migration here takes (ADR 2). It cannot be `NOT NULL` in
+one statement and that is fine; the uniqueness index is what has to hold.
+
+### What this replaces
+
+The section above decides bookmarks are stored as `recipe.id` and
+`RecipeSummary` gains it. **Read it as `publicCode` throughout.** The reasoning
+is unchanged and still load-bearing — immutability by construction beats
+immutability by discipline, and criterion 5b is still the test that fails if
+anybody points this at `key`. Only the field changes, and it changes because a
+readable identifier is now wanted for a second purpose.
+
+`recipe.id` stays internal. The `bookmark` table still references it, because a
+foreign key should point at a primary key and nothing outside the database
+needs to know that it does.
+
+### Sharing
+
+`/fr/enregistres?r=babka,sourdough` — the bookmarks page takes its list from the
+query when one is present and from storage otherwise. No endpoint, no stored
+mapping, no expiry, and a link that cannot rot because there is nothing to clean
+up.
+
+A shared list is **read-only until it is adopted**: arriving on such a link
+shows those recipes and offers to save them, rather than silently merging a
+stranger's list into yours. Saving is the same union as everywhere else.
+
+### Definition of done, added
+
+| # | Criterion |
+|---|---|
+| 9 | Renaming a recipe's `key` in the admin editor leaves `public_code` unchanged, and every bookmark and shared link keeps working — the concrete form of 5b |
+| 10 | A shared link opens the listed recipes on a device with no bookmarks of its own, without writing anything until the reader asks |
+| 11 | An unknown or malformed code in the query is ignored rather than breaking the page, and a link of only unknown codes reads as an empty shared list rather than as an error |
