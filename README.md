@@ -97,6 +97,12 @@ That writes a fenced block of small functions into your PowerShell profile, and
 | `bah-shortcuts` | regenerate this block after moving the clone |
 | `bah-deploy`, `bah-backup`, `bah-install-backup-task` | the private submodule's, when you have it |
 
+Every command carries a manual page, so ```man bah-deploy``` and ```Get-Help
+bah-check -Full``` answer properly — ```man``` is an alias for ```Get-Help```, which makes
+that the native answer rather than a document to go and find. ```bah-help``` lists
+them all, grouped by whether they touch this machine, read the server, or
+change it.
+
 **The list is discovered rather than written down.** Every `.bat` at the root
 and in `deploy/`, and every `deploy/*.sh`, becomes a command — so adding a
 script and forgetting to add a shortcut is not a thing that can happen quietly.
