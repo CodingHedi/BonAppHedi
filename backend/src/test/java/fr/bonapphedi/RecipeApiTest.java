@@ -29,6 +29,40 @@ class RecipeApiTest {
     @Autowired
     private MockMvc mvc;
 
+    // --- identity ---------------------------------------------------------
+
+    /**
+     * The one field a reader's browser is allowed to keep (ADR 16).
+     *
+     * <p>A slug identifies a recipe <em>within one language</em> —
+     * {@code ux_recipe_translation_slug} is on {@code (locale, slug)} — so a
+     * list of bookmarks held as slugs is empty after a language switch. This
+     * asserts the public API offers something that is not, and it is
+     * deliberately about two locales rather than about one field existing.
+     */
+    @Test
+    void theSameRecipeCarriesTheSameKeyInBothLanguages() throws Exception {
+        mvc.perform(get("/api/recipes/{slug}", "babka-au-chocolat").param("locale", "fr"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.key").value("babka"));
+
+        // A different slug, the same recipe, the same key.
+        mvc.perform(get("/api/recipes/{slug}", "chocolate-babka").param("locale", "en"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slug").value("chocolate-babka"))
+                .andExpect(jsonPath("$.key").value("babka"));
+    }
+
+    @Test
+    void everySummaryCarriesItsKeyToo() throws Exception {
+        // The list is what the bookmarks page filters, so the key has to be on
+        // the summary and not only on the detail.
+        mvc.perform(get("/api/recipes").param("locale", "fr"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].key").value("babka"))
+                .andExpect(jsonPath("$.items[4].key").isNotEmpty());
+    }
+
     // --- list -------------------------------------------------------------
 
     @Test
