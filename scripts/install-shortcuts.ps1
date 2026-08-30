@@ -69,6 +69,49 @@ foreach ($command in $commands) {
     $lines += "function $($command.Name) { & '$full' @args }   # $($command.What)"
 }
 
+<#
+    The shell scripts in deploy/ all run on the server rather than on this
+    machine, so their shortcuts are ssh wrappers rather than paths.
+
+    The address is read out of deploy/deploy.ps1 at generation time and never
+    written down here. This file is in the public repository and the server's
+    address is not published in it; the profile these lines land in is local,
+    personal and committed nowhere. A clone without the private submodule gets
+    no address to find and no server shortcuts, which is the same rule the rest
+    of this script follows.
+#>
+$deployScript = Join-Path $repo 'deploy\deploy.ps1'
+$targetHost = $null
+if (Test-Path $deployScript) {
+    $match = [regex]::Match((Get-Content $deployScript -Raw), "TargetHost\s*=\s*'([^']+)'")
+    if ($match.Success) { $targetHost = $match.Groups[1].Value }
+}
+
+if ($targetHost) {
+    $checkScript = Join-Path $repo 'deploy\check.sh'
+    $lines += ''
+    $lines += "# The server. Address read from deploy\deploy.ps1 when this was generated."
+
+    # Copied and then run, never piped: `ssh host 'bash -s' < file` is a parser
+    # error in PowerShell, and piping Get-Content into ssh turns every LF into
+    # CRLF so bash reports $'\r': command not found. check.sh says so in its own
+    # header, having been the thing that found out.
+    $lines += "function bah-check { scp -q '$checkScript' ${targetHost}:/tmp/bonapphedi-check.sh; ssh $targetHost 'sudo bash /tmp/bonapphedi-check.sh; rm -f /tmp/bonapphedi-check.sh' }   # read-only: what state is the server in"
+
+    # These run the copies provision.sh installed, so they are the versions the
+    # timers actually use rather than whatever is in this working tree.
+    $lines += "function bah-digest { ssh $targetHost 'sudo /usr/local/bin/bonapphedi-digest' }   # run tonight's digest now (mails, then erases the day)"
+    $lines += "function bah-notify { param([string]`$Subject = 'test') `$input | ssh $targetHost `"sudo /usr/local/bin/bonapphedi-notify '`$Subject'`" }   # send an alert, to check the path"
+    $lines += "function bah-backup-now { ssh $targetHost 'sudo systemctl start bonapphedi-backup; sleep 2; systemctl status bonapphedi-backup --no-pager -n 5' }   # run the backup on the server now"
+    $lines += "function bah-bans { ssh $targetHost 'sudo fail2ban-client status sshd; sudo fail2ban-client status bonapphedi' }   # who fail2ban is currently refusing"
+    $lines += "function bah-serverlog { ssh $targetHost 'sudo journalctl -u bonapphedi -n 60 --no-pager' }   # the application's own log"
+    $lines += "function bah-ssh { ssh $targetHost @args }   # a shell on the server"
+
+    # provision.sh is never run by hand - it is step 4 of a deploy, and running
+    # it out of band would apply a configuration the deploy has not checked.
+    $lines += "function bah-provision { & '$(Join-Path $repo 'deploy\deploy.bat')' -Provision }   # re-apply the server configuration through a deploy"
+}
+
 # Repo-root-relative commands that are not a single script, so they are worth
 # having as functions rather than as paths: both are run constantly and both
 # need a specific directory, which is the whole friction being removed.

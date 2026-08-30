@@ -95,6 +95,13 @@ That writes a fenced block of small functions into your PowerShell profile, and
 | `bah-repo` | `cd` to the repository |
 | `bah-deploy`, `bah-backup` | the private submodule's scripts, when you have it |
 
+The shell scripts in `deploy/` run on the server rather than here, so theirs are
+ssh wrappers — `bah-check` (read-only: what state is the server in),
+`bah-digest`, `bah-notify`, `bah-backup-now`, `bah-bans`, `bah-serverlog`,
+`bah-ssh` and `bah-provision`. The address is read out of the private submodule
+when the block is generated and appears only in your own profile, never in this
+repository.
+
 Arguments pass straight through, so `bah-dev -Fresh` and `bah-deploy -Provision`
 work as they do from the root.
 

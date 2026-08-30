@@ -175,6 +175,19 @@ public class VisitorIdentity {
      * reversed into an IP, and it cannot be recomputed by anyone who does not
      * hold the salt - so the table is useless to whoever ends up with a copy.
      */
+    /**
+     * The same digest, for anything else that needs to recognise a source
+     * without knowing one.
+     *
+     * <p>Public so {@code WriteCeilingFilter} can key its counters on it (ADR
+     * 17) rather than computing its own — a second HMAC of the same material
+     * with the same salt would be the same value arrived at twice, and a second
+     * place that handles addresses is a second place to get that wrong.
+     */
+    public String fingerprintOf(HttpServletRequest request) {
+        return fingerprint(request);
+    }
+
     private String fingerprint(HttpServletRequest request) {
         String material = clientAddress(request) + "|" + String.valueOf(request.getHeader("User-Agent"));
 
