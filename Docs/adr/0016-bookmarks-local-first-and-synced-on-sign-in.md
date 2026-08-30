@@ -42,10 +42,16 @@ is the worst moment to interrupt them.
 
 ### And why local storage alone is not enough either
 
-It is per-browser. Saved on a laptop, the list is empty on a phone, empty in a
-second browser, and gone after "clear site data" with no warning. For *"save
-this for tonight"* that is honest and sufficient. For *"the recipes I come back
-to"* it is broken, and broken quietly.
+It is per-browser. Save something on one device and the list is empty on the
+next, empty in a second browser on the same device, and gone after "clear site
+data" with no warning. For *"save this for tonight"* that is honest and
+sufficient. For *"the recipes I come back to"* it is broken, and broken quietly.
+
+**Which device is which is not knowable and must not be assumed.** The obvious
+way to describe this is "saved on your computer, missing on your phone", and it
+is wrong often enough to matter: plenty of people have no computer in this
+story at all, read on a tablet, and cook from a phone in the kitchen. Every
+string below says *device* and never names one.
 
 ## Decision
 
@@ -97,7 +103,7 @@ ADR 3 chose session cookies over JWT specifically so that logging out genuinely
 revokes, and `SecurityConfig` backs that with `invalidateHttpSession(true)` and
 `deleteCookies("SESSION")`. Leaving a personalised list on the machine after a
 logout contradicts the promise those lines make, and it matters most on exactly
-the shared computer where somebody thought to log out.
+the shared device where somebody thought to log out.
 
 The cost is real: sign out and the convenience copy goes with the session. That
 is the right way round, and the interface should say so before it happens rather
@@ -130,16 +136,41 @@ Two places, doing different jobs.
 
 **Inline on the bookmarks page**, seen when it is relevant and nowhere else,
 using the prompt shape comments already use (`comments.signInPrompt`) rather
-than a modal or a banner. One line: saved in this browser, sign in and they
-follow you.
+than a modal or a banner: a statement of fact followed by an action, exactly as
+the comment box does.
 
 **The empty state must not say "you have no saved recipes."** On a second device
-that is false, and it is false in the direction that makes the feature look
-broken. It says where bookmarks live instead.
+that is false, and false in the direction that makes the feature look broken. It
+says where bookmarks live, and that signing in may find more.
 
 **The privacy page**, as the canonical account. For once a section that
 strengthens the page: bookmarks stay in the browser and are never sent, unless
 you sign in and ask for them to follow you.
+
+#### The strings
+
+Settled here rather than left to the implementation, because the wording is the
+part that does the work and each one is a claim that has to stay true. The verb
+is **s'identifier**, matching `comments.signInPrompt` and `account.signIn`, not
+« se connecter » — the site already made that choice and two vocabularies for
+one action is worse than either.
+
+| Key | fr | en |
+|---|---|---|
+| `bookmarks.local` | Enregistrées dans ce navigateur. | Saved in this browser. |
+| `bookmarks.signInPrompt` | S'identifier pour les retrouver sur tous vos appareils | Sign in to find them on all your devices |
+| `bookmarks.empty` | Rien d'enregistré dans ce navigateur. | Nothing saved in this browser yet. |
+| `bookmarks.emptySignedOut` | Vos recettes enregistrées sur d'autres appareils apparaîtront ici une fois identifié. | Recipes you saved on another device will appear here once you sign in. |
+| `bookmarks.signOutWarning` | Vous déconnecter effacera la copie de ce navigateur. Vos recettes resteront sur votre compte. | Signing out will clear this browser's copy. Your recipes stay on your account. |
+
+`bookmarks.emptySignedOut` is the one that earns its place. Shown beside
+`bookmarks.empty` to a reader who is not identified, it is what stops an empty
+list on a second device reading as data loss — it says the recipes may exist and
+where they are, rather than asserting there are none.
+
+`bookmarks.signOutWarning` is reassurance rather than a warning, and is only
+honest because of the account: what is being cleared is a copy, and saying so is
+what makes clearing it acceptable.
 
 ### Definition of done
 
@@ -187,7 +218,7 @@ own identities.
 
 A bookmarks page that filters an already-fetched catalogue can take its list
 from the URL as easily as from storage — `?r=1,5,a,f` in base36 — which gives
-"send my list to my phone" with no account and no backend.
+"send my list to the device I am cooking from" with no account and no backend.
 
 **Not in this ADR, for two reasons.** Once bookmarks sync, signing in solves the
 second-device problem properly and the link stops being a sync mechanism; it
