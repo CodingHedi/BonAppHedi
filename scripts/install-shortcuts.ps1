@@ -23,6 +23,13 @@
 .PARAMETER WhatIf
     Print the block that would be written and change nothing.
 
+.NOTES
+    Writing the profile is only half of making these commands work: PowerShell
+    refuses to run a profile at all under the default `Restricted` policy, and
+    the `-ExecutionPolicy Bypass` in the .bat wrapper cannot help, because the
+    profile is read by a different process. This checks and says so rather than
+    reporting success into a shell that will never load the file.
+
 .EXAMPLE
     .\scripts\install-shortcuts.ps1
     .\scripts\install-shortcuts.ps1 -WhatIf
@@ -415,6 +422,44 @@ $lines += $END
 
 $block = $lines -join "`r`n"
 
+# --- will a new terminal actually run this? ----------------------------------
+
+<#
+    The execution policy a NEW TERMINAL will use, which is emphatically not the
+    one this script is running under.
+
+    install-shortcuts.bat launches powershell with -ExecutionPolicy Bypass, the
+    same as every other wrapper here. That is process-scoped, so a plain
+    Get-ExecutionPolicy answers `Bypass` regardless of how the machine is set -
+    it would measure the one state guaranteed not to be the user's, and report
+    that all is well from inside the only shell where it is.
+
+    So Process is skipped and the remaining scopes are read in precedence order.
+    Undefined everywhere means Restricted on a client edition of Windows, which
+    is the default and was this machine's setting.
+
+    This exists because writing the profile is only half of making a command
+    work. On 2026-08-30 this script wrote the file, printed `Wrote ...` and
+    listed twenty commands that could not load - the profile is dot-sourced by
+    the host at startup, and under Restricted PowerShell refuses to run it. The
+    wrapper's Bypass cannot help: it applies to this process, and the profile is
+    read by a different one. Every terminal opened after that greeted him with a
+    PSSecurityException and no shortcuts.
+#>
+function Get-PolicyForNewShell {
+    $scopes = Get-ExecutionPolicy -List
+    foreach ($scope in 'MachinePolicy', 'UserPolicy', 'CurrentUser', 'LocalMachine') {
+        $value = ($scopes | Where-Object { $_.Scope -eq $scope }).ExecutionPolicy
+        if ($value -and $value -ne 'Undefined') { return $value }
+    }
+    return 'Restricted'
+}
+
+# AllSigned is in the refusing list on purpose: it runs local scripts only when
+# they carry a signature, and this one generates an unsigned file.
+$policy = Get-PolicyForNewShell
+$profileWillLoad = $policy -in 'RemoteSigned', 'Unrestricted', 'Bypass'
+
 # --- write it ----------------------------------------------------------------
 
 $profilePath = $PROFILE.CurrentUserAllHosts
@@ -444,8 +489,24 @@ if ($Remove) {
         return
     }
     if ($PSCmdlet.ShouldProcess($profilePath, 'remove the bonapphedi block')) {
-        Set-Content -Path $profilePath -Value $without -Encoding UTF8
-        Write-Host "Removed the block from $profilePath" -ForegroundColor Green
+        if ($without.Trim()) {
+            Set-Content -Path $profilePath -Value $without -Encoding UTF8
+            Write-Host "Removed the block from $profilePath" -ForegroundColor Green
+        } else {
+            <#
+                Nothing of the user's was in it, so the file goes too.
+
+                An empty profile is not the same as no profile. The host
+                dot-sources whatever sits at that path before it ever looks
+                inside, so under a policy that refuses scripts an empty
+                profile.ps1 throws exactly the same PSSecurityException at every
+                startup as a full one. Writing the empty string back left the
+                most visible symptom of this script in place - in the one
+                command whose entire job is to undo it.
+            #>
+            Remove-Item -Path $profilePath -Force
+            Write-Host "Removed the block, and $profilePath with it - nothing else was in there." -ForegroundColor Green
+        }
     }
     return
 }
@@ -464,7 +525,25 @@ if ($PSCmdlet.ShouldProcess($profilePath, 'write the bonapphedi block')) {
         if ($line -match '^function\s+(\S+)') { Write-Host ("  " + $Matches[1]) -ForegroundColor Cyan }
     }
     Write-Host ''
-    Write-Host '  Open a new terminal, or run:  . $PROFILE' -ForegroundColor DarkGray
+
+    # Say which of the two things just happened, rather than assuming the good
+    # one. The file is written either way - what changes is whether anything
+    # will read it, and that is the half worth reporting.
+    if ($profileWillLoad) {
+        Write-Host '  Open a new terminal, or run:  . $PROFILE' -ForegroundColor DarkGray
+    } else {
+        Write-Host "  ...but none of them will work yet." -ForegroundColor Yellow
+        Write-Host ''
+        Write-Host "  This machine's execution policy is $policy, so PowerShell refuses to" -ForegroundColor Yellow
+        Write-Host '  run your profile at all, and every new terminal will open with a' -ForegroundColor Yellow
+        Write-Host '  PSSecurityException instead of these commands.' -ForegroundColor Yellow
+        Write-Host ''
+        Write-Host '  To allow scripts you wrote yourself - per user, no admin needed:' -ForegroundColor Yellow
+        Write-Host '      Set-ExecutionPolicy -Scope CurrentUser RemoteSigned' -ForegroundColor Cyan
+        Write-Host ''
+        Write-Host '  Or undo this and leave the machine as it is:' -ForegroundColor Yellow
+        Write-Host '      .\install-shortcuts.bat -Remove' -ForegroundColor Cyan
+    }
     Write-Host ''
 } else {
     Write-Host $block
