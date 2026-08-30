@@ -235,12 +235,12 @@
     "updated": "Last updated: 27 July 2026",
     "lead": "This site is a personal recipe notebook. There are no ads, no trackers and no audience measurement, and nothing is passed to a third party. This page describes exactly what is recorded, when, and why.",
     "nothingTitle": "What this site does not do",
-    "nothingAnalytics": "No audience measurement: no Google Analytics, no Matomo, nothing equivalent. Visits are not counted.",
+    "nothingAnalytics": "No audience measurement: no Google Analytics, no Matomo, nothing equivalent. Nobody counts how many people come, or what they read. The server does keep a technical log of requests to defend itself against intrusion; it is described below and deleted after fourteen days.",
     "nothingAds": "No advertising, no profiling, and no sale or sharing of data.",
     "nothingWidgets": "No social network widgets. The share buttons are plain links: nothing is loaded from Facebook, X, Pinterest or WhatsApp unless you click.",
     "nothingFonts": "Typefaces are hosted here rather than on a CDN, so your IP address is not disclosed to Google when the page loads.",
     "readingTitle": "Reading a recipe",
-    "readingBody": "Nothing is recorded and no cookie is set. For as long as you are only reading, this site knows nothing about you.",
+    "readingBody": "No cookie is set and the application records nothing: as long as you only read, it knows nothing about you. Only the server notes the request in its security log, as any web server does — see below.",
     "ratingTitle": "Rating a recipe or reacting to it",
     "ratingCookie": "On your first vote, and not before, a “bah-visitor” cookie is set. It holds a random identifier unrelated to who you are and lasts a year. It does one thing: keep your rating yours, so the same person does not rate the same recipe twice.",
     "ratingFingerprint": "A cookie is one keystroke away from being cleared. To limit ballot stuffing, a fingerprint is derived from your IP address and your browser (HMAC-SHA256 under a secret key). The IP address itself is never stored, the fingerprint cannot be reversed, and nobody can recompute it without the key.",
@@ -265,7 +265,12 @@
     "rightsLink": "Legal notice",
     "bookmarksTitle": "Saving a recipe",
     "bookmarksLocal": "Recipes you save stay in your browser, in its local storage. They are never sent anywhere and this site does not know what you have kept. Clearing the site data erases them, and they do not follow you from one device to another.",
-    "bookmarksSignedIn": "If you sign in, your list is attached to your account so it follows you between devices. It stays private: nobody else sees it. Signing out clears this browser's copy, and deleting your account deletes the list with it."
+    "bookmarksSignedIn": "If you sign in, your list is attached to your account so it follows you between devices. It stays private: nobody else sees it. Signing out clears this browser's copy, and deleting your account deletes the list with it.",
+    "logsTitle": "Server logs",
+    "logsBody": "Like any web server, this one records the requests it receives: the IP address, the time, the address requested, the response code and the browser as announced. Cookies and authentication headers are stripped out automatically.",
+    "logsWhy": "This is security, not audience measurement: these logs exist to spot and block intrusion attempts and nothing else. They are not analysed to count visits, and never joined to comments or ratings.",
+    "logsRetention": "They are deleted automatically after fourteen days.",
+    "logsApp": "The application itself records no IP address at all. It notes only refused requests — an attempt to reach the admin area, say — with the page asked for and never the address."
   },
   "units": {
     "g": "g",

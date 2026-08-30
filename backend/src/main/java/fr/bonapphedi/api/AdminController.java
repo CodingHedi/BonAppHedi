@@ -43,6 +43,13 @@ public class AdminController {
 
     private static final Set<String> STATUSES = Set.of("DRAFT", "PUBLISHED", "ARCHIVED");
 
+    /**
+     * The same logger name {@code SecurityAuditFilter} writes to, so a
+     * moderation decision and a refused request land in one stream that the
+     * nightly digest can select on (ADR 17).
+     */
+    private static final org.slf4j.Logger audit = org.slf4j.LoggerFactory.getLogger("fr.bonapphedi.security");
+
     private final AdminDao dao;
 
     /**
@@ -237,6 +244,13 @@ public class AdminController {
             // at once is normal and must not produce a 500 for the slower one.
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
+
+        // Rejecting removes somebody's comment from the site, which is the most
+        // consequential thing this application does on a person's behalf and
+        // until now left no trace at all (ADR 17). Logged after the decision
+        // rather than before, so the line means it happened.
+        audit.info("moderated comment={} approved={}", id, body.approve());
+
         return ResponseEntity.noContent().build();
     }
 
