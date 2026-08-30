@@ -69,6 +69,16 @@ import { SEGMENTS } from '../../core/i18n/locale';
       <p>{{ 'privacy.ratingFingerprint' | transloco }}</p>
       <p>{{ 'privacy.ratingConsent' | transloco }}</p>
 
+      <!--
+        Between rating and commenting on purpose: it is the one interaction that
+        starts entirely in the browser and only reaches the server if the reader
+        asks it to, so it belongs after the anonymous things and before the ones
+        that need an account.
+      -->
+      <h2>{{ 'privacy.bookmarksTitle' | transloco }}</h2>
+      <p>{{ 'privacy.bookmarksLocal' | transloco }}</p>
+      <p>{{ 'privacy.bookmarksSignedIn' | transloco }}</p>
+
       <h2>{{ 'privacy.commentTitle' | transloco }}</h2>
       <p>{{ 'privacy.commentIdentity' | transloco }}</p>
       <p>{{ 'privacy.commentEmail' | transloco }}</p>

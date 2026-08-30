@@ -29,11 +29,14 @@ import { MockRecipeApi } from './mock/mock-recipe-api';
 import { MockSocialApi } from './mock/mock-social-api';
 import { MockAuthApi } from './mock/mock-auth-api';
 import { ADMIN_API } from './core/api/admin-api';
+import { BOOKMARK_API } from './core/api/bookmark-api';
 import { MockAdminApi } from './mock/mock-admin-api';
+import { MockBookmarkApi } from './mock/mock-bookmark-api';
 import { HttpRecipeApi } from './http/http-recipe-api';
 import { HttpSocialApi } from './http/http-social-api';
 import { HttpAuthApi } from './http/http-auth-api';
 import { HttpAdminApi } from './http/http-admin-api';
+import { HttpBookmarkApi } from './http/http-bookmark-api';
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
@@ -94,12 +97,14 @@ export const appConfig: ApplicationConfig = {
           { provide: SOCIAL_API, useClass: MockSocialApi },
           { provide: AUTH_API, useExisting: MockAuthApi },
           { provide: ADMIN_API, useClass: MockAdminApi },
+          { provide: BOOKMARK_API, useExisting: MockBookmarkApi },
         ]
       : [
           { provide: RECIPE_API, useClass: HttpRecipeApi },
           { provide: SOCIAL_API, useClass: HttpSocialApi },
           { provide: AUTH_API, useClass: HttpAuthApi },
           { provide: ADMIN_API, useClass: HttpAdminApi },
+          { provide: BOOKMARK_API, useClass: HttpBookmarkApi },
         ]),
 
     provideAppInitializer(() => {

@@ -262,7 +262,10 @@
     "rightsTitle": "Your rights",
     "rightsBody": "You can delete your own comments, from the recipe you posted them on. Clearing your browser cookies is enough to detach any rating already given from you.",
     "rightsContact": "For access, correction or erasure requests, write to the address given in the legal notice.",
-    "rightsLink": "Legal notice"
+    "rightsLink": "Legal notice",
+    "bookmarksTitle": "Saving a recipe",
+    "bookmarksLocal": "Recipes you save stay in your browser, in its local storage. They are never sent anywhere and this site does not know what you have kept. Clearing the site data erases them, and they do not follow you from one device to another.",
+    "bookmarksSignedIn": "If you sign in, your list is attached to your account so it follows you between devices. It stays private: nobody else sees it. Signing out clears this browser's copy, and deleting your account deletes the list with it."
   },
   "units": {
     "g": "g",
@@ -289,5 +292,19 @@
     "backHome": "Back to home",
     "trySearch": "Looking for a particular recipe? The search is at the top of the page.",
     "trySearchOr": "Looking for a particular recipe? The search is at the top of the page or try"
+  },
+  "bookmarks": {
+    "heading": "Saved recipes",
+    "local": "Saved in this browser.",
+    "signInPrompt": "Sign in to find them on all your devices",
+    "empty": "Nothing saved in this browser yet.",
+    "emptySignedOut": "Recipes you saved on another device will appear here once you sign in.",
+    "signOutWarning": "Signing out will clear this browser's copy. Your recipes stay on your account.",
+    "unavailable": "This browser does not allow local storage, so recipes cannot be kept here.",
+    "save": "Save this recipe",
+    "saved": "Recipe saved",
+    "shared": "A shared list. Save it to keep it.",
+    "adopt": "Save all of them",
+    "nav": "Saved recipes"
   }
 }

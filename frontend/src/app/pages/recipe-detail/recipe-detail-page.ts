@@ -14,6 +14,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../core/auth/auth.service';
+import { BookmarksService } from '../../core/bookmarks/bookmarks.service';
 import { IconComponent } from '../../core/icons/icon';
 import { selectionWithin } from '../../shared/quote';
 import { RECIPE_API } from '../../core/api/recipe-api';
@@ -112,6 +113,24 @@ import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.servi
         <bah-recipe-media [image]="r.image" [title]="r.title" [youtubeVideoId]="r.youtubeVideoId" />
 
         <div class="side">
+          <!--
+            Offered to everybody, signed in or not. A reader with no account
+            keeps their list in this browser and that is the whole feature for
+            them (ADR 16) - gating it behind sign-in would hide it from most of
+            the people it is for.
+          -->
+          <button
+            type="button"
+            class="btn btn-secondary save"
+            [class.is-saved]="bookmarks.has(r.key)"
+            [attr.aria-pressed]="bookmarks.has(r.key)"
+            [disabled]="!bookmarks.available()"
+            (click)="onSave(r.key, r.slug)"
+          >
+            <bah-icon [name]="bookmarks.has(r.key) ? 'bookmark-filled' : 'bookmark'" [size]="16" />
+            {{ (bookmarks.has(r.key) ? 'bookmarks.saved' : 'bookmarks.save') | transloco }}
+          </button>
+
           <bah-share-bar [title]="r.title" />
 
           <aside class="card elev-sm description" id="recipe-description">
@@ -286,6 +305,22 @@ import { LocaleAlternatesService } from '../../core/i18n/locale-alternates.servi
       gap: 14px;
     }
 
+    .save {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      align-self: flex-start;
+    }
+
+    /* The fill carries the state and the accent confirms it; neither is doing
+       the job alone, because a saved recipe has to read as saved to somebody
+       who cannot tell the two colours apart. */
+    .save.is-saved {
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+
     .description {
       flex: 1;
       min-width: 0;
@@ -417,6 +452,7 @@ export class RecipeDetailPage {
   private readonly alternates = inject(LocaleAlternatesService);
   private readonly document = inject(DOCUMENT);
   protected readonly auth = inject(AuthService);
+  protected readonly bookmarks = inject(BookmarksService);
 
   /** Bound from the route by `withComponentInputBinding()`. */
   readonly slug = input.required<string>();
@@ -562,6 +598,21 @@ export class RecipeDetailPage {
     void this.write(async () => {
       this.reactionOverride.set(await this.social.react(this.slug(), reacted, this.locale()));
     });
+  }
+
+  /**
+   * Not routed through {@code write()} like its neighbours, and that is the
+   * point rather than an oversight.
+   *
+   * <p>Rating, reacting and commenting are requests whose failure the reader has
+   * to be told about, because nothing happened. Saving a recipe succeeds in the
+   * browser before any request is made and stays correct if one never lands —
+   * the service reconciles on the next merge — so putting it behind the shared
+   * busy flag and the error banner would announce a failure that did not affect
+   * the outcome.
+   */
+  protected onSave(key: string, slug: string): void {
+    void this.bookmarks.toggle(key, slug);
   }
 
   protected onPost(body: string): void {

@@ -30,7 +30,8 @@ export const LOCALE_IDS: Record<Locale, string> = {
   en: 'en-GB',
 };
 
-export type RouteKey = 'recipes' | 'legal' | 'privacy' | 'admin' | 'signIn' | 'profile';
+export type RouteKey =
+  'recipes' | 'legal' | 'privacy' | 'admin' | 'signIn' | 'profile' | 'bookmarks';
 
 export const SEGMENTS: Record<Locale, Record<RouteKey, string>> = {
   fr: {
@@ -40,6 +41,7 @@ export const SEGMENTS: Record<Locale, Record<RouteKey, string>> = {
     admin: 'admin',
     signIn: 'connexion',
     profile: 'profil',
+    bookmarks: 'enregistrees',
   },
   en: {
     recipes: 'recipes',
@@ -48,6 +50,7 @@ export const SEGMENTS: Record<Locale, Record<RouteKey, string>> = {
     admin: 'admin',
     signIn: 'sign-in',
     profile: 'profile',
+    bookmarks: 'saved',
   },
 };
 
