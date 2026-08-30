@@ -109,18 +109,48 @@ The cost is real: sign out and the convenience copy goes with the session. That
 is the right way round, and the interface should say so before it happens rather
 than after.
 
-### Recipes gain a short, language-neutral public id
+### `RecipeSummary` gains `recipe.id`, and `recipe.key` stays internal
 
-`recipe.key` is already the language-neutral identity, exactly as `tag.key` is,
-and `recipe_translation` carries the per-locale slug —
-`ux_recipe_translation_slug` is on `(locale, slug)`. But `RecipeSummary` exposes
-only `slug`, so nothing the browser holds survives a language switch: a recipe
-bookmarked in French cannot be matched against the English catalogue.
+A slug identifies one recipe *within one language* —
+`ux_recipe_translation_slug` is on `(locale, slug)`, and V1 says so in a comment
+— while `RecipeSummary` exposes nothing else. So a list held in the browser as
+slugs is empty after a language switch: `babka-au-chocolat` matches nothing in
+the English catalogue, where the same recipe is `chocolate-babka`.
 
-The stored list is therefore keyed by something locale-independent, and the
-server stores `recipe_id`. Exposing a numeric id publicly is not new —
-`Dto.Comment` carries `long id` and `DELETE /api/comments/{id}` is a public
-route shape.
+Bookmarks are therefore stored as `recipe.id`, which `RecipeSummary` gains, and
+the server stores `recipe_id`. Publishing a numeric id is not new: `Dto.Comment`
+carries `long id` and `DELETE /api/comments/{id}` is already a public route.
+
+**Not `recipe.key`, and the reason is not aesthetics.** It is the obvious
+candidate — it is the language-neutral identity by definition, exactly as
+`tag.key` is, and the admin API already addresses recipes by it. But
+`Dto.RecipeDraft` carries `key` as a **writable** field; `photo` is the only
+one marked read-only. Renaming a recipe's key in the editor is a supported
+operation today, and the moment that value is sitting in other people's stored
+bookmarks and shared links, the next rename empties their lists with nothing
+reporting it.
+
+That is the trap ADR 7 already caught once, in its own words: *"The names are
+also in the database against real accounts, so one may be added but never
+renamed."* Publishing `key` would put it under the same permanent constraint
+while nothing in the schema enforced it — and would spend, for no gain here, the
+freedom to rename an editorial handle that only the author ever sees.
+
+**An id cannot be renamed.** That is the whole argument: for a value other
+people store, immutability by construction beats immutability by discipline.
+
+Two smaller things fall out. `key` is lexically English — `sourdough`,
+`beef-tagine` — so a French reader's shared link would have read as leaked
+internal naming. And `key` would not have shortened anything:
+`basque-cheesecake` is seventeen characters, the same as `babka-au-chocolat`.
+Storage wants an identifier that is immutable, and a shared URL wants one that
+is short; `id` is both, and `key` is neither.
+
+What is given up is a readable share link — `?r=1,5` says nothing a human can
+check. That cost lands entirely on the deferred sharing feature below and not on
+bookmarks at all. If readable links are ever wanted, the answer is a third
+column holding an immutable public code, not the promotion of `key` and a
+convention that it must never change again.
 
 ### The bookmarks page costs no requests
 
@@ -181,6 +211,7 @@ what makes clearing it acceptable.
 | 3 | Signing in with local bookmarks yields the union of both lists, and running the merge twice changes nothing |
 | 4 | Signing out clears the local copy, and the interface says it will before it does |
 | 5 | A bookmark made in one language is still found after switching to the other |
+| 5b | Editing the recipe afterwards leaves the bookmark intact — renaming its `key`, retitling it, or changing either slug. This is the criterion that fails if the stored identifier is ever changed to `key` |
 | 6 | `localStorage` being unavailable or throwing degrades to bookmarks being unavailable, and never to a broken page or a console error |
 | 7 | The empty state states where bookmarks are stored and makes no claim about how many the reader has elsewhere |
 | 8 | The privacy page describes bookmarks in both languages |
