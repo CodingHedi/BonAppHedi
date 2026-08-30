@@ -262,7 +262,10 @@
     "rightsTitle": "Vos droits",
     "rightsBody": "Vous pouvez supprimer vous-même vos commentaires, depuis la recette où vous les avez publiés. Effacer les cookies de votre navigateur suffit à détacher de vous les notes déjà données.",
     "rightsContact": "Pour toute demande d'accès, de rectification ou d'effacement, écrivez à l'adresse indiquée dans les mentions légales.",
-    "rightsLink": "Mentions légales"
+    "rightsLink": "Mentions légales",
+    "bookmarksTitle": "Enregistrer une recette",
+    "bookmarksLocal": "Les recettes que vous enregistrez restent dans votre navigateur, dans son stockage local. Elles ne sont envoyées nulle part et ce site ne sait pas ce que vous avez gardé. Vider les données du site les efface, et elles ne suivent pas d'un appareil à l'autre.",
+    "bookmarksSignedIn": "Si vous vous identifiez, votre liste est rattachée à votre compte pour vous suivre d'un appareil à l'autre. Elle reste privée : personne d'autre ne la voit. Vous déconnecter efface la copie de ce navigateur, et supprimer votre compte supprime la liste avec lui."
   },
   "units": {
     "g": "g",
@@ -289,5 +292,19 @@
     "backHome": "Retour à l'accueil",
     "trySearch": "Vous cherchiez une recette en particulier ? La recherche se trouve en haut de la page.",
     "trySearchOr": "Vous cherchiez une recette en particulier ? La recherche se trouve en haut de la page, ou essayez"
+  },
+  "bookmarks": {
+    "heading": "Recettes enregistrées",
+    "local": "Enregistrées dans ce navigateur.",
+    "signInPrompt": "S'identifier pour les retrouver sur tous vos appareils",
+    "empty": "Rien d'enregistré dans ce navigateur.",
+    "emptySignedOut": "Vos recettes enregistrées sur d'autres appareils apparaîtront ici une fois identifié.",
+    "signOutWarning": "Vous déconnecter effacera la copie de ce navigateur. Vos recettes resteront sur votre compte.",
+    "unavailable": "Ce navigateur n'autorise pas l'enregistrement local, les recettes ne peuvent donc pas être gardées ici.",
+    "save": "Enregistrer cette recette",
+    "saved": "Recette enregistrée",
+    "shared": "Une liste partagée. Enregistrez-la pour la garder.",
+    "adopt": "Tout enregistrer",
+    "nav": "Recettes enregistrées"
   }
 }

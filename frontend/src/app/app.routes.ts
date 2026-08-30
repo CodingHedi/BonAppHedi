@@ -38,6 +38,18 @@ function routesFor(locale: Locale): Route {
       },
       {
         /*
+         * No guard, deliberately. Saved recipes are the whole feature for a
+         * reader with no account - the list lives in their browser - so a
+         * signedInGuard here would hide the thing from most of the people it is
+         * for. It is also the landing page for a shared `?r=` link, which
+         * arrives from outside and cannot be asked to sign in first.
+         */
+        path: seg.bookmarks,
+        loadComponent: () =>
+          import('./pages/bookmarks/bookmarks-page').then((m) => m.BookmarksPage),
+      },
+      {
+        /*
          * The admin's own sub-paths are NOT localized, unlike every public
          * route above. They are behind a sign-in, never linked and never
          * crawled, so translating them buys nothing and would mean adding a

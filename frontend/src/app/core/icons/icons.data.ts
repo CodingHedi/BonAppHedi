@@ -54,6 +54,17 @@ export const ICONS = {
     body: '<path d="M12 20s-7-4.4-7-9.2A4 4 0 0 1 12 8a4 4 0 0 1 7-2.8c0 4.8-7 14.8-7 14.8z"/>',
   },
 
+  /*
+   * Two bookmarks rather than one toggled by CSS, because the difference is the
+   * fill and every icon here is stroked. `fill="currentColor"` on the filled one
+   * is the only such attribute in this file and is what makes the saved state
+   * readable at 16px without relying on colour alone.
+   */
+  bookmark: { body: '<path d="M6 4h12v16l-6-4.5L6 20V4z"/>' },
+  'bookmark-filled': {
+    body: '<path d="M6 4h12v16l-6-4.5L6 20V4z" fill="currentColor"/>',
+  },
+
   // --- additions for later screens -------------------------------------------
   plus: { body: '<path d="M12 5v14M5 12h14"/>' },
   minus: { body: '<path d="M5 12h14"/>' },

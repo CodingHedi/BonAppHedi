@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../core/auth/auth.service';
+import { BookmarksService } from '../../core/bookmarks/bookmarks.service';
 import { LocaleService } from '../../core/i18n/locale.service';
 import { SEGMENTS, type RouteKey } from '../../core/i18n/locale';
 
@@ -37,6 +38,16 @@ import { SEGMENTS, type RouteKey } from '../../core/i18n/locale';
         <span>{{ 'site.title' | transloco }} — {{ 'site.tagline' | transloco }}</span>
 
         <span class="right">
+          <!--
+            Here rather than in the header, and only when there is something to
+            find: a link to an empty list is an invitation to be disappointed,
+            and the header is already carrying the magnifier, the language, the
+            theme and who you are.
+          -->
+          @if (bookmarks.count()) {
+            <a [routerLink]="link('bookmarks')">{{ 'bookmarks.nav' | transloco }}</a>
+          }
+
           <a [routerLink]="link('legal')">{{ 'footer.legal' | transloco }}</a>
           <a [routerLink]="link('privacy')">{{ 'footer.privacy' | transloco }}</a>
 
@@ -92,6 +103,7 @@ import { SEGMENTS, type RouteKey } from '../../core/i18n/locale';
 })
 export class SiteFooterComponent {
   private readonly auth = inject(AuthService);
+  protected readonly bookmarks = inject(BookmarksService);
   private readonly locale = inject(LocaleService);
   private readonly router = inject(Router);
 
