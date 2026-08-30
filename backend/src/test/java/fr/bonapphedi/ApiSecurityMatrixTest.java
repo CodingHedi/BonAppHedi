@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import fr.bonapphedi.auth.AppUser;
@@ -86,7 +87,27 @@ class ApiSecurityMatrixTest {
             "POST /api/recipes/{slug}/comments",
             "DELETE /api/comments/{id}",
             "PUT /api/auth/avatar",
-            "PUT /api/auth/name");
+            "PUT /api/auth/name",
+            "PUT /api/auth/bookmarks",
+            "PUT /api/recipes/{slug}/bookmark");
+
+    /**
+     * Reads that require a session, which is a fifth kind of rule and not a
+     * variety of one of the four above.
+     *
+     * <p>It did not exist until bookmarks (ADR 16), and the temptation was to
+     * file {@code GET /api/auth/bookmarks} under PUBLIC_READS on the precedent
+     * of {@code GET /api/auth/session}, which is public and answers 204 to a
+     * stranger. That precedent does not apply: the session endpoint tells you
+     * about yourself and has a truthful answer for nobody, while this one
+     * returns a reader's private list and must refuse rather than describe it
+     * as empty — the page has different things to say to "not signed in" and
+     * "nothing saved", and 200 with {@code []} would collapse them.
+     *
+     * <p>Filing it under a name that happened to pass is exactly the drift this
+     * class exists to stop, so it gets its own set instead.
+     */
+    private static final Set<String> SESSION_READS = Set.of("GET /api/auth/bookmarks");
 
     /** Everything behind ROLE_ADMIN, asserted in depth by AdminApiTest. */
     private static final Set<String> ADMIN_ONLY = Set.of(
@@ -108,6 +129,7 @@ class ApiSecurityMatrixTest {
         jdbc.sql("DELETE FROM comment WHERE id > 4").update();
         jdbc.sql("DELETE FROM rating WHERE visitor_id <> 'seed-visitor'").update();
         jdbc.sql("DELETE FROM reaction").update();
+        jdbc.sql("DELETE FROM bookmark").update();
         jdbc.sql("DELETE FROM visitor").update();
         jdbc.sql("DELETE FROM app_user").update();
         jdbc.sql(
@@ -150,6 +172,35 @@ class ApiSecurityMatrixTest {
         // one anybody may ask of a site, and because needing a session to ask it
         // would defeat the point of asking it from a browser or a curl.
         mvc.perform(get("/api/version")).andExpect(status().isOk());
+    }
+
+    @Test
+    void theSessionReadsRefuseAnAnonymousVisitorRatherThanAnsweringEmpty() throws Exception {
+        // 401 and not 200 with an empty list. A reader on a second device has
+        // bookmarks; they are simply not reachable until this browser says who
+        // it belongs to, and answering "[]" would be a lie the page then repeats
+        // as "nothing saved".
+        mvc.perform(get("/api/auth/bookmarks")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aSignedInReaderSeesTheirOwnBookmarksAndNobodyElses() throws Exception {
+        mvc.perform(put("/api/recipes/{slug}/bookmark", BABKA)
+                        .param("locale", "fr")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"bookmarked\":true}")
+                        .with(oauth2Login().oauth2User(user(1, "Camille", false)))
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/auth/bookmarks").with(oauth2Login().oauth2User(user(1, "Camille", false))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value("babka"));
+
+        // The other account's list is untouched by it.
+        mvc.perform(get("/api/auth/bookmarks").with(oauth2Login().oauth2User(user(2, "Sam", false))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
@@ -251,6 +302,7 @@ class ApiSecurityMatrixTest {
         declared.addAll(PUBLIC_READS);
         declared.addAll(ANONYMOUS_WRITES);
         declared.addAll(SESSION_WRITES);
+        declared.addAll(SESSION_READS);
         declared.addAll(ADMIN_ONLY);
 
         Set<String> mapped = handlers.getHandlerMethods().keySet().stream()
@@ -274,7 +326,8 @@ class ApiSecurityMatrixTest {
 
         assertThat(mapped)
                 .as("an endpoint exists that no line of this matrix describes — decide who may call it, "
-                        + "then add it to PUBLIC_READS, ANONYMOUS_WRITES, SESSION_WRITES or ADMIN_ONLY")
+                        + "then add it to PUBLIC_READS, ANONYMOUS_WRITES, SESSION_READS, SESSION_WRITES "
+                        + "or ADMIN_ONLY")
                 .isSubsetOf(declared);
 
         assertThat(declared)
