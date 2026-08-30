@@ -552,3 +552,39 @@ async function selection(page: Page): Promise<string> {
   const ink = await groups.nth(2).locator('[aria-checked="true"]').getAttribute('aria-label');
   return `${subject}/${tint}/${ink}`;
 }
+
+/**
+ * Criterion 4 of ADR 16, and the half of it that went missing.
+ *
+ * Signing out clears this browser's copy of the saved recipes, which is correct
+ * — ADR 3 chose sessions so that logging out genuinely revokes, and leaving a
+ * personalised list behind contradicts that on the shared device where somebody
+ * thought to log out.
+ *
+ * But the criterion has two halves, and only the clearing was built. The string
+ * existed in both language files and was rendered nowhere, so the first person
+ * to try it signed out and watched their list vanish with no warning — which
+ * reads as data loss rather than as logging out. A string with no template
+ * behind it fails silently and in the direction that alarms somebody, so it gets
+ * a test rather than a second look.
+ */
+test.describe('signing out and saved recipes', () => {
+  test('the profile says what signing out will clear, and only when there is something to clear', async ({
+    page,
+  }) => {
+    const note = page.getByText('Vous déconnecter effacera la copie de ce navigateur');
+
+    await signedIn(page);
+    await page.goto('/fr/profil');
+    // Nothing saved yet, so nothing to warn about: a notice that is always
+    // there is one nobody reads by the time it matters.
+    await expect(note).toHaveCount(0);
+
+    await page.goto('/fr/recettes/babka-au-chocolat');
+    await page.getByRole('button', { name: 'Enregistrer cette recette' }).click();
+    await expect(page.getByRole('button', { name: 'Recette enregistrée' })).toBeVisible();
+
+    await page.goto('/fr/profil');
+    await expect(note).toBeVisible();
+  });
+});
