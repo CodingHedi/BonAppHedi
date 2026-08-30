@@ -77,53 +77,89 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
           </select>
         </label>
 
-        @if (tags().length) {
+        <!--
+          Three states, not two, and the middle one is the whole reason the tags
+          input is optional rather than defaulting to an empty array.
+
+          undefined is "not loaded yet" and gets a hidden copy of the trigger,
+          holding exactly the space the real one will need. An empty array is
+          "this site has no tags" and gets nothing at all, which is right and is
+          what the condition here always meant.
+
+          Collapsing those two into a length check is what made the filter bar
+          grow by a row when its data arrived - on a narrow viewport the control
+          appearing pushed the heading and the whole grid down 59px, which was
+          the last layout shift left on this page.
+        -->
+        @if (tags(); as loaded) {
+          @if (loaded.length) {
+            <!--
+              A disclosure button over a list of real checkboxes, rather than the
+              listbox pattern. Native checkboxes bring their own keyboard handling,
+              their own announcement of checked state, and their own behaviour on
+              a touch screen; the listbox pattern would mean reimplementing all
+              three by hand and getting one of them subtly wrong.
+            -->
+            <div class="tag-filter">
+              <button
+                #tagTrigger
+                type="button"
+                class="input trigger"
+                [attr.aria-expanded]="tagsOpen()"
+                [attr.aria-label]="'list.filterByTag' | transloco"
+                (click)="toggleTagMenu()"
+              >
+                <span>
+                  {{ 'list.filterByTag' | transloco }}
+                  @if (selectedTags().length) {
+                    <span class="count-badge">{{ selectedTags().length }}</span>
+                  }
+                </span>
+                <bah-icon name="chevron-down" [size]="15" />
+              </button>
+
+              @if (tagsOpen()) {
+                <!--
+                  A real <ul>, so it is announced as a list of four rather than as
+                  four loose controls, and the count on the trigger says how many
+                  are on without the list having to be opened to find out.
+                -->
+                <ul
+                  class="tag-menu card elev-sm"
+                  [attr.aria-label]="'list.filterByTag' | transloco"
+                >
+                  @for (item of loaded; track item.slug) {
+                    <li>
+                      <label class="tag-option">
+                        <input
+                          type="checkbox"
+                          [checked]="isSelected(item.slug)"
+                          (change)="toggleTag(item.slug)"
+                        />
+                        <span class="tag tag--{{ item.colorVariant }}">{{ item.label }}</span>
+                      </label>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        } @else {
           <!--
-            A disclosure button over a list of real checkboxes, rather than the
-            listbox pattern. Native checkboxes bring their own keyboard handling,
-            their own announcement of checked state, and their own behaviour on
-            a touch screen; the listbox pattern would mean reimplementing all
-            three by hand and getting one of them subtly wrong.
+            The same button, hidden rather than absent. visibility: hidden keeps
+            the box and takes it out of the tab order and the accessibility tree
+            in one go, so nothing announces a control that cannot yet be used
+            and nothing can focus it.
+
+            The same markup rather than a sized placeholder, deliberately: a
+            hand-written box only holds the right space until somebody changes
+            the trigger's padding, and then it is wrong in a way nothing reports.
           -->
           <div class="tag-filter">
-            <button
-              #tagTrigger
-              type="button"
-              class="input trigger"
-              [attr.aria-expanded]="tagsOpen()"
-              [attr.aria-label]="'list.filterByTag' | transloco"
-              (click)="toggleTagMenu()"
-            >
-              <span>
-                {{ 'list.filterByTag' | transloco }}
-                @if (selectedTags().length) {
-                  <span class="count-badge">{{ selectedTags().length }}</span>
-                }
-              </span>
+            <button type="button" class="input trigger reserving">
+              <span>{{ 'list.filterByTag' | transloco }}</span>
               <bah-icon name="chevron-down" [size]="15" />
             </button>
-
-            @if (tagsOpen()) {
-              <!--
-                A real <ul>, so it is announced as a list of four rather than as
-                four loose controls, and the count on the trigger says how many
-                are on without the list having to be opened to find out.
-              -->
-              <ul class="tag-menu card elev-sm" [attr.aria-label]="'list.filterByTag' | transloco">
-                @for (item of tags(); track item.slug) {
-                  <li>
-                    <label class="tag-option">
-                      <input
-                        type="checkbox"
-                        [checked]="isSelected(item.slug)"
-                        (change)="toggleTag(item.slug)"
-                      />
-                      <span class="tag tag--{{ item.colorVariant }}">{{ item.label }}</span>
-                    </label>
-                  </li>
-                }
-              </ul>
-            }
           </div>
         }
 
@@ -242,6 +278,17 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
       flex: none;
     }
 
+    /*
+     * Holds the trigger's box while the tags are still arriving.
+     *
+     * visibility rather than opacity: opacity: 0 leaves a fully interactive,
+     * focusable, screen-reader-visible control that simply cannot be seen,
+     * which is worse than either showing it or not having it.
+     */
+    .reserving {
+      visibility: hidden;
+    }
+
     .count-badge {
       display: inline-grid;
       place-items: center;
@@ -330,7 +377,14 @@ import type { Author, SortOrder, Tag } from '../../../core/api/models';
 })
 export class FilterBarComponent {
   readonly authors = input<readonly Author[]>([]);
-  readonly tags = input<readonly Tag[]>([]);
+  /**
+   * `undefined` while the tags are still being fetched, and an empty array only
+   * when this site genuinely has none. The template needs to tell those apart -
+   * see the three-state comment on the tag control - so this deliberately has
+   * no default. Giving it `[]` would erase the distinction at the boundary,
+   * which is exactly what it used to do.
+   */
+  readonly tags = input<readonly Tag[] | undefined>(undefined);
 
   readonly query = model('');
   readonly author = model<string | null>(null);
