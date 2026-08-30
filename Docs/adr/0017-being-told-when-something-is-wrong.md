@@ -160,3 +160,53 @@ this site is arranged to avoid.
 digest goes quiet, which looks exactly like good news. Criterion 6's weekly line
 is what distinguishes them, and it is the criterion most likely to be dropped as
 noise — it should not be.
+
+## Amendment, 2026-08-30: erased daily, and the privacy page keeps its promises
+
+The decision above accepted that the privacy page would have to give up two
+sentences — « Les visites ne sont pas comptées » and « Rien n'est enregistré » —
+because an access log records visits. **Both stay, and the retention changes
+instead.**
+
+Hedi's framing, and it is the better one: the log is not a record, it is a
+*window*. Its whole purpose is spotting suspicious activity while it is
+happening — admin sign-in attempts, bursts, insistent robots — and once a day
+has passed without anything unusual there is no reason to keep it. So it is
+erased every day rather than kept for fourteen, and the two sentences remain
+true because nobody ever counts anything in it.
+
+That distinction is worth stating precisely, because the same file could serve
+both purposes and must not: **watching for an attack is not measuring an
+audience.** The moment somebody greps this log to find out which recipe is
+popular, the page's claim becomes false — and the honest way to answer that
+question is ADR 15's counter, which stores no identifier at all. Two purposes,
+two mechanisms, and they do not get merged for convenience.
+
+### Retention is logrotate's, not Caddy's
+
+`roll_keep_for` looked like the natural way to do it and cannot do it. Caddy
+expires *rolled* files, and a file only rolls when it reaches `roll_size` — at
+this site's traffic the active log would never get there, would never roll, and
+nothing would ever be deleted. A retention setting that silently never fires is
+worse than none, because it reads as a policy.
+
+So `deploy/logrotate-bonapphedi` does it: `daily`, `rotate 0` — no archive, not
+even yesterday's — and `copytruncate`, because Caddy holds the file open and
+takes no signal to reopen it. Without `copytruncate` logrotate renames the file,
+Caddy keeps writing to the renamed inode, and the current log stays empty for
+ever while the real one grows invisibly: a failure that looks like no traffic.
+
+Caddy's own rolling stays as a backstop for a single bad day — a flood or a
+scraper between one erasure and the next — rather than as the policy.
+
+Confirmed by forcing a rotation: the file goes to 0 bytes and no archive is left
+beside it.
+
+### What this costs, and it is real
+
+Anything noticed more than a day late cannot be investigated, because the
+evidence is gone. That is the deliberate trade: on a personal recipe site the
+cost of losing an old trail is small, and the cost of keeping a growing store of
+readers' addresses is not. The nightly digest of stage 4 is what makes it
+workable — it reads the day's log before the erasure and carries anything worth
+keeping into the alert mail, so what survives is a summary rather than a file.
