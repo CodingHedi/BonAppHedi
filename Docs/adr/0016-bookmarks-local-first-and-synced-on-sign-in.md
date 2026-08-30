@@ -425,8 +425,8 @@ the suite serves.
 |---|---|---|
 | 1 | Anonymous save, listed, survives a reload, no account, no round trip | **pass** — stored `["babka"]`, still saved after reload |
 | 2 | Nothing sent to the server while there is no session | **pass** — 0 requests to `/api/auth/bookmarks` or `/bookmark` |
-| 3 | Signing in yields the union, and merging twice changes nothing | *covered by `BookmarkApiTest`; needs a real Google sign-in to check here* |
-| 4 | Signing out clears the local copy, and says so first | *same — needs a session* |
+| 3 | Signing in yields the union, and merging twice changes nothing | **pass** — Hedi, 2026-08-30: saved *pain au levain* signed out, signed in, added *babka au chocolat*, and the bookmarks page showed both |
+| 4 | Signing out clears the local copy, and says so first | **pass**, after a fix — the clearing worked and was confirmed the same way; the *saying so* did not exist. See below |
 | 5 | A bookmark survives a language switch | **pass** — saved on `/fr/recettes/babka-au-chocolat`, found at `/en/saved` as *Chocolate babka* |
 | 5b | Editing a recipe leaves bookmarks intact | **pass** — `AdminKeyIsImmutableTest` and the editor's read-only key, both confirmed red by breaking them |
 | 6 | `localStorage` unavailable degrades rather than breaking | *not reproducible against production; held by the wrapped reads and `bookmarks.unavailable`* |
@@ -448,3 +448,26 @@ making it a replacement and watching it delete the account's list.
 Status stays `proposed` until somebody signs in on the live site and sees their
 list follow them, which is the one claim this whole ADR is built around and the
 only one still taken on trust.
+
+### The half of criterion 4 that was never built
+
+`bookmarks.signOutWarning` was written into both language files, quoted in the
+strings table above, and **rendered nowhere**. The clearing was implemented and
+the telling was not, so the first person to sign out watched their saved
+recipes vanish with no warning — which reads as data loss rather than as logging
+out, and is exactly the impression the criterion exists to prevent.
+
+Nothing caught it. Transloco does not fail on an unused key, and a key with no
+template behind it is invisible to lint, to typecheck and to every test that
+does not look for it. The audit above missed it too, because it could not sign
+in — so the gap sat inside the one criterion no automated check could reach.
+
+Now on the profile page beside the sign-out button, and only when there is
+something to clear: a notice that is always present is one nobody reads by the
+time it matters. Held by `signing out and saved recipes` in `profile.spec.ts`,
+confirmed red by making the condition false.
+
+**The lesson is about the shape of the mistake rather than this string.** Adding
+copy in two languages *feels* like doing the work, and it satisfies a criterion
+written as "the interface says so" right up until somebody reads the interface.
+A string is not a feature until a template renders it and a test looks for it.

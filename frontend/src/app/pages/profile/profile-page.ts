@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../core/auth/auth.service';
+import { BookmarksService } from '../../core/bookmarks/bookmarks.service';
 import { LocaleService } from '../../core/i18n/locale.service';
 import { AvatarComponent } from '../../shared/ui/avatar/avatar';
 import { IconComponent } from '../../core/icons/icon';
@@ -237,6 +238,22 @@ import {
           <bah-icon name="logout" [size]="15" />
           {{ 'account.signOut' | transloco }}
         </button>
+
+        <!--
+          Said before it happens, and only when there is something to lose
+          (ADR 16, criterion 4). Signing out clears this browser's copy of the
+          saved recipes, which is correct - ADR 3 chose sessions so that logging
+          out genuinely revokes - but a list vanishing with no warning reads as
+          data loss rather than as logging out.
+
+          Which is why the sentence leads with what is cleared and ends with what
+          is not: the recipes are on the account and come back on the next sign
+          in. It is reassurance rather than a warning, and it is only honest
+          because the merge is a union.
+        -->
+        @if (bookmarks.count()) {
+          <p class="sign-out-note">{{ 'bookmarks.signOutWarning' | transloco }}</p>
+        }
       </div>
     </section>
   `,
@@ -416,6 +433,13 @@ import {
       border-top: 1px solid var(--color-divider);
     }
 
+    .sign-out-note {
+      margin: 12px 0 0;
+      font-size: 13.8px;
+      color: var(--color-text-muted);
+      max-width: 52ch;
+    }
+
     .sign-out-row .btn {
       display: inline-flex;
       align-items: center;
@@ -432,6 +456,7 @@ import {
 })
 export class ProfilePage {
   protected readonly auth = inject(AuthService);
+  protected readonly bookmarks = inject(BookmarksService);
   private readonly locale = inject(LocaleService);
   private readonly router = inject(Router);
 
