@@ -211,6 +211,31 @@ test.describe('recipe editor', () => {
     await expect(ingredients).toHaveCount(before);
   });
 
+  test('the key can be set on a new recipe and never changed after', async ({ page }) => {
+    /*
+     * The identity of a recipe, and since ADR 16 the thing readers keep in their
+     * browsers and send each other in links. It cannot be renamed, and the
+     * reason is worth knowing because it is not a validation rule anywhere:
+     * `AdminDao.save` is an upsert that *resolves on* the key, so a save under a
+     * different one does not rename anything — it creates a second recipe and
+     * leaves the first exactly where it was.
+     *
+     * `[readonly]="!isNew()"` on that field is the whole of what stops an author
+     * doing that by accident, and nothing asserted it until now. Removing the
+     * binding fails this test; it also silently turns every saved bookmark and
+     * every shared link into a dangling reference the next time somebody edits a
+     * key, which is why it is worth a test rather than a comment.
+     */
+    const key = page.getByLabel('Identifiant', { exact: true });
+
+    await page.goto('/fr/admin/recipes/new');
+    await expect(key).not.toHaveAttribute('readonly', /.*/);
+
+    await page.goto('/fr/admin/recipes/babka');
+    await expect(key).toHaveValue('babka');
+    await expect(key).toHaveAttribute('readonly', /.*/);
+  });
+
   test('a new recipe cannot be saved without a key', async ({ page }) => {
     await page.goto('/fr/admin/recipes/new');
     await expect(page.getByRole('button', { name: 'Enregistrer' })).toBeDisabled();

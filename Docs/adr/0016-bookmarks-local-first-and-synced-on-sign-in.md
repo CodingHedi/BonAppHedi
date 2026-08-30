@@ -384,3 +384,31 @@ an error — the original stays, a second appears, and the editor gives no sign.
 That is a real defect in the admin, it predates all of this, and it is not made
 worse by publishing the field. It is written down here because this is where it
 was found, and it belongs in `Docs/backlog.md` rather than in this change.
+
+## Amendment, 2026-08-30: the duplicate is not reachable, and the guard was missing
+
+The amendment above ends by recording a defect: *"editing the key of an existing
+recipe silently produces a duplicate rather than an error"*, and sends it to the
+backlog. **It is not reachable through the editor, and it never was.**
+
+`recipe-editor.ts` binds `[readonly]="!isNew()"` on the key field. A new recipe
+gets a writable one; an existing recipe does not. So the upsert only ever
+resolves on the key it was loaded with, and the duplicate needs a request nobody
+can make from the interface — at which point it is not a rename gone wrong, it is
+the create endpoint being used to create something.
+
+Which leaves the real gap, and it is not the one that was written down. **That
+`[readonly]` is the whole of what makes a key unrenameable in practice, and
+nothing asserted it.** Removing the binding is a one-attribute change that looks
+like tidying, breaks no build, and turns every saved bookmark and every shared
+link into a dangling reference the next time somebody edits a key — silently,
+and for readers rather than for the author who did it.
+
+So there is nothing to fix and something to hold: `the key can be set on a new
+recipe and never changed after` in `admin.spec.ts`, confirmed red by deleting
+the binding. Nothing goes to the backlog.
+
+`AdminKeyIsImmutableTest` covers the other half — that a save never writes the
+key — and the two together are criterion 5b: one on the server, one in the
+interface, because the property has to hold in both and neither test can see the
+other's half.
