@@ -329,3 +329,58 @@ stranger's list into yours. Saving is the same union as everywhere else.
 | 9 | Renaming a recipe's `key` in the admin editor leaves `public_code` unchanged, and every bookmark and shared link keeps working — the concrete form of 5b |
 | 10 | A shared link opens the listed recipes on a device with no bookmarks of its own, without writing anything until the reader asks |
 | 11 | An unknown or malformed code in the query is ignored rather than breaking the page, and a link of only unknown codes reads as an empty shared list rather than as an error |
+
+## Amendment, 2026-08-30: there is no new column, because `key` cannot be renamed
+
+The amendment above adds `recipe.public_code` and justifies it thus: *"renaming
+a recipe in the editor is a supported operation"*, so a published `key` would
+break stored bookmarks. **That is wrong, and the column it argues for is not
+needed.**
+
+`AdminDao.save` opens with:
+
+```java
+String key = draft.key().trim();
+Optional<Long> existing = recipeIdFor(key);
+long id = existing.orElseGet(() -> insertRecipe(key));
+```
+
+`key` is the identity the upsert resolves on, not a field it writes — and
+`updateRecipe` sets status, prep, cook, difficulty, servings and video, with no
+`key` among them. Editing the key of an existing recipe therefore does not
+rename it. It fails to find one and **creates a second**, leaving the original
+untouched under its original key. There is no rename to break a bookmark.
+
+So `recipe.key` is already immutable by construction, which is the exact
+property this ADR spent two sections looking for, and it has the readability a
+shared link wants as well. It is published as `key` on `RecipeSummary` and
+`RecipeDetail` — the same name the admin routes have always used for it — and
+bookmarks and share links are lists of keys.
+
+**No migration. No second identifier. No backfill, and no nullable column
+behind a `UNIQUE` index that SQLite would have let fill up with NULLs.**
+
+### What is still true, and what has to be added
+
+The reasoning is unharmed: immutability by construction beats immutability by
+discipline, and criterion 5b remains the test that matters. What changes is that
+the property is already there rather than needing a column built to hold it.
+
+But it is immutable **by the shape of one method**, and nothing says so. A
+future edit that adds `key = :key` to `updateRecipe`, meaning to be helpful,
+would turn every stored bookmark and every shared link into a dangling
+reference, and no test here would notice. That is why 5b is now specific:
+
+| # | Criterion |
+|---|---|
+| 5b | Saving a draft whose key differs from the recipe's leaves the original recipe's key untouched, and bookmarks pointing at it keep resolving. Confirmed by adding `key` to `updateRecipe` on purpose and watching it go red |
+
+Criteria 9 to 11 stand as written, reading `key` for `public_code`.
+
+### One thing this exposes and does not fix
+
+Editing the key of an existing recipe silently produces a duplicate rather than
+an error — the original stays, a second appears, and the editor gives no sign.
+That is a real defect in the admin, it predates all of this, and it is not made
+worse by publishing the field. It is written down here because this is where it
+was found, and it belongs in `Docs/backlog.md` rather than in this change.
