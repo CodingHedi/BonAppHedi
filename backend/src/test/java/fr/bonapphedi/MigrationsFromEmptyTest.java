@@ -50,8 +50,15 @@ class MigrationsFromEmptyTest {
         // Ascending, and checked rather than assumed: Flyway orders by version,
         // so a migration numbered out of sequence runs at a point its author did
         // not intend rather than failing.
-        assertThat(applied.stream().map(migration -> migration.getVersion().toString()))
-                .isSorted();
+        //
+        // On MigrationVersion and not on its toString(). Sorting the strings was
+        // right for as long as every version was one digit and wrong the moment
+        // V10 arrived, because "10" sorts before "9" — so this went red on a
+        // perfectly ordered set of migrations and said they were out of order.
+        // MigrationVersion is Comparable and compares numerically, which is the
+        // ordering Flyway actually applies them in and therefore the only one
+        // worth asserting.
+        assertThat(applied.stream().map(MigrationInfo::getVersion)).isSorted();
     }
 
     @Test
