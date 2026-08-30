@@ -71,6 +71,41 @@ cd frontend ; npm start
 
 </details>
 
+### Running these from anywhere
+
+Everything above wants the repo root, which means a `cd` before each one.
+Double-click **`install-shortcuts.bat`**, or:
+
+```powershell
+.\scripts\install-shortcuts.ps1          # write them
+.\scripts\install-shortcuts.ps1 -WhatIf  # print the block, change nothing
+.\scripts\install-shortcuts.ps1 -Remove  # take them back out
+```
+
+That writes a fenced block of small functions into your PowerShell profile, and
+`bah-dev`, `bah-verify`, `bah-deploy` and the rest then work from any directory.
+
+| Command | Runs |
+|---|---|
+| `bah-dev` | `scripts\dev.ps1` — the dev loop |
+| `bah-stop` | `stop.bat` |
+| `bah-api` | `scripts\api.ps1` |
+| `bah-verify` | `npm run verify`, from `frontend/` |
+| `bah-test-backend` | `mvnw test`, from `backend/` |
+| `bah-repo` | `cd` to the repository |
+| `bah-deploy`, `bah-backup` | the private submodule's scripts, when you have it |
+
+Arguments pass straight through, so `bah-dev -Fresh` and `bah-deploy -Provision`
+work as they do from the root.
+
+**It writes to your profile and to nothing in this repository**, which is why
+the shortcuts are generated rather than committed: the paths are worked out from
+where the script sits, so they are right for your clone and would be wrong in
+anybody else's. Re-run it after moving the clone. A command whose script is not
+in your checkout is skipped rather than written — `deploy/` is a private
+submodule, and a clone without it should not get a `bah-deploy` that fails with
+a path nobody recognises.
+
 ### Other commands
 
 ```powershell
@@ -230,7 +265,8 @@ Docs/adr/        Architecture decision records.
 Docs/backlog.md  Wanted, shape already obvious, not yet scheduled.
 frontend/        Angular app (npm root).
 backend/         Spring Boot app (Maven root, owns the wrapper).
-scripts/         dev.ps1, stop.ps1, api.ps1, csp-lab.mjs, check-legal.mjs.
+scripts/         dev.ps1, stop.ps1, api.ps1, install-shortcuts.ps1,
+                 csp-lab.mjs, check-legal.mjs.
 deploy/          Private submodule. What runs on the server, plus DEPLOY.md
                  and deploy.ps1.
 ```
