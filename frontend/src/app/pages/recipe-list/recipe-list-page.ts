@@ -39,7 +39,7 @@ import { RecipeCardComponent } from './recipe-card/recipe-card';
 
     <bah-filter-bar
       [authors]="authors.value() ?? []"
-      [tags]="tags.value() ?? []"
+      [tags]="tags.value()"
       [(query)]="query"
       [(author)]="author"
       [(selectedTags)]="selectedTags"

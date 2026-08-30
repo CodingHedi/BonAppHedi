@@ -274,25 +274,36 @@ shrank 40px at the same moment the filter bar grew, and the net was under the
 reporting threshold. Fixing the hero left the other one visible and correctly
 attributed. Total across the three viewports went from 0.0305 to 0.0121.
 
-## The filter bar grows when its own data arrives
+## ~~The filter bar grows when its own data arrives~~ — fixed 2026-08-30
 
-What is left, and the only shift on the page. Measured at 390×844: `.filters`
-goes from 167px to 226px at ~128ms, pushing the section heading down 59px.
+The last shift on the page, and the whole of the phone's 0.0121. At 390×844
+`.filters` went from 167px to 226px at ~128ms, pushing the section heading and
+the grid down 59px.
 
-The cause is `@if (tags().length)` in `filter-bar.ts`. The tag control is not
-rendered until tags load, and on a narrow viewport its arrival adds a row to
-`.selects`. The condition is right — a site with no tags should not show a tag
-filter — but it cannot tell "none yet" from "none at all", because the bar
-receives `[tags]="tags.value() ?? []"` and the resource's loading state stays
-behind in the page.
+The cause was `@if (tags().length)` in `filter-bar.ts` deciding two different
+questions with one condition. The tag control is not rendered until tags load,
+and on a narrow viewport its arrival adds a row to `.selects`. The condition
+itself was right — a site with no tags should not show a tag filter — but it
+could not tell "none yet" from "none at all", because the bar was handed
+`[tags]="tags.value() ?? []"` and the coercion threw the difference away at the
+boundary.
 
-So the fix is not a CSS one: it means passing that state in and rendering a
-disabled control while it is pending, which is **a visible decision about what
-the filter bar looks like before it is ready** rather than a defect to correct
-quietly. 0.0121 against a "good" threshold of 0.1, so there is no hurry.
+**The fix was to stop erasing it**, not to add anything: the input is now
+`readonly Tag[] | undefined` with no default, the page passes `tags.value()`
+unmodified, and the three states are handled separately. Pending gets a copy of
+the real trigger at `visibility: hidden` — the same markup, so it holds the
+right box even if somebody changes the trigger's padding later.
 
-Do not reach for a `min-height` on `.selects`. It would have to be right at
-every breakpoint and would be wrong the first time a control is added.
+Layout shift is now 0 at 1440×900 and 820×1180 and 0–0.0002 at 390×844.
+
+Two things not to reach for, both considered and rejected:
+
+- **A `min-height` on `.selects`.** It would have to be right at every
+  breakpoint and would be wrong the first time a control is added.
+- **A layout-shift assertion as the guard.** The e2e suite runs at a wide
+  viewport where this defect does not manifest at all, so the guard runs at
+  390×844 explicitly and compares the bar's height before and after the tags
+  land. `recipe-list.spec.ts` says so at more length.
 
 If a rendering constraint ever does appear: virtualise rather than
 infinite-scroll, and keep crawlable paginated URLs alongside for Googlebot.

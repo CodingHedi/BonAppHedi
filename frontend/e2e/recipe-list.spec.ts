@@ -407,3 +407,48 @@ test.describe('loading the list', () => {
     expect(skeleton).toBe(carousel);
   });
 });
+
+/**
+ * At a narrow viewport on purpose, and that is the whole point of the block.
+ *
+ * The defect this guards is invisible at the default viewport: on a wide screen
+ * the filter bar's controls sit on one row and a fourth arriving changes
+ * nothing. It only shows where the row wraps, which is where the tag control
+ * appearing adds a whole row. A guard for it that ran at 1280x720 would be
+ * green on a broken page - the mistake made once already on this page, and
+ * caught only by reinstating the defect to check.
+ */
+test.describe('the filter bar at a narrow viewport', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('does not change height when its tags arrive', async ({ page }) => {
+    // .filters went 167px -> 226px at ~128ms and pushed the section heading and
+    // the whole grid down 59px, which was the last layout shift left on this
+    // page: 0.0121 of a 0.1 budget, all of it here.
+    //
+    // Heights rather than a layout-shift number, for the same reason the hero
+    // skeleton is asserted that way - the geometry is the cause, is stable, and
+    // fails legibly. See the comment there.
+    await page.goto('/fr');
+
+    const filters = page.locator('section.filters');
+
+    // Attached, not visible: the stand-in is visibility:hidden by design, so a
+    // wait for visibility would time out on an element that is present and doing
+    // its job. It holds the space for at least the mock's minimum latency.
+    //
+    // Asserted rather than waited for, and with its own short timeout, so that
+    // reverting the fix - passing `tags.value() ?? []` again, which erases the
+    // pending state at the boundary - fails here in five seconds saying the
+    // stand-in is missing, instead of after thirty saying only "timeout".
+    await expect(page.locator('.trigger.reserving')).toBeAttached({ timeout: 5000 });
+    const pending = await filters.evaluate((el) => Math.round(el.getBoundingClientRect().height));
+
+    // The real control, which is the one with an accessible name - the stand-in
+    // is visibility:hidden and so is not in the accessibility tree at all.
+    await expect(page.getByRole('button', { name: 'Trier par tags' })).toBeVisible();
+    const loaded = await filters.evaluate((el) => Math.round(el.getBoundingClientRect().height));
+
+    expect(pending).toBe(loaded);
+  });
+});
