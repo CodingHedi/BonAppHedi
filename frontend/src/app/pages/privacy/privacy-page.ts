@@ -93,6 +93,19 @@ import { SEGMENTS } from '../../core/i18n/locale';
       <h2>{{ 'privacy.localTitle' | transloco }}</h2>
       <p>{{ 'privacy.localBody' | transloco }}</p>
 
+      <!--
+        Last of the sections about what is kept, because it is the only one that
+        is not about something the reader did (ADR 17). Rating, commenting and
+        saving are all choices; this happens to everybody who loads a page, so
+        it belongs after the things somebody opted into rather than buried among
+        them.
+      -->
+      <h2>{{ 'privacy.logsTitle' | transloco }}</h2>
+      <p>{{ 'privacy.logsBody' | transloco }}</p>
+      <p>{{ 'privacy.logsWhy' | transloco }}</p>
+      <p>{{ 'privacy.logsRetention' | transloco }}</p>
+      <p>{{ 'privacy.logsApp' | transloco }}</p>
+
       <h2>{{ 'privacy.storageTitle' | transloco }}</h2>
       <p>{{ 'privacy.storageBody' | transloco }}</p>
       <p>{{ 'privacy.storageRetention' | transloco }}</p>
