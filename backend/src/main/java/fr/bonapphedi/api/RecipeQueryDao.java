@@ -34,6 +34,7 @@ public class RecipeQueryDao {
     /** Columns shared by the card and the detail page, so the two cannot disagree. */
     private static final String SUMMARY_COLUMNS = """
             SELECT r.id                AS id,
+                   r.key               AS key,
                    rt.slug             AS slug,
                    rt.title            AS title,
                    rt.excerpt          AS excerpt,
@@ -218,7 +219,7 @@ public class RecipeQueryDao {
         List<Dto.Tag> tags = tagsFor(List.of(id), locale).getOrDefault(id, List.of());
 
         return Optional.of(new Dto.RecipeDetail(
-                row.slug(), row.title(), row.excerpt(),
+                row.key(), row.slug(), row.title(), row.excerpt(),
                 row.image(),
                 tags, row.author(), row.publishedAt(),
                 row.prepMinutes(), row.cookMinutes(), row.difficulty(), row.searchText(),
@@ -379,7 +380,7 @@ public class RecipeQueryDao {
     }
 
     private record Row(
-            long id, String slug, String title, String excerpt, String searchText,
+            long id, String key, String slug, String title, String excerpt, String searchText,
             String publishedAt, Integer prepMinutes, Integer cookMinutes, int difficulty,
             Dto.ImageRef image,
             Dto.Author author, double ratingAvg, int ratingCount) {
@@ -392,6 +393,7 @@ public class RecipeQueryDao {
 
             return new Row(
                     rs.getLong("id"),
+                    rs.getString("key"),
                     rs.getString("slug"),
                     rs.getString("title"),
                     rs.getString("excerpt"),
@@ -409,7 +411,7 @@ public class RecipeQueryDao {
 
         Dto.RecipeSummary toSummary(List<Dto.Tag> tags) {
             return new Dto.RecipeSummary(
-                    slug, title, excerpt,
+                    key, slug, title, excerpt,
                     image,
                     tags, author, publishedAt, prepMinutes, cookMinutes, difficulty,
                     new Dto.Rating(ratingAvg, ratingCount),

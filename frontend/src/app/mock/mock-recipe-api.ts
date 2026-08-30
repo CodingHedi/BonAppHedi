@@ -169,6 +169,7 @@ export class MockRecipeApi implements RecipeApi {
     const { average, count } = this.social.ratingFor(recipe.key);
 
     return {
+      key: recipe.key,
       slug: t.slug,
       title: t.title,
       excerpt: t.excerpt,

@@ -75,6 +75,19 @@ export interface LocaleAlternate {
 }
 
 export interface RecipeSummary {
+  /**
+   * The recipe's identity across languages, and the only field of this the
+   * browser is allowed to keep (ADR 16).
+   *
+   * `slug` identifies a recipe *within one language* — the database's unique
+   * index is on `(locale, slug)` — so a bookmark or a shared link held as slugs
+   * is empty after a language switch. This is the same string in both.
+   *
+   * Safe to store because it cannot be renamed: it is what the admin upsert
+   * resolves on, never a field it writes. `AdminKeyIsImmutableTest` is what
+   * stops that changing quietly.
+   */
+  readonly key: string;
   readonly slug: string;
   readonly title: string;
   readonly excerpt: string;

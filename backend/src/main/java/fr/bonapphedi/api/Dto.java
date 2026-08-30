@@ -87,7 +87,22 @@ public final class Dto {
     /** The same recipe's slug in the other language, so the switcher can navigate. */
     public record LocaleAlternate(String locale, String slug) {}
 
+    /**
+     * {@code key} is the recipe's identity across languages, and the only field
+     * here a reader's browser is allowed to keep (ADR 16).
+     *
+     * <p>{@code slug} identifies a recipe <em>within one language</em> —
+     * {@code ux_recipe_translation_slug} is on {@code (locale, slug)} — so a
+     * bookmark or a shared link held as slugs is empty after a language switch.
+     * {@code key} is the same string in both.
+     *
+     * <p>It is safe to store because it cannot be renamed, and that is a
+     * property of {@code AdminDao.save} rather than a convention: the key is
+     * what the upsert resolves on, and {@code updateRecipe} never writes it.
+     * {@code AdminKeyIsImmutableTest} is what stops that changing quietly.
+     */
     public record RecipeSummary(
+            String key,
             String slug,
             String title,
             String excerpt,
@@ -107,7 +122,9 @@ public final class Dto {
      * JSON has to be flat either way, and nesting them would change the contract
      * to make the Java tidier.
      */
+    /** {@code key} as on {@link RecipeSummary}: the cross-language identity. */
     public record RecipeDetail(
+            String key,
             String slug,
             String title,
             String excerpt,
