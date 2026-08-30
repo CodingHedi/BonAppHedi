@@ -75,14 +75,181 @@ $names = @{
     'install-backup-task.bat' = 'bah-install-backup-task'
 }
 
-$what = @{
-    'bah-start'               = 'dev loop, and open the browser when it is up'
-    'bah-stop'                = 'stop whatever holds :4200 and :8080'
-    'bah-api'                 = 'call the API from the shell'
-    'bah-backup'              = 'pull the newest backup down to this machine'
-    'bah-deploy'              = 'build, check and ship'
-    'bah-shortcuts'           = 'regenerate these commands after moving the clone'
-    'bah-install-backup-task' = 'schedule the nightly backup pull on this machine'
+<#
+    A manual page for each command.
+
+    Emitted as PowerShell comment-based help on the generated functions, so
+    `man bah-start` and `Get-Help bah-check -Full` answer properly - `man` is an
+    alias for Get-Help, which makes this the native answer rather than a
+    document to go and find.
+
+    Synopsis is the one line `bah-help` lists. Notes is where the thing worth
+    knowing before running it goes: what it costs, what it changes, what it will
+    not do. Several of these have side effects on a live server and say so.
+#>
+$help = @{
+    'bah-start' = @{
+        Synopsis = 'Dev loop, and open the browser when it is up.'
+        Body     = 'Starts the backend on :8080, waits for it to answer, then the frontend on :4200, and opens a browser once Angular has finished compiling. Ctrl+C stops both. If either port is already taken it says so up front rather than half-starting.'
+        Notes    = 'Takes the same arguments as the script: -Fresh deletes the SQLite file so every migration runs again, -Mocks skips the backend entirely.'
+        Example  = 'bah-start -Fresh'
+    }
+    'bah-dev' = @{
+        Synopsis = 'Dev loop, without opening a browser.'
+        Body     = 'The same as bah-start minus the browser, which is what you want in a terminal you are already looking at.'
+        Example  = 'bah-dev -Mocks'
+    }
+    'bah-stop' = @{
+        Synopsis = 'Stop whatever is holding :4200 and :8080.'
+        Body     = 'For when Ctrl+C could not run - a window closed with the X, or a leftover from a session you no longer have a terminal for. It finds the servers by asking who holds the ports and refuses to kill anything that is not node or java.'
+        Example  = 'bah-stop'
+    }
+    'bah-api' = @{
+        Synopsis = 'Call the local API from the shell.'
+        Body     = 'A thin wrapper for poking :8080 by hand without writing curl invocations.'
+        Example  = 'bah-api /api/recipes?locale=fr'
+    }
+    'bah-verify' = @{
+        Synopsis = 'The full frontend chain: format, lint, typecheck, unit, build, e2e.'
+        Body     = 'Green verify is the bar for merging into main. Runs from frontend/ wherever you call it.'
+        Notes    = 'Runs against the mocks on port 4300, so a dev server on 4200 does not affect it and is not affected by it.'
+        Example  = 'bah-verify'
+    }
+    'bah-test-backend' = @{
+        Synopsis = 'The backend test suite.'
+        Body     = 'mvnw test from backend/, using the committed wrapper rather than any Maven on the machine - there is not one.'
+        Example  = 'bah-test-backend'
+    }
+    'bah-repo' = @{
+        Synopsis = 'cd to the repository.'
+        Body     = 'For when you want to be in it rather than call into it.'
+        Example  = 'bah-repo'
+    }
+    'bah-shortcuts' = @{
+        Synopsis = 'Regenerate these commands.'
+        Body     = 'Rewrites the block in your profile. Run it after moving the clone, after adding a script, or after pulling changes to the shortcut generator.'
+        Notes    = 'Takes -WhatIf to print the block without writing, and -Remove to take it out again.'
+        Example  = 'bah-shortcuts -WhatIf'
+    }
+    'bah-deploy' = @{
+        Synopsis = 'Build, check and ship the site to production.'
+        Body     = 'Runs verify:prod and the backend tests, builds, packages the jar, checks the artefact, applies the server configuration when it has changed, uploads, restarts, and confirms the live site answers. It asks before doing any of it.'
+        Notes    = 'CHANGES THE LIVE SITE. It stops in about a second when the server is already running this commit. -Provision forces the server configuration through even when unchanged; -Force deploys anyway when there is nothing new.'
+        Example  = 'bah-deploy -Provision'
+    }
+    'bah-backup' = @{
+        Synopsis = 'Pull the newest backup down to this machine.'
+        Body     = 'Asks the server for its newest nightly snapshot of the database and the photographs, copies both here, checks the archives actually open, and puts a second copy in Google Drive.'
+        Example  = 'bah-backup'
+    }
+    'bah-install-backup-task' = @{
+        Synopsis = 'Schedule the nightly backup pull on this machine.'
+        Body     = 'Registers a Windows scheduled task so the backup is fetched without anybody remembering to.'
+        Notes    = 'Changes this machine, not the server. Run once.'
+        Example  = 'bah-install-backup-task'
+    }
+    'bah-check' = @{
+        Synopsis = 'What state is the server in. Read-only.'
+        Body     = 'Copies check.sh up and runs it: operating system, disk, runtimes, the application and its files, services, listening ports, firewall, DNS, whether the site answers from the box and from the internet, recent log, backups, and the security summary.'
+        Notes    = 'Changes nothing. This is the first thing to run when something looks wrong.'
+        Example  = 'bah-check'
+    }
+    'bah-bans' = @{
+        Synopsis = 'Who fail2ban is currently refusing.'
+        Body     = 'The sshd jail and the one over Caddy access log. Bans last an hour and expire on their own.'
+        Notes    = 'To let somebody back in early: bah-ssh "sudo fail2ban-client set sshd unbanip 1.2.3.4"'
+        Example  = 'bah-bans'
+    }
+    'bah-serverlog' = @{
+        Synopsis = 'The last 60 lines of the application log on the server.'
+        Body     = 'journalctl for the bonapphedi unit. Refused requests appear here, written by the security audit filter.'
+        Example  = 'bah-serverlog'
+    }
+    'bah-digest' = @{
+        Synopsis = 'Run tonight''s log digest now.'
+        Body     = 'Reads the day, mails only if something crossed a threshold, and then erases the access log.'
+        Notes    = 'HAS SIDE EFFECTS. It erases the access log, which is the point of it - run it and the day is gone. It normally runs itself at 02:40.'
+        Example  = 'bah-digest'
+    }
+    'bah-notify' = @{
+        Synopsis = 'Send an alert, to check the path still works.'
+        Body     = 'Pipes whatever it is given through the server notifier, which mails it to the addresses in BAH_ALERT_EMAIL.'
+        Notes    = 'Sends real mail. Use it after changing the mail credentials.'
+        Example  = '"something to say" | bah-notify "a test"'
+    }
+    'bah-backup-now' = @{
+        Synopsis = 'Run the backup on the server now.'
+        Body     = 'Starts the backup unit rather than waiting for 03:20, then shows how it went.'
+        Notes    = 'Writes a new snapshot on the server. It does not pull anything down - that is bah-backup.'
+        Example  = 'bah-backup-now'
+    }
+    'bah-provision' = @{
+        Synopsis = 'Re-apply the server configuration.'
+        Body     = 'A deploy with -Provision, which forces the server configuration step even when its hash says nothing changed. This is how a hand-edited box is put back, and how a new setting in the environment file is picked up.'
+        Notes    = 'CHANGES THE LIVE SERVER. It restarts Caddy and fail2ban.'
+        Example  = 'bah-provision'
+    }
+    'bah-ssh' = @{
+        Synopsis = 'A shell on the server.'
+        Body     = 'Plain ssh to the box, or run one command on it.'
+        Example  = 'bah-ssh "systemctl status bonapphedi"'
+    }
+    'bah-help' = @{
+        Synopsis = 'List every bah command.'
+        Body     = 'One line each, grouped by what they touch. `man <name>` gives the full page for any of them.'
+        Example  = 'bah-help'
+    }
+}
+
+# Kept for the inline trailing comment on each generated line.
+$what = @{}
+foreach ($key in $help.Keys) { $what[$key] = $help[$key].Synopsis }
+
+<#
+    Every function goes out through here, so none of them can be written without
+    its manual page - which is the same lesson as discovering the entry points
+    rather than listing them. A command with no page is reported rather than
+    emitted bare.
+
+    The help block sits between `function name {` and the body, which is where
+    Get-Help looks. `param` after it is fine and is how bah-notify works.
+#>
+function New-Shortcut {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Body,
+        [string]$Param
+    )
+
+    $page = $help[$Name]
+    if (-not $page) {
+        Write-Host "  $Name has no manual page - add one to `$help in install-shortcuts.ps1" -ForegroundColor Yellow
+    }
+
+    $out = @("function $Name {")
+    if ($page) {
+        $out += '    <#'
+        $out += '    .SYNOPSIS'
+        $out += "        $($page.Synopsis)"
+        if ($page.Body) {
+            $out += '    .DESCRIPTION'
+            $out += "        $($page.Body)"
+        }
+        if ($page.Notes) {
+            $out += '    .NOTES'
+            $out += "        $($page.Notes)"
+        }
+        if ($page.Example) {
+            $out += '    .EXAMPLE'
+            $out += "        $($page.Example)"
+        }
+        $out += '    #>'
+    }
+    if ($Param) { $out += "    $Param" }
+    $out += "    $Body"
+    $out += '}'
+    $out += ''
+    return $out
 }
 
 $commands = @()
@@ -133,7 +300,7 @@ foreach ($command in $commands) {
     # as a real parameter. $args would hand it across as one array argument and
     # the switch would be silently ignored - which looks like the script quietly
     # refusing to do what it was asked.
-    $lines += "function $($command.Name) { & '$full' @args }   # $($command.What)"
+    $lines += New-Shortcut -Name $command.Name -Body "& '$full' @args"
 }
 
 <#
@@ -163,7 +330,7 @@ if ($targetHost) {
     # error in PowerShell, and piping Get-Content into ssh turns every LF into
     # CRLF so bash reports $'\r': command not found. check.sh says so in its own
     # header, having been the thing that found out.
-    $lines += "function bah-check { scp -q '$checkScript' ${targetHost}:/tmp/bonapphedi-check.sh; ssh $targetHost 'sudo bash /tmp/bonapphedi-check.sh; rm -f /tmp/bonapphedi-check.sh' }   # read-only: what state is the server in"
+    $lines += New-Shortcut -Name 'bah-check' -Body "scp -q '$checkScript' ${targetHost}:/tmp/bonapphedi-check.sh; ssh $targetHost 'sudo bash /tmp/bonapphedi-check.sh; rm -f /tmp/bonapphedi-check.sh'"
 
     <#
         The rest are the copies provision.sh installed, so they are the versions
@@ -193,28 +360,57 @@ if ($targetHost) {
         # something a one-line ssh cannot express: a copy first, piped stdin, or
         # a local deploy instead.
         if ($entry.Run) {
-            $lines += "function $($entry.Name) { ssh $targetHost '$($entry.Run)' }   # $($entry.What)"
+            $lines += New-Shortcut -Name $entry.Name -Body "ssh $targetHost '$($entry.Run)'"
         }
     }
 
-    $lines += "function bah-notify { param([string]`$Subject = 'test') `$input | ssh $targetHost `"sudo /usr/local/bin/bonapphedi-notify '`$Subject'`" }   # send an alert, to check the path"
+    $lines += New-Shortcut -Name 'bah-notify' `
+        -Param "param([string]`$Subject = 'test')" `
+        -Body "`$input | ssh $targetHost `"sudo /usr/local/bin/bonapphedi-notify '`$Subject'`""
 
     # provision.sh is never run by hand - it is step 4 of a deploy, and running
     # it out of band would apply a configuration the deploy has not checked.
-    $lines += "function bah-provision { & '$(Join-Path $repo 'deploy\deploy.bat')' -Provision }   # re-apply the server configuration through a deploy"
+    $lines += New-Shortcut -Name 'bah-provision' -Body "& '$(Join-Path $repo 'deploy\deploy.bat')' -Provision"
 
-    $lines += "function bah-bans { ssh $targetHost 'sudo fail2ban-client status sshd; sudo fail2ban-client status bonapphedi' }   # who fail2ban is currently refusing"
-    $lines += "function bah-serverlog { ssh $targetHost 'sudo journalctl -u bonapphedi -n 60 --no-pager' }   # the application's own log"
-    $lines += "function bah-ssh { ssh $targetHost @args }   # a shell on the server"
+    $lines += New-Shortcut -Name 'bah-bans' -Body "ssh $targetHost 'sudo fail2ban-client status sshd; sudo fail2ban-client status bonapphedi'"
+    $lines += New-Shortcut -Name 'bah-serverlog' -Body "ssh $targetHost 'sudo journalctl -u bonapphedi -n 60 --no-pager'"
+    $lines += New-Shortcut -Name 'bah-ssh' -Body "ssh $targetHost @args"
 }
 
 # Repo-root-relative commands that are not a single script, so they are worth
 # having as functions rather than as paths: both are run constantly and both
 # need a specific directory, which is the whole friction being removed.
 $lines += ''
-$lines += "function bah-verify { Push-Location '$repo\frontend'; try { npm run verify @args } finally { Pop-Location } }"
-$lines += "function bah-test-backend { Push-Location '$repo\backend'; try { .\mvnw.cmd --batch-mode test @args } finally { Pop-Location } }"
-$lines += "function bah-repo { Set-Location '$repo' }"
+$lines += New-Shortcut -Name 'bah-verify' -Body "Push-Location '$repo\frontend'; try { npm run verify @args } finally { Pop-Location }"
+$lines += New-Shortcut -Name 'bah-test-backend' -Body "Push-Location '$repo\backend'; try { .\mvnw.cmd --batch-mode test @args } finally { Pop-Location }"
+$lines += New-Shortcut -Name 'bah-repo' -Body "Set-Location '$repo'"
+
+<#
+    The index. Built from the same $help table the pages come from, and grouped
+    by what a command touches - because "does this change the live server" is the
+    question worth answering before "what does it do".
+#>
+$groups = [ordered]@{
+    'Here, on this machine' = @('bah-start', 'bah-dev', 'bah-stop', 'bah-api', 'bah-verify', 'bah-test-backend', 'bah-repo', 'bah-shortcuts', 'bah-backup', 'bah-install-backup-task')
+    'The server, read-only' = @('bah-check', 'bah-bans', 'bah-serverlog', 'bah-ssh')
+    'The server, changes it' = @('bah-deploy', 'bah-provision', 'bah-digest', 'bah-notify', 'bah-backup-now')
+}
+
+$indexLines = @()
+foreach ($group in $groups.Keys) {
+    $present = $groups[$group] | Where-Object { $claimed.ContainsKey($_) -or $emitted -contains $_ }
+    $indexLines += "    Write-Host ''; Write-Host '  $group' -ForegroundColor DarkGray"
+    foreach ($name in $groups[$group]) {
+        if (-not $help.ContainsKey($name)) { continue }
+        $synopsis = $help[$name].Synopsis -replace "'", "''"
+        $indexLines += "    if (Get-Command $name -ErrorAction SilentlyContinue) { Write-Host ('    {0,-24}{1}' -f '$name', '$synopsis') }"
+    }
+}
+
+$lines += New-Shortcut -Name 'bah-help' -Body (
+    ($indexLines -join "`r`n") +
+    "`r`n    Write-Host ''; Write-Host '  man <name> for the full page, e.g. man bah-deploy' -ForegroundColor DarkGray; Write-Host ''"
+)
 $lines += $END
 
 $block = $lines -join "`r`n"
