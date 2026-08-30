@@ -38,18 +38,85 @@ $BEGIN = '# >>> bonapphedi shortcuts >>>'
 $END = '# <<< bonapphedi shortcuts <<<'
 
 <#
-    One entry per command. `Path` is relative to the repo root and checked
-    before anything is written: deploy/ is a private submodule, so a clone
-    without access to it should get every other shortcut and no broken
-    `bah-deploy` that fails with a path nobody recognises.
+    Every double-clickable entry point in the repository, found rather than
+    listed.
+
+    It was a hand-written list and `bah-start` was missing from it, which is the
+    failure mode a hand-written list has: nothing tells you what you left out.
+    So the .bat files at the root and in deploy/ are discovered, and this table
+    only holds the two things discovery cannot know — what a command should be
+    called when the filename is not the answer, and which files are not entry
+    points at all.
+
+    A .bat rather than the .ps1 it wraps, wherever both exist: the wrapper is
+    what handles the execution policy, and start.bat additionally passes -Open
+    so the browser comes up. Pointing at scripts\dev.ps1 would silently drop
+    that.
 #>
-$commands = @(
-    @{ Name = 'bah-dev'; Path = 'scripts\dev.ps1'; What = 'backend on :8080 then frontend on :4200' }
-    @{ Name = 'bah-stop'; Path = 'stop.bat'; What = 'stop whatever holds :4200 and :8080' }
-    @{ Name = 'bah-api'; Path = 'scripts\api.ps1'; What = 'call the API from the shell' }
-    @{ Name = 'bah-deploy'; Path = 'deploy\deploy.bat'; What = 'build, check and ship (private submodule)' }
-    @{ Name = 'bah-backup'; Path = 'deploy\backup.bat'; What = 'pull a backup down (private submodule)' }
+$notEntryPoints = @(
+    # Called by the Windows scheduled task, never by a person.
+    'backup-task.ps1'
+    # Wrapped by install-backup-task.bat.
+    'install-backup-task.ps1'
+    # Wrapped by deploy.bat, and running it directly skips the confirmation.
+    'deploy.ps1'
+    # Wrapped by backup.bat.
+    'pull-backup.ps1'
 )
+
+# Where the filename is not the name anybody would reach for.
+$names = @{
+    'start.bat'               = 'bah-start'
+    'stop.bat'                = 'bah-stop'
+    'api.bat'                 = 'bah-api'
+    'backup.bat'              = 'bah-backup'          # the root one: pulls a copy down here
+    'deploy.bat'              = 'bah-deploy'
+    'install-shortcuts.bat'   = 'bah-shortcuts'       # regenerate this block
+    'install-backup-task.bat' = 'bah-install-backup-task'
+}
+
+$what = @{
+    'bah-start'               = 'dev loop, and open the browser when it is up'
+    'bah-stop'                = 'stop whatever holds :4200 and :8080'
+    'bah-api'                 = 'call the API from the shell'
+    'bah-backup'              = 'pull the newest backup down to this machine'
+    'bah-deploy'              = 'build, check and ship'
+    'bah-shortcuts'           = 'regenerate these commands after moving the clone'
+    'bah-install-backup-task' = 'schedule the nightly backup pull on this machine'
+}
+
+$commands = @()
+$claimed = @{}
+
+# The root is walked first on purpose. backup.bat exists in both places and the
+# one at the root simply forwards to deploy's, so whichever is seen first is the
+# right answer and the second is a duplicate rather than a different command.
+foreach ($dir in @('', 'deploy')) {
+    $full = if ($dir) { Join-Path $repo $dir } else { $repo }
+    if (-not (Test-Path $full)) { continue }
+
+    foreach ($file in Get-ChildItem -Path $full -Filter '*.bat' -File | Sort-Object Name) {
+        if ($notEntryPoints -contains $file.Name) { continue }
+        $name = if ($names.ContainsKey($file.Name)) { $names[$file.Name] } else { "bah-$($file.BaseName)" }
+        $relative = if ($dir) { Join-Path $dir $file.Name } else { $file.Name }
+
+        # Two functions of the same name is not an error in PowerShell: the
+        # second silently replaces the first, so half the block would be
+        # generated and quietly discarded. Discovery makes that easy to cause,
+        # so it is refused here rather than left to be noticed.
+        if ($claimed.ContainsKey($name)) {
+            Write-Host "  $name already points at $($claimed[$name]); skipping $relative" -ForegroundColor DarkGray
+            continue
+        }
+
+        $claimed[$name] = $relative
+        $commands += @{ Name = $name; Path = $relative; What = $what[$name] }
+    }
+}
+
+# dev.ps1 has no .bat of its own that does not also open a browser, and running
+# the dev loop without one is the ordinary case in a terminal.
+$commands += @{ Name = 'bah-dev'; Path = 'scripts\dev.ps1'; What = 'dev loop, no browser' }
 
 # --- the block ---------------------------------------------------------------
 
@@ -98,18 +165,47 @@ if ($targetHost) {
     # header, having been the thing that found out.
     $lines += "function bah-check { scp -q '$checkScript' ${targetHost}:/tmp/bonapphedi-check.sh; ssh $targetHost 'sudo bash /tmp/bonapphedi-check.sh; rm -f /tmp/bonapphedi-check.sh' }   # read-only: what state is the server in"
 
-    # These run the copies provision.sh installed, so they are the versions the
-    # timers actually use rather than whatever is in this working tree.
-    $lines += "function bah-digest { ssh $targetHost 'sudo /usr/local/bin/bonapphedi-digest' }   # run tonight's digest now (mails, then erases the day)"
+    <#
+        The rest are the copies provision.sh installed, so they are the versions
+        the timers actually use rather than whatever is in this working tree.
+
+        Discovered from deploy\*.sh for the same reason the local ones are:
+        a script added there and forgotten here would just not be reachable, and
+        nothing would say so. Each one needs to know how it is invoked, so the
+        table below is keyed by filename and anything not in it is reported
+        rather than skipped silently.
+    #>
+    $serverScripts = @{
+        'digest.sh'    = @{ Name = 'bah-digest'; Run = "sudo /usr/local/bin/bonapphedi-digest"; What = "run tonight's digest now (mails, then erases the day)" }
+        'backup.sh'    = @{ Name = 'bah-backup-now'; Run = "sudo systemctl start bonapphedi-backup; sleep 2; systemctl status bonapphedi-backup --no-pager -n 5"; What = 'run the backup on the server now' }
+        'notify.sh'    = @{ Name = 'bah-notify'; Run = $null; What = 'send an alert, to check the path' }
+        'check.sh'     = @{ Name = 'bah-check'; Run = $null; What = 'read-only: what state is the server in' }
+        'provision.sh' = @{ Name = 'bah-provision'; Run = $null; What = 're-apply the server configuration through a deploy' }
+    }
+
+    foreach ($file in Get-ChildItem -Path (Join-Path $repo 'deploy') -Filter '*.sh' -File | Sort-Object Name) {
+        if (-not $serverScripts.ContainsKey($file.Name)) {
+            Write-Host "  deploy\$($file.Name) has no shortcut defined - add one to install-shortcuts.ps1" -ForegroundColor Yellow
+            continue
+        }
+        $entry = $serverScripts[$file.Name]
+        # The three with a null Run are written out below, because each needs
+        # something a one-line ssh cannot express: a copy first, piped stdin, or
+        # a local deploy instead.
+        if ($entry.Run) {
+            $lines += "function $($entry.Name) { ssh $targetHost '$($entry.Run)' }   # $($entry.What)"
+        }
+    }
+
     $lines += "function bah-notify { param([string]`$Subject = 'test') `$input | ssh $targetHost `"sudo /usr/local/bin/bonapphedi-notify '`$Subject'`" }   # send an alert, to check the path"
-    $lines += "function bah-backup-now { ssh $targetHost 'sudo systemctl start bonapphedi-backup; sleep 2; systemctl status bonapphedi-backup --no-pager -n 5' }   # run the backup on the server now"
-    $lines += "function bah-bans { ssh $targetHost 'sudo fail2ban-client status sshd; sudo fail2ban-client status bonapphedi' }   # who fail2ban is currently refusing"
-    $lines += "function bah-serverlog { ssh $targetHost 'sudo journalctl -u bonapphedi -n 60 --no-pager' }   # the application's own log"
-    $lines += "function bah-ssh { ssh $targetHost @args }   # a shell on the server"
 
     # provision.sh is never run by hand - it is step 4 of a deploy, and running
     # it out of band would apply a configuration the deploy has not checked.
     $lines += "function bah-provision { & '$(Join-Path $repo 'deploy\deploy.bat')' -Provision }   # re-apply the server configuration through a deploy"
+
+    $lines += "function bah-bans { ssh $targetHost 'sudo fail2ban-client status sshd; sudo fail2ban-client status bonapphedi' }   # who fail2ban is currently refusing"
+    $lines += "function bah-serverlog { ssh $targetHost 'sudo journalctl -u bonapphedi -n 60 --no-pager' }   # the application's own log"
+    $lines += "function bah-ssh { ssh $targetHost @args }   # a shell on the server"
 }
 
 # Repo-root-relative commands that are not a single script, so they are worth
