@@ -87,13 +87,22 @@ That writes a fenced block of small functions into your PowerShell profile, and
 
 | Command | Runs |
 |---|---|
-| `bah-dev` | `scripts\dev.ps1` — the dev loop |
+| `bah-start` | `start.bat` — dev loop, and opens the browser |
+| `bah-dev` | `scripts\dev.ps1` — dev loop, no browser |
 | `bah-stop` | `stop.bat` |
-| `bah-api` | `scripts\api.ps1` |
+| `bah-api` | `api.bat` |
 | `bah-verify` | `npm run verify`, from `frontend/` |
 | `bah-test-backend` | `mvnw test`, from `backend/` |
 | `bah-repo` | `cd` to the repository |
-| `bah-deploy`, `bah-backup` | the private submodule's scripts, when you have it |
+| `bah-shortcuts` | regenerate this block after moving the clone |
+| `bah-deploy`, `bah-backup`, `bah-install-backup-task` | the private submodule's, when you have it |
+
+**The list is discovered rather than written down.** Every `.bat` at the root
+and in `deploy/`, and every `deploy/*.sh`, becomes a command — so adding a
+script and forgetting to add a shortcut is not a thing that can happen quietly.
+A name claimed twice is reported and skipped rather than silently overwritten,
+which is what PowerShell would otherwise do with the second `function` of the
+same name.
 
 The shell scripts in `deploy/` run on the server rather than here, so theirs are
 ssh wrappers — `bah-check` (read-only: what state is the server in),
