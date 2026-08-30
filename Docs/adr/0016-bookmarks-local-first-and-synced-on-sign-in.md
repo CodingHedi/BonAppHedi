@@ -412,3 +412,39 @@ the binding. Nothing goes to the backlog.
 key — and the two together are criterion 5b: one on the server, one in the
 interface, because the property has to hold in both and neither test can see the
 other's half.
+
+## Audit, 2026-08-30: the criteria, measured against the live site
+
+Deployed at `431e63f`. Checked with a headless browser against
+`https://bonapphedi.fr` rather than against the mocked suite, because the two
+are different arrangements — real API, real Caddy, six published recipes rather
+than five — and this ADR's claims are about what a reader gets, not about what
+the suite serves.
+
+| # | Criterion | Result |
+|---|---|---|
+| 1 | Anonymous save, listed, survives a reload, no account, no round trip | **pass** — stored `["babka"]`, still saved after reload |
+| 2 | Nothing sent to the server while there is no session | **pass** — 0 requests to `/api/auth/bookmarks` or `/bookmark` |
+| 3 | Signing in yields the union, and merging twice changes nothing | *covered by `BookmarkApiTest`; needs a real Google sign-in to check here* |
+| 4 | Signing out clears the local copy, and says so first | *same — needs a session* |
+| 5 | A bookmark survives a language switch | **pass** — saved on `/fr/recettes/babka-au-chocolat`, found at `/en/saved` as *Chocolate babka* |
+| 5b | Editing a recipe leaves bookmarks intact | **pass** — `AdminKeyIsImmutableTest` and the editor's read-only key, both confirmed red by breaking them |
+| 6 | `localStorage` unavailable degrades rather than breaking | *not reproducible against production; held by the wrapped reads and `bookmarks.unavailable`* |
+| 7 | The empty state states where bookmarks live and claims nothing else | **pass** — "Enregistrées dans ce navigateur", "Rien d'enregistré dans ce navigateur", and the line about other appareils |
+| 8 | The privacy page describes bookmarks in both languages | **pass** — *stockage local* and *local storage* |
+| 9 | Renaming a key leaves bookmarks and links working | **pass** — see 5b |
+| 10 | A shared link opens on a device with no bookmarks, writing nothing | **pass** — 2 cards rendered, `localStorage` still null |
+| 11 | An unknown or malformed code is ignored rather than breaking | **pass** — `?r=babka,deleted-long-ago,,` renders one card |
+
+Also checked, because it is the rule the fifth matrix set exists for:
+`GET /api/auth/bookmarks` answers **401** to a stranger rather than an empty
+list.
+
+**Nine of eleven verified against production; the two that are not both need a
+real Google session**, which no automated check here can hold. They are covered
+by `BookmarkApiTest` on the server, and the merge being a union was confirmed by
+making it a replacement and watching it delete the account's list.
+
+Status stays `proposed` until somebody signs in on the live site and sees their
+list follow them, which is the one claim this whole ADR is built around and the
+only one still taken on trust.
