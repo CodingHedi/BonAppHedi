@@ -1,6 +1,6 @@
 # 16. Bookmarks: local first, synced on sign-in
 
-Date: 2026-08-30 · Status: proposed
+Date: 2026-08-30 · Status: accepted
 
 ## Context
 
@@ -440,14 +440,25 @@ Also checked, because it is the rule the fifth matrix set exists for:
 `GET /api/auth/bookmarks` answers **401** to a stranger rather than an empty
 list.
 
-**Nine of eleven verified against production; the two that are not both need a
-real Google session**, which no automated check here can hold. They are covered
-by `BookmarkApiTest` on the server, and the merge being a union was confirmed by
-making it a replacement and watching it delete the account's list.
+**Ten of eleven verified against production.** The audit above was written at
+nine, with criteria 3 and 4 outstanding because both need a real Google session
+and no automated check here can hold one. Hedi signed in on 2026-08-30 and
+confirmed both by hand — the table records what he saw — and criterion 4's
+missing warning was found in that same pass and fixed below.
 
-Status stays `proposed` until somebody signs in on the live site and sees their
-list follow them, which is the one claim this whole ADR is built around and the
-only one still taken on trust.
+The one still taken on trust is criterion 6, `localStorage` being unavailable,
+which is not reproducible against production: there is no way to make it throw
+on a live origin from outside the browser's settings. It is held by the wrapped
+reads and the `bookmarks.unavailable` state instead. `BookmarkApiTest` covers
+the server's half, and the merge being a union was confirmed by making it a
+replacement and watching it delete the account's list.
+
+**Status is `accepted` as of 2026-09-02, and it should have moved on
+2026-08-30.** The sentence naming the condition sat *below* a table that had
+already recorded the condition being met, so the evidence was updated and the
+verdict was not. Worth naming because nothing catches it: a status line is
+prose, no test reads it, and a stale `proposed` reads as open work to whoever
+picks this up next — which is exactly what happened.
 
 ### The half of criterion 4 that was never built
 
