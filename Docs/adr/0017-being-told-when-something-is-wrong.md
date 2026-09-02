@@ -210,3 +210,134 @@ cost of losing an old trail is small, and the cost of keeping a growing store of
 readers' addresses is not. The nightly digest of stage 4 is what makes it
 workable — it reads the day's log before the erasure and carries anything worth
 keeping into the alert mail, so what survives is a summary rather than a file.
+
+## Audit, 2026-09-02: what is built, what is proven, and what needs the server
+
+Measured against the repository and a local run, **not** against the live
+machine — which is the limit of this audit and the reason the status does not
+move. Four of the nine criteria are demonstrations on a running server: a backup
+made to fail, a jail banning an address, a digest crossing a threshold, Caddy
+surviving a second provision. None can be performed from a workstation.
+
+| # | Criterion | Result |
+|---|---|---|
+| 1 | A failing backup sends mail, demonstrated by making one fail on purpose | **not demonstrated** — the path is wired and has carried a real alert, which is how two defects in `bonapphedi-alert@.service` were found; a *deliberately failed backup* is recorded nowhere |
+| 2 | An unset mail credential leaves the server booting, backing up and serving | **pass** — `notify.sh` run here with no `bonapphedi.env` present: exit 0, stdin drained so the caller takes no SIGPIPE, one findable line, no mail |
+| 3 | Both logs show requests, and Caddy still starts after `provision.sh` runs twice | **partly** — the `log` directive is in the Caddyfile, and `provision.sh` creates `/var/log/caddy` owned by `caddy` before running `validate`, itself as `caddy`. Requests actually appearing, and the second run, need the server |
+| 4 | A failed admin attempt, a 401 and a moderation action each write one line naming the path and no raw address | **pass**, after this change — see below |
+| 5 | fail2ban bans a source that fails admin auth repeatedly | **not demonstrated** — filter, action and jail are installed by `provision.sh`, and the jail's log is created empty so it can start before the first request ever arrives. Needs the server and a throwaway address |
+| 6 | The digest mails on a threshold, stays silent otherwise, says so weekly | **partly** — the thresholds are in `digest.sh` and the weekly line is `[[ $(date +%u) -eq 1 ]]`. Whether either fires needs the server |
+| 7 | `check.sh --security` answers the same questions read-only | **pass in substance, not as written** — see below |
+| 8 | The write ceiling refuses a scripted burst and is never met by the e2e suite | **pass, with the second half weaker than it reads** — see below |
+| 9 | The privacy page says what the server logs and for how long, in both languages | **pass** — `logsTitle`, `logsBody`, `logsWhy`, `logsRetention`, `logsApp` in both `fr.json` and `en.json`, with retention stated as daily erasure per the amendment above |
+
+Five pass, two are partly held with the demonstration outstanding, and two have
+not been demonstrated at all.
+
+### Criterion 4: the moderation line was written and asserted by nothing
+
+`SecurityAuditLogTest` held the refusals — the 401, the absent address, the
+absent query string, the WARN level. The third thing the criterion names, a
+moderation action, was logged in `AdminController` and covered by no assertion
+anywhere, so deleting that one call satisfied every test in the repository while
+breaking the criterion.
+
+Now `aModerationDecisionIsRecorded`, confirmed red by commenting the
+`audit.info` out and watching that test alone fail on nothing having been
+written. It restores the seeded pending comment before using it, because it
+approves that comment and the test database is a file that outlives the run.
+
+This is the same shape as ADR 16's `signOutWarning`: the work was done, and the
+thing that would notice it being undone was not.
+
+### Criterion 7: there is no `--security` flag
+
+`check.sh` takes no arguments at all. The security questions are a `section`
+inside it, answered by every run rather than by a mode, and the whole script is
+read-only — that section uses `journalctl`, `grep`, `stat`,
+`fail2ban-client status` and `systemctl show`, and nothing that writes.
+
+So the substance holds and the interface the criterion names does not exist.
+Recorded rather than corrected in either direction: a flag would earn its place
+if the script became slow or noisy, and it has not.
+
+### Criterion 8: the e2e suite cannot meet a ceiling it never reaches
+
+`WriteCeilingTest` refuses a burst at a ceiling of 3 and leaves reads alone.
+That is the first half, and it holds.
+
+The second half — "never met by the e2e suite, which is the closest thing to a
+real reader here" — is true, but not for the reason the sentence implies. With
+`PW_TARGET` unset the suite serves its own build on **4300 with no Spring behind
+it**, so no spec passes through `WriteCeilingFilter` at all. It does not stay
+under the ceiling; it never arrives at one. The arrangement that would measure
+this is the acceptance run at `PW_TARGET=real`, and that has not been performed
+since the ceiling was added.
+
+Worth writing down rather than ticking, because the criterion reads as though a
+green `verify` proves it and a green `verify` is silent on it.
+
+### Three things this audit found
+
+**`SecurityAuditFilter` described a retention that had been replaced.** Its
+javadoc said Caddy's access log "is kept for fourteen days, and is described on
+the privacy page as such". The amendment above changed that to daily erasure and
+`logsRetention` says so in both languages, so both halves of the sentence were
+false. Corrected.
+
+That is precisely the defect this ADR was written to fix — the Caddyfile saying
+access logs went to journald while Caddy wrote none. A comment describing
+behaviour the system does not have is not a small thing in this area: it is the
+only description anybody reads before deciding whether something is working.
+
+**`provision.sh` creates the access log before it creates the directory.** Line
+245 runs `install -o caddy ... /var/log/caddy/access.log` so the fail2ban jail
+has a file to watch; line 274 runs `install -d -o caddy /var/log/caddy`, and its
+comment says it is there "so that a server rebuilt from scratch cannot depend
+on" the `.deb` having made the directory. Line 245 depends on exactly that,
+twenty-nine lines earlier, under `set -euo pipefail`.
+
+It does not bite today: caddy is installed at line 72 and its package ships the
+directory. So this is a defensive line that does not defend as far back as it
+reads. Left alone here because moving it is an ops change and this is an audit —
+named so that a rebuild does not discover it.
+
+**A missing database is a successful backup.** `backup.sh` opens with
+
+```bash
+[[ -f "$DB" ]] || { echo "no database at $DB yet; nothing to back up"; exit 0; }
+```
+
+On a freshly provisioned machine that is right, and is why it is there. On a
+running one it means the database disappearing — the worst thing that can happen
+to this site — is reported as success, mails nothing, and satisfies criterion 1
+by never triggering it. The two cases are distinguishable, since a machine that
+has backed up before has files in `/var/backups/bonapphedi`, and they are
+currently not distinguished.
+
+Not fixed here for the same reason as the last one, and it is the more valuable
+of the two.
+
+### What is left, and it is all on the server
+
+In rough order of value:
+
+1. **Fail a backup on purpose** (criterion 1). The obvious method does not work:
+   moving the database aside makes the run *succeed*, by the guard above. Making
+   the destination unusable does fail it — replace the backup directory with a
+   file, so `mkdir -p` dies under `set -e`, then start
+   `bonapphedi-backup.service` and wait for the mail. Undo it afterwards. This
+   is the criterion the whole ADR turns on: every other stage tells you
+   something, and this is the one that proves the telling works.
+2. **Run `provision.sh` twice and confirm Caddy still starts** (criterion 3),
+   then confirm that `/var/log/caddy/access.log` has requests in it and that
+   `journalctl -u caddy` does too.
+3. **Ban a throwaway address** (criterion 5) by failing admin auth repeatedly
+   against `/api/admin/**`, then read `fail2ban-client status bonapphedi`.
+4. **Watch the digest** (criterion 6) — one threshold crossed, one quiet night,
+   and one Monday.
+
+Until those four are done and written into the table above, the status stays
+`proposed` and this is alerting that has never been asked to do its job in
+anger. ADR 16's lesson applies exactly: what moves a status is recorded
+evidence, not a finished implementation.
