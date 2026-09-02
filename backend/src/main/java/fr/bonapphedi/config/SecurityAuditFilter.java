@@ -29,9 +29,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * stores no raw IP — {@code VisitorIdentity} HMACs one and keeps only the
  * digest — and a security log that quietly broke that promise would be a worse
  * problem than the one it solves. What identifies a source here is Caddy's
- * access log, which does keep addresses because fail2ban needs them, is kept
- * for fourteen days, and is described on the privacy page as such. The split is
- * the point: the thing that must know an address is the thing that forgets it.
+ * access log, which does keep addresses because fail2ban needs them and is
+ * erased every day, as the privacy page states. The split is the point: the
+ * thing that must know an address is the thing that forgets it.
  *
  * <p>Its own logger name, {@code fr.bonapphedi.security}, so the nightly digest
  * and a human reading by hand can both select these lines without a regex over

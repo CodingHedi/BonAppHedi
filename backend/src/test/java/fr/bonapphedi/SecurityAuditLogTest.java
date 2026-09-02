@@ -1,12 +1,17 @@
 package fr.bonapphedi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import fr.bonapphedi.auth.AppUser;
+import fr.bonapphedi.auth.AppUserPrincipal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -41,6 +48,9 @@ class SecurityAuditLogTest {
     @Autowired
     private MockMvc mvc;
 
+    @Autowired
+    private JdbcClient jdbc;
+
     private ListAppender<ILoggingEvent> captured;
     private ch.qos.logback.classic.Logger audit;
 
@@ -60,7 +70,7 @@ class SecurityAuditLogTest {
 
     private String onlyLine() {
         assertThat(captured.list)
-                .as("nothing was written to fr.bonapphedi.security, so a refusal left no trace")
+                .as("nothing was written to fr.bonapphedi.security, so the event left no trace")
                 .isNotEmpty();
         return captured.list.get(0).getFormattedMessage();
     }
@@ -107,5 +117,44 @@ class SecurityAuditLogTest {
         mvc.perform(get("/api/admin/recipes")).andExpect(status().isUnauthorized());
 
         assertThat(captured.list.get(0).getLevel()).isEqualTo(Level.WARN);
+    }
+
+    @Test
+    void aModerationDecisionIsRecorded() throws Exception {
+        // Criterion 4 of ADR 17 names three things — a failed admin attempt, a
+        // 401, and a moderation action. The first two are held above. This one
+        // was written in AdminController and asserted nowhere, so deleting the
+        // audit.info call broke the criterion and left every test green.
+        //
+        // It is not a refusal, so it does not go through the filter at all: it
+        // is the only line the application writes about something that
+        // succeeded, and the only record of who decided what about a stranger's
+        // remark.
+
+        // Put the seeded pending comment back rather than trusting it to be
+        // there. This test approves it, the database file persists between
+        // runs, and a second `mvnw test` would otherwise find nothing PENDING
+        // and fail on an empty result rather than on the thing being asserted.
+        jdbc.sql("DELETE FROM comment WHERE display_name = 'Anonyme'").update();
+        jdbc.sql(
+                        """
+                        INSERT INTO comment (recipe_id, user_id, display_name, body_markdown, body_html, status, created_at)
+                        VALUES (2, NULL, 'Anonyme', 'premier !!!', '<p>premier !!!</p>', 'PENDING', '2026-07-25T12:00:00Z')
+                        """)
+                .update();
+
+        long id = jdbc.sql("SELECT id FROM comment WHERE status = 'PENDING'")
+                .query(Long.class)
+                .single();
+
+        mvc.perform(post("/api/admin/comments/{id}/moderate", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"approve\":true}")
+                        .with(oauth2Login().oauth2User(new AppUserPrincipal(
+                                new AppUser(1, "google", "g-1", "Hédi", "hedi@example.com", true))))
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        assertThat(onlyLine()).contains("moderated comment=" + id).contains("approved=true");
     }
 }
