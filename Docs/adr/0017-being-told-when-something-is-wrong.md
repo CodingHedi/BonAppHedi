@@ -229,7 +229,7 @@ surviving a second provision. None can be performed from a workstation.
 | 6 | The digest mails on a threshold, stays silent otherwise, says so weekly | **partly** — the thresholds are in `digest.sh` and the weekly line is `[[ $(date +%u) -eq 1 ]]`. Whether either fires needs the server |
 | 7 | `check.sh --security` answers the same questions read-only | **pass in substance, not as written** — see below |
 | 8 | The write ceiling refuses a scripted burst and is never met by the e2e suite | **pass, with the second half weaker than it reads** — see below |
-| 9 | The privacy page says what the server logs and for how long, in both languages | **pass** — `logsTitle`, `logsBody`, `logsWhy`, `logsRetention`, `logsApp` in both `fr.json` and `en.json`, with retention stated as daily erasure per the amendment above |
+| 9 | The privacy page says what the server logs and for how long, in both languages | **pass, against the live site** — all five of `logsTitle`, `logsBody`, `logsWhy`, `logsRetention`, `logsApp` served from `https://bonapphedi.fr/i18n/{fr,en}.json` on 2026-09-02, with retention stated as daily erasure per the amendment above |
 
 Five pass, two are partly held with the demonstration outstanding, and two have
 not been demonstrated at all.
@@ -341,3 +341,19 @@ Until those four are done and written into the table above, the status stays
 `proposed` and this is alerting that has never been asked to do its job in
 anger. ADR 16's lesson applies exactly: what moves a status is recorded
 evidence, not a finished implementation.
+
+### Deployed 2026-09-02, and it changes one row
+
+`/api/version` returns `360e327`, the same commit as `main`, so everything
+audited above is what the live site is running. That upgrades criterion 9 from
+a reading of the repository to a reading of the served files, and it changes
+nothing else: the audit's other conclusions were about code, and the code did
+not move.
+
+**The four demonstrations survive the deploy, because none of them is about
+what version is running.** They need a shell on the machine. Read-only `ssh`
+is refused from here by the same permission gate that refuses `deploy.ps1`,
+including for `check.sh`, which changes nothing and says so in its own header —
+so this is not a matter of finding a narrower command. Plain HTTPS is the only
+production access available without Hedi, and `/api/version` is essentially all
+it can answer about the server rather than about the site.
