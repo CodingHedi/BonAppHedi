@@ -221,9 +221,9 @@ surviving a second provision. None can be performed from a workstation.
 
 | # | Criterion | Result |
 |---|---|---|
-| 1 | A failing backup sends mail, demonstrated by making one fail on purpose | **not demonstrated** — the path is wired and has carried a real alert, which is how two defects in `bonapphedi-alert@.service` were found; a *deliberately failed backup* is recorded nowhere |
+| 1 | A failing backup sends mail, demonstrated by making one fail on purpose | **pass** — demonstrated 2026-09-03, see below |
 | 2 | An unset mail credential leaves the server booting, backing up and serving | **pass** — `notify.sh` run here with no `bonapphedi.env` present: exit 0, stdin drained so the caller takes no SIGPIPE, one findable line, no mail |
-| 3 | Both logs show requests, and Caddy still starts after `provision.sh` runs twice | **partly** — the `log` directive is in the Caddyfile, and `provision.sh` creates `/var/log/caddy` owned by `caddy` before running `validate`, itself as `caddy`. Requests actually appearing, and the second run, need the server |
+| 3 | Both logs show requests, and Caddy still starts after `provision.sh` runs twice | **partly, and the log half is now confirmed live** — 151 lines in `/var/log/caddy/access.log` on 2026-09-03, including a `GET /fr` answered 200. The second `provision.sh` run is still outstanding |
 | 4 | A failed admin attempt, a 401 and a moderation action each write one line naming the path and no raw address | **pass**, after this change — see below |
 | 5 | fail2ban bans a source that fails admin auth repeatedly | **not demonstrated** — filter, action and jail are installed by `provision.sh`, and the jail's log is created empty so it can start before the first request ever arrives. Needs the server and a throwaway address |
 | 6 | The digest mails on a threshold, stays silent otherwise, says so weekly | **partly** — the thresholds are in `digest.sh` and the weekly line is `[[ $(date +%u) -eq 1 ]]`. Whether either fires needs the server |
@@ -231,8 +231,69 @@ surviving a second provision. None can be performed from a workstation.
 | 8 | The write ceiling refuses a scripted burst and is never met by the e2e suite | **pass, with the second half weaker than it reads** — see below |
 | 9 | The privacy page says what the server logs and for how long, in both languages | **pass, against the live site** — all five of `logsTitle`, `logsBody`, `logsWhy`, `logsRetention`, `logsApp` served from `https://bonapphedi.fr/i18n/{fr,en}.json` on 2026-09-02, with retention stated as daily erasure per the amendment above |
 
-Five pass, two are partly held with the demonstration outstanding, and two have
-not been demonstrated at all.
+Six pass, one is partly held with its remaining demonstration outstanding, and
+two have not been demonstrated at all.
+
+### Criterion 1: demonstrated 2026-09-03, and it works
+
+The backup was made to fail on purpose and the mail arrived. Recorded here in
+full because this is the criterion the whole ADR turns on — every other stage
+tells somebody something, and this is the one that proves the telling works.
+
+**Failing it needed the right method, and the obvious one is wrong.** Moving the
+database aside makes the run *succeed*, by the guard named further down. What
+fails it is making the destination unusable: `/var/backups/bonapphedi` was moved
+aside and replaced with a regular file, so `mkdir -p "$DEST"` could not create
+the directory and `set -e` took the script down.
+
+`systemctl` showed `Result: exit-code`, `status=1/FAILURE`, and the mail said:
+
+```
+bonapphedi-backup.service on vps-7d93e25b at 2026-09-03T10:21:24+00:00
+
+  result      : exit-code
+  exit status : 1
+
+Output of the run that triggered this:
+Sep 03 10:21:24 vps-7d93e25b bonapphedi-backup[727532]: mkdir: Already exists
+```
+
+Every property the alert unit was rewritten for is visible in those eight lines.
+It names the unit rather than asserting a failure it never checked; it reports
+`result` and `exit status` as systemd sees them; and it quotes **one line** —
+the run that triggered it, found through `InvocationID` — rather than the
+`journalctl -n 40` that would have been three weeks of history with the
+interesting part at the bottom. The timestamp matches the failed invocation
+exactly, which is how you can tell it is not simply reporting the tail of the
+journal.
+
+The service was restored afterwards and confirmed back to `0/SUCCESS`.
+
+**One thing this did not test, and it is worth being clear about.** This proves
+`OnFailure=` fires and the mail path carries. It does not prove the alerting
+notices a backup that fails *by not happening at all* — a dead timer, or the
+guard below turning a missing database into a success. Those are silences, and
+nothing here yet distinguishes a silent success from a silent failure except the
+digest's weekly line.
+
+### An accident of the demonstration: the journal lies if you forget `sudo`
+
+Worth recording because it produced a convincing false negative. Checking the
+alert unit with
+
+```bash
+journalctl -u 'bonapphedi-alert@*' -n 40 --no-pager
+```
+
+printed `Failed to add filter for units: No data available`, which reads exactly
+like the alert never having run. It had run; `journalctl` as an ordinary user
+sees no system units at all and says so in a hint above the error that is easy
+to skip past. The same omission made `ls /var/backups/bonapphedi/` answer
+`Permission denied`.
+
+So a check for this criterion that is run without `sudo` reports the alerting
+broken when it is working — which is the more dangerous direction only because
+the opposite would at least send somebody looking.
 
 ### Criterion 4: the moderation line was written and asserted by nothing
 
@@ -320,26 +381,25 @@ of the two.
 
 ### What is left, and it is all on the server
 
-In rough order of value:
+**The first of the four is done — see criterion 1 above.** Three remain, in
+rough order of value. All of them are `bah-*` commands from the workstation
+rather than a shell on the box:
 
-1. **Fail a backup on purpose** (criterion 1). The obvious method does not work:
-   moving the database aside makes the run *succeed*, by the guard above. Making
-   the destination unusable does fail it — replace the backup directory with a
-   file, so `mkdir -p` dies under `set -e`, then start
-   `bonapphedi-backup.service` and wait for the mail. Undo it afterwards. This
-   is the criterion the whole ADR turns on: every other stage tells you
-   something, and this is the one that proves the telling works.
-2. **Run `provision.sh` twice and confirm Caddy still starts** (criterion 3),
-   then confirm that `/var/log/caddy/access.log` has requests in it and that
-   `journalctl -u caddy` does too.
-3. **Ban a throwaway address** (criterion 5) by failing admin auth repeatedly
-   against `/api/admin/**`, then read `fail2ban-client status bonapphedi`.
-4. **Watch the digest** (criterion 6) — one threshold crossed, one quiet night,
-   and one Monday.
+1. **Run the configuration through twice and confirm Caddy still starts**
+   (criterion 3) — `bah-provision`, twice, then `bah-check`. The access-log half
+   is already confirmed.
+2. **Ban a throwaway address** (criterion 5) by failing admin auth repeatedly
+   against `/api/admin/**` from outside, then `bah-bans`. The jail ignores the
+   server's own address, so this cannot be done from the box.
+3. **Watch the digest** (criterion 6) — `bah-digest` for a threshold being
+   crossed, then one quiet night and one Monday, which are waits rather than
+   commands.
 
-Until those four are done and written into the table above, the status stays
-`proposed` and this is alerting that has never been asked to do its job in
-anger. ADR 16's lesson applies exactly: what moves a status is recorded
+**`bah-digest` erases the access log**, which is what it is for, so it has to
+come last or it deletes what the other two produce.
+
+Until those three are done and written into the table above, the status stays
+`proposed`. ADR 16's lesson applies exactly: what moves a status is recorded
 evidence, not a finished implementation.
 
 ### Deployed 2026-09-02, and it changes one row
