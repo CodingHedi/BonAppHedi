@@ -223,16 +223,72 @@ surviving a second provision. None can be performed from a workstation.
 |---|---|---|
 | 1 | A failing backup sends mail, demonstrated by making one fail on purpose | **pass** — demonstrated 2026-09-03, see below |
 | 2 | An unset mail credential leaves the server booting, backing up and serving | **pass** — `notify.sh` run here with no `bonapphedi.env` present: exit 0, stdin drained so the caller takes no SIGPIPE, one findable line, no mail |
-| 3 | Both logs show requests, and Caddy still starts after `provision.sh` runs twice | **partly, and the log half is now confirmed live** — 151 lines in `/var/log/caddy/access.log` on 2026-09-03, including a `GET /fr` answered 200. The second `provision.sh` run is still outstanding |
+| 3 | Both logs show requests, and Caddy still starts after `provision.sh` runs twice | **pass, with a correction to the criterion itself** — `bah-provision` run twice on 2026-09-03, Caddy `active` afterwards and writing to its own log. See below: the journald half of this criterion describes a design that was replaced |
 | 4 | A failed admin attempt, a 401 and a moderation action each write one line naming the path and no raw address | **pass**, after this change — see below |
-| 5 | fail2ban bans a source that fails admin auth repeatedly | **not demonstrated** — filter, action and jail are installed by `provision.sh`, and the jail's log is created empty so it can start before the first request ever arrives. Needs the server and a throwaway address |
-| 6 | The digest mails on a threshold, stays silent otherwise, says so weekly | **partly** — the thresholds are in `digest.sh` and the weekly line is `[[ $(date +%u) -eq 1 ]]`. Whether either fires needs the server |
+| 5 | fail2ban bans a source that fails admin auth repeatedly | **pass** — demonstrated 2026-09-03 against a real address, ban and mail both. See below |
+| 6 | The digest mails on a threshold, stays silent otherwise, says so weekly | **partly** — `bah-digest` run 2026-09-03 crossed a threshold and mailed, and erased the access log after it. The other two halves are elapsed time rather than commands: one quiet night, one Monday |
 | 7 | `check.sh --security` answers the same questions read-only | **pass in substance, not as written** — see below |
 | 8 | The write ceiling refuses a scripted burst and is never met by the e2e suite | **pass, with the second half weaker than it reads** — see below |
 | 9 | The privacy page says what the server logs and for how long, in both languages | **pass, against the live site** — all five of `logsTitle`, `logsBody`, `logsWhy`, `logsRetention`, `logsApp` served from `https://bonapphedi.fr/i18n/{fr,en}.json` on 2026-09-02, with retention stated as daily erasure per the amendment above |
 
-Six pass, one is partly held with its remaining demonstration outstanding, and
-two have not been demonstrated at all.
+Eight pass. The ninth, criterion 6, is demonstrated in the half that is a
+command and waits on two observations that are elapsed time.
+
+### Criterion 3: it passes, and the criterion is partly wrong
+
+`bah-provision` was run twice on 2026-09-03 and Caddy came back `active` both
+times. The property this criterion exists for is not that Caddy starts, though —
+it is that Caddy can still *write its own log* afterwards, which is what failed
+the first time and took the log directive out of the Caddyfile. That is now
+shown by the log working rather than by inspecting it: `bah-check` reported
+`/var/log/caddy/access.log` at 2,822,839 bytes and growing, hours after the
+second provision. A root-owned log would have left the unit dead instead.
+
+The access-log half was confirmed earlier the same day — 151 lines, including a
+`GET /fr` answered 200.
+
+**But `journalctl -u caddy` does not show requests, and should not.** The
+criterion was written as "`journalctl -u caddy` and the access-log file both
+show requests", and that sentence predates the decision it is meant to verify.
+`log { output file … }` sends the access log to the file *instead of* stderr, so
+journald keeps Caddy's service messages — ACME renewals, TLS cache — and none of
+its requests. Asking for both is asking for the behaviour this stage was created
+to replace.
+
+Recorded rather than quietly satisfied, because a future reader checking this
+criterion literally would look in journald, find no requests, and conclude the
+stage is broken when it is working exactly as designed.
+
+### Criterion 5: banned, and the ban said so
+
+Eight requests to `/api/admin/recipes` from an external address. **Six were
+answered 401 and the seventh and eighth hung**, which is the ban arriving:
+`maxretry = 5`, and fail2ban polls the log rather than watching each line, so a
+fast burst gets one or two past the threshold before the rule lands. Worth
+writing down, because six refusals out of eight looks like an off-by-one and is
+not one — it is the poll interval, and a slower burst would show five.
+
+The hang rather than a refusal is also the point: the jail DROPs, so the client
+waits rather than being told. And `bah-ssh` kept working throughout, because the
+jail is `port = http,https` — the box stays reachable while the website does
+not, which is what makes this safe to demonstrate against your own address.
+
+`fail2ban-client set bonapphedi unbanip` restored it, confirmed by a 200.
+
+**A ban mail arrived**, which is the part nothing had ever exercised. The
+backup alert of criterion 1 tests `notify.sh` through systemd's `OnFailure=`;
+this tests the jail's own `bonapphedi-notify` action, a different caller
+entirely. Both paths are now known to carry.
+
+Independently, the `sshd` jail had banned `2.57.122.168` on its own by the time
+this was checked — real traffic rather than a demonstration, and the reason that
+jail does not mail.
+
+**One thing not observed:** the jail's banned list was not read while the ban was
+in force. The ban is attested by its effect — traffic dropped, then restored by
+an explicit unban — and by the mail, rather than by the table. That is stronger
+evidence than the table would have been, but it is a different observation and
+is recorded as what it is.
 
 ### Criterion 1: demonstrated 2026-09-03, and it works
 
@@ -379,28 +435,29 @@ currently not distinguished.
 Not fixed here for the same reason as the last one, and it is the more valuable
 of the two.
 
-### What is left, and it is all on the server
+### What is left is two silences, and neither is a command
 
-**The first of the four is done — see criterion 1 above.** Three remain, in
-rough order of value. All of them are `bah-*` commands from the workstation
-rather than a shell on the box:
+Every demonstration a person can perform has been performed. What remains is
+criterion 6's other two thirds, and both are things that must *fail to happen*:
 
-1. **Run the configuration through twice and confirm Caddy still starts**
-   (criterion 3) — `bah-provision`, twice, then `bah-check`. The access-log half
-   is already confirmed.
-2. **Ban a throwaway address** (criterion 5) by failing admin auth repeatedly
-   against `/api/admin/**` from outside, then `bah-bans`. The jail ignores the
-   server's own address, so this cannot be done from the box.
-3. **Watch the digest** (criterion 6) — `bah-digest` for a threshold being
-   crossed, then one quiet night and one Monday, which are waits rather than
-   commands.
+1. **One quiet night.** Tomorrow's automatic run, on a day with nothing to
+   report, must send nothing at all. Confirm it ran anyway —
+   `bah-ssh "sudo journalctl -u bonapphedi-digest --since yesterday --no-pager"` —
+   because a timer that died and a night with no findings look identical from
+   the mailbox, which is the entire problem this stage exists to solve.
+2. **One Monday.** A `weekly: all quiet` mail, with no threshold crossed. This
+   is the criterion most likely to be dismissed as noise later, and it is the
+   only thing that distinguishes a working alerting channel from an expired mail
+   credential.
 
-**`bah-digest` erases the access log**, which is what it is for, so it has to
-come last or it deletes what the other two produce.
+**Status stays `proposed` until both are observed**, and that is not
+bureaucracy: everything demonstrated so far proves the system can *speak*, and
+these two prove it knows when to stay quiet. An alerting channel that only ever
+gets tested by making it fire is one where silence has never been checked to
+mean anything.
 
-Until those three are done and written into the table above, the status stays
-`proposed`. ADR 16's lesson applies exactly: what moves a status is recorded
-evidence, not a finished implementation.
+Move the header when they land, and record what arrived — see the closing note
+of ADR 16 for what happens otherwise.
 
 ### Deployed 2026-09-02, and it changes one row
 
