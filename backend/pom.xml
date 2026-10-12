@@ -38,7 +38,7 @@
       ON DELETE CASCADE in the schema is inert.
     -->
     <sqlite.version>3.53.4.0</sqlite.version>
-    <commonmark.version>0.30.0</commonmark.version>
+    <commonmark.version>0.30.1</commonmark.version>
     <owasp.sanitizer.version>20260313.1</owasp.sanitizer.version>
     <!--
       Where `ng build` leaves the application. Angular writes a `browser`
